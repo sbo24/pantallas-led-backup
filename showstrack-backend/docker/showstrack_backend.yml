@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  showstrack-backend:
+    image: python:3.10-slim
+    container_name: showstrack-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    working_dir: /app
+    volumes:
+      # NAMED VOLUMES - Portainer
+      - showstrack_backend_code:/app
+      - showstrack_backend_logs:/app/logs
+      - showstrack_backend_data:/app/data
+    command: >
+      bash -c "
+        # Crear directorios necesarios
+        mkdir -p /app/logs /app/data &&
+        # Instalar curl para health checks
+        apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/* &&
+        # Si no existe código, clonarlo o copiarlo
+        if [ ! -f /app/app/main.py ]; then
+          echo '⚠️  Código no encontrado en volumen, inicializando...' &&
+          # Aquí podrías clonar desde Git o copiar código inicial
+          mkdir -p /app/app /app/alembic /app/tests &&
+          echo 'from fastapi import FastAPI; app = FastAPI(); @app.get(\"/health\") async def health(): return {\"status\": \"healthy\"}' > /app/app/main.py &&
+          echo '# Placeholder para requirements' > /app/requirements.txt &&
+          echo 'fastapi==0.104.1' >> /app/requirements.txt &&
+          echo 'uvicorn[standard]==0.24.0' >> /app/requirements.txt &&
+          echo 'sqlalchemy==2.0.23' >> /app/requirements.txt &&
+          echo 'asyncpg==0.29.0' >> /app/requirements.txt &&
+          echo 'pydantic==2.4.2' >> /app/requirements.txt &&
+          echo 'pydantic-settings==2.0.3' >> /app/requirements.txt &&
+          echo '✅ Código base inicializado'
+        fi &&
+        # Instalar dependencias Python
+        pip install --no-cache-dir -r requirements.txt &&
+        # Configurar PYTHONPATH
+        export PYTHONPATH=/app &&
+        # Lanzar aplicación
+        uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+      "
+    environment:
+      # Variables de entorno con valores por defecto
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://showstrack_user:showstrack_36Qz4g_password_2025@showstrack-postgres:5432/showstrack_main}
+      - SECRET_KEY=${SECRET_KEY:-dev_secret36Qz4g_key_2025}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      # Configuraciones adicionales
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173}
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-120}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - CACHE_DEFAULT_TTL=${CACHE_DEFAULT_TTL:-3600}
+      - CACHE_API_PUBLIC_TTL=${CACHE_API_PUBLIC_TTL:-300}
+      - PUY_DU_FOU_API_BASE_URL=${PUY_DU_FOU_API_BASE_URL:-https://api.mobile.puydufouespana.com}
+      - PUY_DU_FOU_API_TIMEOUT=${PUY_DU_FOU_API_TIMEOUT:-10}
+      # Monitoreo y métricas
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - METRICS_ENABLED=${METRICS_ENABLED:-false}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - showstrack-network
+
+# NAMED VOLUMES que aparecerán en Portainer
+volumes:
+  showstrack_backend_code:
+    driver: local
+    name: showstrack_backend_code
+  showstrack_backend_logs:
+    driver: local  
+    name: showstrack_backend_logs
+  showstrack_backend_data:
+    driver: local
+    name: showstrack_backend_data
+
+networks:
+  showstrack-network:
+    external: true
+    name: showstrack-network

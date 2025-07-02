@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  showstrack-postgres:
+    image: postgres:15
+    container_name: showstrack-postgres
+    restart: unless-stopped
+    environment:
+      # Variables desde .env - PostgreSQL las requiere para inicialización
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Configuración de autenticación
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "5432:5432"
+    volumes:
+      # DATOS PERSISTENTES
+      # Docker managed volume → /var/lib/postgresql/data (dentro del contenedor)
+      - postgres_data:/var/lib/postgresql/data
+
+      # pgadmin auto add server
+      - /opt/showstrack/pgadmin-config:/pgadmin4:ro
+      
+      # SCRIPTS DE INICIALIZACIÓN
+      # Host: /opt/showstrack/init-scripts/ → Container: /docker-entrypoint-initdb.d/
+      # PostgreSQL ejecuta automáticamente archivos .sql y .sh de este directorio
+      # SOLO se ejecutan en la primera inicialización (volumen vacío)
+      - /opt/showstrack/init-scripts:/docker-entrypoint-initdb.d:ro
+      
+      # BACKUPS (opcional para pg_dump)
+      # Host: /opt/showstrack/backups/ → Container: /backups/
+      - /opt/showstrack/backups:/backups
+    networks:
+      - showstrack-network
+
+  showstrack-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: showstrack-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - /opt/showstrack/logs/pgadmin:/var/log/pgadmin
+    configs:
+      - source: servers.json
+        target: /pgadmin4/servers.json
+    depends_on:
+      - showstrack-postgres
+    networks:
+      - showstrack-network
+
+configs:
+  servers.json:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "ShowsTrack PostgreSQL",
+            "Group": "Servers", 
+            "Host": "showstrack-postgres",
+            "Port": 5432,
+            "MaintenanceDB": "showstrack_main",
+            "Username": "showstrack_user",
+            "SSLMode": "prefer"
+          }
+        }
+      }
+
+# VOLÚMENES GESTIONADOS POR DOCKER
+volumes:
+  postgres_data:
+    driver: local
+    # Ubicación real en el host: /var/lib/docker/volumes/[stack-name]_postgres_data/_data
+    
+  pgadmin_data:
+    driver: local
+    # Ubicación real en el host: /var/lib/docker/volumes/[stack-name]_pgadmin_data/_data
+
+# RED INTERNA PARA COMUNICACIÓN ENTRE CONTENEDORES
+networks:
+  showstrack-network:
+    driver: bridge
+    # Los contenedores se comunican usando nombres de servicio como hostnames
+    # Ejemplo: showstrack-postgres:5432 desde pgadmin
