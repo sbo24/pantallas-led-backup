@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 app = FastAPI(
-    title="ShowsTrack API",
+    title="ShowsTrack API", 
     version="1.0.0"
 )
 
