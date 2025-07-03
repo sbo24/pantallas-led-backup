@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    working_dir: /app
+    working_dir: /app/showstrack-app/showstrack-backend/backend
     volumes:
       # NAMED VOLUMES - Portainer
       - showstrack_backend_code:/app
@@ -17,28 +17,53 @@ services:
       bash -c "
         # Crear directorios necesarios
         mkdir -p /app/logs /app/data &&
-        # Instalar curl para health checks
+        
+        # Instalar herramientas necesarias
         apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/* &&
-        # Si no existe código, clonarlo o copiarlo
-        if [ ! -f /app/app/main.py ]; then
-          echo '⚠️  Código no encontrado en volumen, inicializando...' &&
-          # Aquí podrías clonar desde Git o copiar código inicial
-          mkdir -p /app/app /app/alembic /app/tests &&
-          echo 'from fastapi import FastAPI; app = FastAPI(); @app.get(\"/health\") async def health(): return {\"status\": \"healthy\"}' > /app/app/main.py &&
-          echo '# Placeholder para requirements' > /app/requirements.txt &&
-          echo 'fastapi==0.104.1' >> /app/requirements.txt &&
-          echo 'uvicorn[standard]==0.24.0' >> /app/requirements.txt &&
-          echo 'sqlalchemy==2.0.23' >> /app/requirements.txt &&
-          echo 'asyncpg==0.29.0' >> /app/requirements.txt &&
-          echo 'pydantic==2.4.2' >> /app/requirements.txt &&
-          echo 'pydantic-settings==2.0.3' >> /app/requirements.txt &&
-          echo '✅ Código base inicializado'
+        
+        # Configurar Git con credenciales
+        git config --global user.name '${GIT_USER_NAME:-rvaquerizo}' &&
+        git config --global user.email '${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}' &&
+        git config --global credential.helper store &&
+        echo 'https://${GIT_USERNAME:-rvaquerizopdf}:${GIT_TOKEN}@github.com' > ~/.git-credentials &&
+        
+        # Clonar o actualizar repositorio
+        if [ ! -d /app/showstrack-app/.git ]; then
+          echo '🔄 Clonando repositorio ShowsTrack...' &&
+          cd /app &&
+          rm -rf showstrack-app &&
+          git clone https://${GIT_USERNAME:-rvaquerizopdf}:${GIT_TOKEN}@github.com/rvaquerizopdf/showstrack-app.git showstrack-app &&
+          echo '✅ Repositorio clonado exitosamente'
+        else
+          echo '📂 Repositorio existe, actualizando...' &&
+          cd /app/showstrack-app &&
+          git pull origin main &&
+          echo '✅ Repositorio actualizado'
         fi &&
+        
+        # Verificar si el código existe en el repo
+        if [ ! -f /app/showstrack-app/showstrack-backend/backend/app/main.py ]; then
+          echo '⚠️  Código backend no encontrado en el repositorio' &&
+          echo '📝 Por favor, sube el código al repositorio GitHub primero' &&
+          echo '🔄 El contenedor se reiniciará automáticamente cuando detecte cambios' &&
+          sleep 30 &&
+          exit 1
+        fi &&
+        
+        # Navegar al directorio de trabajo correcto
+        cd /app/showstrack-app/showstrack-backend/backend &&
+        
         # Instalar dependencias Python
         pip install --no-cache-dir -r requirements.txt &&
-        # Configurar PYTHONPATH
-        export PYTHONPATH=/app &&
-        # Lanzar aplicación
+        
+        # Configurar PYTHONPATH para la nueva estructura
+        export PYTHONPATH=/app/showstrack-app/showstrack-backend/backend &&
+        
+        echo '🚀 Iniciando ShowsTrack Backend...' &&
+        echo '📁 Working directory: \$(pwd)' &&
+        echo '🐍 Python path: \${PYTHONPATH}' &&
+        
+        # Lanzar aplicación desde el directorio correcto
         uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
       "
     environment:
@@ -49,9 +74,16 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - DEBUG=${DEBUG:-true}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/showstrack-app/showstrack-backend/backend
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      
+      # Git configuration
+      - GIT_USERNAME=${GIT_USERNAME:-rvaquerizopdf}
+      - GIT_TOKEN=${GIT_TOKEN}
+      - GIT_USER_NAME=${GIT_USER_NAME:-rvaquerizo}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}
+      
       # Configuraciones adicionales
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173}
       - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-120}
@@ -60,6 +92,7 @@ services:
       - CACHE_API_PUBLIC_TTL=${CACHE_API_PUBLIC_TTL:-300}
       - PUY_DU_FOU_API_BASE_URL=${PUY_DU_FOU_API_BASE_URL:-https://api.mobile.puydufouespana.com}
       - PUY_DU_FOU_API_TIMEOUT=${PUY_DU_FOU_API_TIMEOUT:-10}
+      
       # Monitoreo y métricas
       - SENTRY_DSN=${SENTRY_DSN:-}
       - METRICS_ENABLED=${METRICS_ENABLED:-false}
