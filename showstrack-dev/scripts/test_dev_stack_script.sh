@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# ShowsTrack Internal Dev Test Script v1.0
+# ShowsTrack Internal Dev Test Script v1.1
 # ==========================================
 # Uso INTERNO (desde dentro del container):
 #   ./test_internal_dev.sh --basic     # Test básico (entorno configurado)
@@ -21,6 +21,74 @@ success() { echo -e "${GREEN}✅ $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; }
 warn() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+
+# ==========================================
+# FUNCIONES HELPER
+# ==========================================
+
+# Test de conectividad usando Python socket (portable)
+test_host_connectivity() {
+    local host=$1
+    local port=$2
+    local timeout=${3:-5}
+    
+    python3 -c "
+import socket
+import sys
+
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout($timeout)
+    result = sock.connect_ex(('$host', $port))
+    sock.close()
+    
+    if result == 0:
+        exit(0)
+    else:
+        exit(1)
+except Exception as e:
+    exit(1)
+" 2>/dev/null
+}
+
+# Test de conexión PostgreSQL con asyncpg (maneja formato DSN)
+test_postgres_connection() {
+    if [ -z "$DATABASE_URL" ]; then
+        return 1
+    fi
+    
+    python3 -c "
+import asyncpg
+import asyncio
+import os
+
+async def test_connection():
+    try:
+        # Obtener URL y manejar formato asyncpg
+        url = os.environ.get('DATABASE_URL', '')
+        if not url:
+            return False
+            
+        # asyncpg espera 'postgresql://' no 'postgresql+asyncpg://'
+        if url.startswith('postgresql+asyncpg://'):
+            url = url.replace('postgresql+asyncpg://', 'postgresql://')
+        
+        conn = await asyncpg.connect(url)
+        result = await conn.fetchval('SELECT version()')
+        await conn.close()
+        
+        print(f'✅ Conexión PostgreSQL exitosa')
+        print(f'   └─ Versión: {result.split()[1]}')
+        return True
+    except Exception as e:
+        print(f'❌ Error conexión PostgreSQL: {str(e)[:80]}...')
+        return False
+
+import sys
+result = asyncio.run(test_connection())
+sys.exit(0 if result else 1)
+" 2>/dev/null
+}
 
 # ==========================================
 # CONFIGURACIÓN
@@ -308,38 +376,22 @@ elif [ "$TEST_MODE" = "full" ]; then
         pg_host=$(echo $DATABASE_URL | sed 's/.*@//g' | sed 's/:.*//g')
         echo "   └─ Host PostgreSQL: $pg_host"
         
-        # Test ping
-        if ping -c 1 -W 1 $pg_host &>/dev/null; then
-            success "PostgreSQL host alcanzable ($pg_host)"
+        # Test conectividad usando Python socket (portable)
+        if test_host_connectivity "$pg_host" 5432 3; then
+            success "PostgreSQL host alcanzable ($pg_host:5432)"
         else
-            error "No se puede alcanzar PostgreSQL host ($pg_host)"
+            error "No se puede alcanzar PostgreSQL host ($pg_host:5432)"
         fi
         
-        # Test conexión Python (si venv está activado)
+        # Test conexión PostgreSQL completa (si venv está activado)
         if [ -n "$VIRTUAL_ENV" ]; then
-            if python -c "
-import asyncpg
-import asyncio
-import os
-
-async def test_connection():
-    try:
-        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
-        result = await conn.fetchval('SELECT version()')
-        await conn.close()
-        print(f'✅ Conexión PostgreSQL exitosa')
-        print(f'   └─ Versión: {result.split()[1]}')
-        return True
-    except Exception as e:
-        print(f'❌ Error conexión PostgreSQL: {str(e)[:50]}...')
-        return False
-
-asyncio.run(test_connection())
-" 2>/dev/null; then
-                :  # Success message already printed by Python
+            if test_postgres_connection; then
+                : # Success message already printed by function
             else
-                warn "No se pudo conectar a PostgreSQL (revisar credenciales)"
+                warn "No se pudo conectar a PostgreSQL (revisar credenciales o formato DSN)"
             fi
+        else
+            warn "Virtual environment no activado - saltando test de conexión PostgreSQL"
         fi
     else
         error "Variable DATABASE_URL no configurada"
