@@ -1,123 +1,151 @@
-version: '3.8'
+# ==========================================
+# 📖 MANUAL DE USO - SHOWSTRACK BACKEND
+# ==========================================
 
-services:
-  showstrack-backend:
-    image: python:3.10-slim
-    container_name: showstrack-backend
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    working_dir: /app/showstrack-app/showstrack-backend/backend
-    volumes:
-      # NAMED VOLUMES - Portainer
-      - showstrack_backend_code:/app
-      - showstrack_backend_logs:/app/logs
-      - showstrack_backend_data:/app/data
-    command: >
-      bash -c "
-        # Crear directorios necesarios
-        mkdir -p /app/logs /app/data &&
-        
-        # Instalar herramientas necesarias
-        apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/* &&
-        
-        # Configurar Git con credenciales
-        git config --global user.name '${GIT_USER_NAME:-rvaquerizo}' &&
-        git config --global user.email '${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}' &&
-        git config --global credential.helper store &&
-        echo 'https://${GIT_USERNAME:-rvaquerizopdf}:${GIT_TOKEN}@github.com' > ~/.git-credentials &&
-        
-        # Clonar o actualizar repositorio
-        if [ ! -d /app/showstrack-app/.git ]; then
-          echo '🔄 Clonando repositorio ShowsTrack...' &&
-          cd /app &&
-          rm -rf showstrack-app &&
-          git clone https://${GIT_USERNAME:-rvaquerizopdf}:${GIT_TOKEN}@github.com/rvaquerizopdf/showstrack-app.git showstrack-app &&
-          echo '✅ Repositorio clonado exitosamente'
-        else
-          echo '📂 Repositorio existe, actualizando...' &&
-          cd /app/showstrack-app &&
-          git pull origin main &&
-          echo '✅ Repositorio actualizado'
-        fi &&
-        
-        # Verificar si el código existe en el repo
-        if [ ! -f /app/showstrack-app/showstrack-backend/backend/app/main.py ]; then
-          echo '⚠️  Código backend no encontrado en el repositorio' &&
-          echo '📝 Por favor, sube el código al repositorio GitHub primero' &&
-          echo '🔄 El contenedor se reiniciará automáticamente cuando detecte cambios' &&
-          sleep 30 &&
-          exit 1
-        fi &&
-        
-        # Navegar al directorio de trabajo correcto
-        cd /app/showstrack-app/showstrack-backend/backend &&
-        
-        # Instalar dependencias Python
-        pip install --no-cache-dir -r requirements.txt &&
-        
-        # Configurar PYTHONPATH para la nueva estructura
-        export PYTHONPATH=/app/showstrack-app/showstrack-backend/backend &&
-        
-        echo '🚀 Iniciando ShowsTrack Backend...' &&
-        echo '📁 Working directory: \$(pwd)' &&
-        echo '🐍 Python path: \${PYTHONPATH}' &&
-        
-        # Lanzar aplicación desde el directorio correcto
-        uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-      "
-    environment:
-      # Variables de entorno con valores por defecto
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://showstrack_user:showstrack_36Qz4g_password_2025@showstrack-postgres:5432/showstrack_main}
-      - SECRET_KEY=${SECRET_KEY:-dev_secret36Qz4g_key_2025}
-      - ALGORITHM=${ALGORITHM:-HS256}
-      - ENVIRONMENT=${ENVIRONMENT:-development}
-      - DEBUG=${DEBUG:-true}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PYTHONPATH=/app/showstrack-app/showstrack-backend/backend
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      
-      # Git configuration
-      - GIT_USERNAME=${GIT_USERNAME:-rvaquerizopdf}
-      - GIT_TOKEN=${GIT_TOKEN}
-      - GIT_USER_NAME=${GIT_USER_NAME:-rvaquerizo}
-      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}
-      
-      # Configuraciones adicionales
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173}
-      - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-120}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
-      - CACHE_DEFAULT_TTL=${CACHE_DEFAULT_TTL:-3600}
-      - CACHE_API_PUBLIC_TTL=${CACHE_API_PUBLIC_TTL:-300}
-      - PUY_DU_FOU_API_BASE_URL=${PUY_DU_FOU_API_BASE_URL:-https://api.mobile.puydufouespana.com}
-      - PUY_DU_FOU_API_TIMEOUT=${PUY_DU_FOU_API_TIMEOUT:-10}
-      
-      # Monitoreo y métricas
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - METRICS_ENABLED=${METRICS_ENABLED:-false}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    networks:
-      - showstrack-network
+# 🎯 DESCRIPCIÓN
+# --------------
+# Stack Docker para ShowsTrack Backend API con FastAPI.
+# Incluye sincronización automática con repositorio GitHub,
+# instalación automática de dependencias, y configuración
+# de desarrollo con auto-reload.
 
-# NAMED VOLUMES que aparecerán en Portainer
-volumes:
-  showstrack_backend_code:
-    driver: local
-    name: showstrack_backend_code
-  showstrack_backend_logs:
-    driver: local  
-    name: showstrack_backend_logs
-  showstrack_backend_data:
-    driver: local
-    name: showstrack_backend_data
+# 🔧 PREREQUISITOS
+# ----------------
+# 1. Red Docker existente: showstrack-network
+# 2. Variables en secrets.env configuradas:
+#    - GIT_USERNAME=rvaquerizopdf
+#    - GIT_TOKEN=ghp_xxxxxxxxxxxxx (GitHub Personal Access Token)
+#    - DATABASE_URL (conexión PostgreSQL)
+#    - SECRET_KEY (para JWT)
+# 3. Repositorio GitHub: rvaquerizopdf/showstrack-app (privado)
+# 4. Código backend en: showstrack-app/showstrack-backend/backend/
 
-networks:
-  showstrack-network:
-    external: true
-    name: showstrack-network
+# 📋 ESTRUCTURA ESPERADA EN GITHUB
+# --------------------------------
+# showstrack-app/
+# ├── showstrack-backend/
+# │   └── backend/                    ← Working directory del contenedor
+# │       ├── app/
+# │       │   └── main.py            ← FastAPI application
+# │       ├── requirements.txt       ← Python dependencies
+# │       ├── alembic/               ← Database migrations
+# │       └── tests/                 ← Unit tests
+# ├── showstrack-frontend/
+# ├── showstrack-postgres/
+# └── docs/
+
+# 🚀 DEPLOYMENT
+# -------------
+# 1. Configurar variables en Portainer > Environment:
+#    - Ir a Stacks > Environment variables
+#    - Cargar secrets.env con variables Git
+#
+# 2. Deploy stack:
+#    - Copiar este YAML en Portainer
+#    - Deploy stack
+#    - El contenedor clonará automáticamente el código
+#
+# 3. Verificar funcionamiento:
+#    docker logs showstrack-backend -f
+
+# 🔍 TROUBLESHOOTING
+# ------------------
+# ❌ Error: "fatal: not a git repository"
+#    Solución: Limpiar volúmenes en Portainer > Volumes
+#             Eliminar: showstrack_backend_code
+#             Redeploy stack
+#
+# ❌ Error: "Repository not found" 
+#    Solución: Verificar GIT_TOKEN en secrets.env
+#             Token debe tener permisos: repo (full control)
+#
+# ❌ Error: "No module named 'app'"
+#    Solución: Verificar que app/main.py existe en GitHub
+#             Estructura debe estar en showstrack-backend/backend/
+#
+# ❌ Error: "SyntaxError in main.py"
+#    Solución: Verificar que main.py tiene formato multi-línea correcto
+#             No debe estar todo en una sola línea
+
+# 🔄 OPERACIONES COMUNES
+# ----------------------
+# Ver logs en tiempo real:
+#   docker logs showstrack-backend -f
+#
+# Entrar al contenedor:
+#   docker exec -it showstrack-backend bash
+#
+# Verificar código sincronizado:
+#   docker exec showstrack-backend ls -la /app/showstrack-app/showstrack-backend/backend/
+#
+# Actualizar código desde GitHub:
+#   docker restart showstrack-backend
+#
+# Probar API:
+#   curl http://localhost:8000/health
+#   curl http://localhost:8000/docs
+#
+# Limpiar volúmenes (reset completo):
+#   1. Stop stack en Portainer
+#   2. Volumes > Delete showstrack_backend_*
+#   3. Redeploy stack
+
+# 🌐 URLs DISPONIBLES
+# -------------------
+# 📡 Backend API: http://localhost:8000
+# 📚 Swagger Docs: http://localhost:8000/docs
+# 🏥 Health Check: http://localhost:8000/health
+# 📊 Redoc: http://localhost:8000/redoc
+
+# 🔧 VARIABLES DE ENTORNO IMPORTANTES
+# -----------------------------------
+# GIT_USERNAME: Usuario GitHub (rvaquerizopdf)
+# GIT_TOKEN: Personal Access Token con permisos repo
+# DATABASE_URL: Conexión a PostgreSQL (showstrack-postgres)
+# SECRET_KEY: Clave para firmar JWT tokens
+# DEBUG: true/false para modo desarrollo
+# ENVIRONMENT: development/production
+
+# 📝 DESARROLLO
+# -------------
+# Para desarrollo local:
+# 1. Clonar repo localmente
+# 2. Modificar código
+# 3. Push a GitHub
+# 4. Restart contenedor para sincronizar cambios
+#
+# Para desarrollo con Claude Code:
+# 1. Usar showstrack-dev container
+# 2. Modificar código directamente
+# 3. Git commit + push desde máquina dev
+
+# ⚡ PERFORMANCE
+# -------------
+# - Auto-reload activado (--reload)
+# - Health checks cada 30s
+# - Restart automático si falla
+# - Logs en volumen persistente
+# - Python bytecode cache deshabilitado para desarrollo <<<< 
+
+# 🔒 SEGURIDAD
+# ------------
+# - Credenciales Git en environment variables
+# - No se exponen tokens en logs
+# - Network aislada (showstrack-network)
+# - Health checks para monitoreo
+
+# 📈 MONITORING
+# -------------
+# Health endpoint: /health
+# Logs: docker logs showstrack-backend
+# Metrics: METRICS_ENABLED=true (opcional)
+# Alerts: SENTRY_DSN para error tracking (opcional)
+
+# 🔄 BACKUP Y RECOVERY
+# --------------------
+# - Código: Respaldado automáticamente en GitHub
+# - Logs: Volumen showstrack_backend_logs
+# - Data: Volumen showstrack_backend_data
+# - Recovery: Redeploy stack (auto-clone desde GitHub)
+
+# ==========================================
