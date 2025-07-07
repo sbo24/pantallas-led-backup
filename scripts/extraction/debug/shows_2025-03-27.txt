@@ -1,0 +1,171 @@
+Evento 1:
+  Fecha: 2025-03-27
+  EventoID: 2107137254650000441_
+  Evento: Apertura
+  Tipo: Apertura / Cierre
+  Duración: 0
+  Hora Inicio: 11:00
+  Hora Fin: 11:00
+
+Evento 2:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000373_
+  Evento: Cetrería de Reyes
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 11:45
+  Hora Fin: 12:15
+
+Evento 3:
+  Fecha: 2025-03-27
+  EventoID: 2232941949479820608_
+  Evento: De Tal Palo
+  Tipo: Show
+  Duración: 15
+  Hora Inicio: 12:00
+  Hora Fin: 15:00
+
+Evento 4:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000370_
+  Evento: Allende la Mar Océana
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 12:00
+  Hora Fin: 18:30
+
+Evento 5:
+  Fecha: 2025-03-27
+  EventoID: 1740673240789621446_
+  Evento: El tambor de la Libertad
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 12:30
+  Hora Fin: 12:55
+
+Evento 6:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000372_
+  Evento: El Último Cantar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 12:45
+  Hora Fin: 13:15
+
+Evento 7:
+  Fecha: 2025-03-27
+  EventoID: 2232491949459820608_
+  Evento: El Misterio de Sorbaces
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 13:15
+  Hora Fin: 13:40
+
+Evento 8:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000369_
+  Evento: A Pluma y Espada
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 14:15
+  Hora Fin: 14:45
+
+Evento 9:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000373_
+  Evento: Cetrería de Reyes
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 14:30
+  Hora Fin: 15:00
+
+Evento 10:
+  Fecha: 2025-03-27
+  EventoID: 2232947349450827608_
+  Evento: El Espadero de Vivar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 15:15
+  Hora Fin: 15:45
+
+Evento 11:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000369_
+  Evento: A Pluma y Espada
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 16:00
+  Hora Fin: 16:30
+
+Evento 12:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000372_
+  Evento: El Último Cantar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 16:15
+  Hora Fin: 16:45
+
+Evento 13:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000373_
+  Evento: Cetrería de Reyes
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 16:45
+  Hora Fin: 17:15
+
+Evento 14:
+  Fecha: 2025-03-27
+  EventoID: 2232941949479820608_
+  Evento: De Tal Palo
+  Tipo: Show
+  Duración: 15
+  Hora Inicio: 17:00
+  Hora Fin: 18:30
+
+Evento 15:
+  Fecha: 2025-03-27
+  EventoID: 2232491949459820608_
+  Evento: El Misterio de Sorbaces
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 17:30
+  Hora Fin: 17:55
+
+Evento 16:
+  Fecha: 2025-03-27
+  EventoID: 1740673240789621446_
+  Evento: El tambor de la Libertad
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 17:30
+  Hora Fin: 17:55
+
+Evento 17:
+  Fecha: 2025-03-27
+  EventoID: 2232947349450827608_
+  Evento: El Espadero de Vivar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 18:00
+  Hora Fin: 18:30
+
+Evento 18:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000369_
+  Evento: A Pluma y Espada
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 18:15
+  Hora Fin: 18:45
+
+Evento 19:
+  Fecha: 2025-03-27
+  EventoID: 2106740768780000372_
+  Evento: El Último Cantar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 18:30
+  Hora Fin: 19:00
+
