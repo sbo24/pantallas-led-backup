@@ -1,7 +1,6 @@
-﻿
-
-
-# ShowsTrack Backend
+﻿# ShowsTrack Backend
+# conectarte al contenedor
+docker exec -it showstrack-backend bash
 
 Backend FastAPI con StateCalculationEngine
 
