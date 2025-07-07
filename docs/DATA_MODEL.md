@@ -1,0 +1,336 @@
+# 🗄️ ShowsTrack APP - Modelo de Datos y Entidades
+
+## 2.1 Entidades Core
+
+### Show (Espectáculos)
+
+**Propósito**: Catálogo maestro de espectáculos disponibles en el parque.
+
+```sql
+CREATE TABLE shows (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    duration_estimated INTEGER, -- minutos
+    show_category VARCHAR(100), -- principal, secundario, especial
+    
+    -- Configuración de visibilidad
+    is_visible BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    
+    -- Lead times personalizados (NULL = usar globales)
+    custom_lead_time_access_minutes INTEGER CHECK (custom_lead_time_access_minutes >= 0),
+    custom_lead_time_finalized_minutes INTEGER CHECK (custom_lead_time_finalized_minutes >= 0),
+    
+    -- Metadata
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para optimización
+CREATE INDEX idx_shows_visible ON shows(is_visible);
+CREATE INDEX idx_shows_display_order ON shows(display_order);
+```
+
+**Campos Clave**:
+- `name`: Identificador único del espectáculo
+- `is_visible`: Controla si aparece en pantallas públicas
+- `display_order`: Para ordenación manual (0 = orden automático)
+- `custom_lead_time_*`: Override de configuración global
+
+### ScheduledEvent (Eventos Programados)
+
+**Propósito**: Horarios específicos de cada representación/pase de un espectáculo.
+
+```sql
+CREATE TABLE scheduled_events (
+    id SERIAL PRIMARY KEY,
+    external_event_id VARCHAR(255) NOT NULL UNIQUE, -- ID del sistema origen
+    show_id INTEGER NOT NULL REFERENCES shows(id),
+    
+    -- Información temporal
+    event_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME,
+    duration_minutes INTEGER NOT NULL,
+    
+    -- Tipo de evento
+    event_type VARCHAR(50) DEFAULT 'show', -- show, apertura, cierre
+    
+    -- Flags especiales
+    is_multiple_shows_flag BOOLEAN DEFAULT false,
+    availability_window_start TIME,
+    availability_window_end TIME,
+    
+    -- Metadata de importación
+    last_imported_at TIMESTAMP WITH TIME ZONE,
+    import_source VARCHAR(100),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_show_datetime UNIQUE (show_id, event_date, start_time)
+);
+
+-- Índices para queries frecuentes
+CREATE INDEX idx_events_date ON scheduled_events(event_date);
+CREATE INDEX idx_events_show_date ON scheduled_events(show_id, event_date);
+CREATE INDEX idx_events_external_id ON scheduled_events(external_event_id);
+CREATE INDEX idx_events_datetime ON scheduled_events(event_date, start_time);
+```
+
+**Campos Clave**:
+- `external_event_id`: Clave única del sistema origen (inmutable)
+- `event_date` + `start_time`: Identifican un pase específico
+- `is_multiple_shows_flag`: Indica si hay más pases del mismo show ese día
+
+### StatusOverride (Overrides Manuales)
+
+**Propósito**: Almacenar intervenciones manuales del operador sobre estados calculados.
+
+```sql
+CREATE TABLE status_overrides (
+    id SERIAL PRIMARY KEY,
+    scheduled_event_id INTEGER NOT NULL REFERENCES scheduled_events(id),
+    
+    -- Estado forzado
+    override_status VARCHAR(20) NOT NULL CHECK (override_status IN ('CERRADO', 'CANCELADO')),
+    override_reason TEXT,
+    
+    -- Control de vigencia
+    is_active BOOLEAN DEFAULT true,
+    activated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deactivated_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Auditoría
+    created_by VARCHAR(100) NOT NULL, -- username del operador
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT one_active_override_per_event UNIQUE (scheduled_event_id) WHERE is_active = true
+);
+
+-- Índice para búsquedas rápidas
+CREATE INDEX idx_overrides_active ON status_overrides(scheduled_event_id) WHERE is_active = true;
+```
+
+**Reglas de Negocio**:
+- Solo un override activo por evento
+- Override persiste ante importaciones
+- No se pueden crear overrides para eventos pasados
+
+### GlobalSettings (Configuración del Sistema)
+
+**Propósito**: Parámetros configurables a nivel sistema.
+
+```sql
+CREATE TABLE global_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100)
+);
+
+-- Datos iniciales
+INSERT INTO global_settings (key, value, description) VALUES
+    ('default_lead_time_access_minutes', '30', 'Minutos antes para estado ABIERTO'),
+    ('default_lead_time_finalized_minutes', '0', 'Minutos antes para estado CERRADO'),
+    ('system_timezone', '"Europe/Madrid"', 'Zona horaria del sistema'),
+    ('refresh_interval_seconds', '30', 'Intervalo actualización pantallas'),
+    ('max_visible_shows', '5', 'Máximo shows en pantallas'),
+    ('operation_mode', '"automatic"', 'automatic|manual'),
+    ('venue_hours', '{
+        "monday": {"open": "10:00", "close": "18:00"},
+        "tuesday": {"open": "10:00", "close": "18:00"},
+        "wednesday": {"open": "10:00", "close": "18:00"},
+        "thursday": {"open": "10:00", "close": "18:00"},
+        "friday": {"open": "10:00", "close": "20:00"},
+        "saturday": {"open": "10:00", "close": "22:00"},
+        "sunday": {"open": "10:00", "close": "20:00"}
+    }', 'Horarios de apertura por día');
+```
+
+### GlobalAlert (Alertas del Sistema)
+
+**Propósito**: Mensajes de alerta que reemplazan la visualización normal.
+
+```sql
+CREATE TABLE global_alerts (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL,
+    alert_type VARCHAR(50) DEFAULT 'emergency', -- emergency, warning, info
+    
+    -- Control de vigencia
+    is_active BOOLEAN DEFAULT true,
+    activated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deactivated_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Auditoría
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT only_one_active_alert CHECK (
+        (SELECT COUNT(*) FROM global_alerts WHERE is_active = true) <= 1
+    )
+);
+```
+
+### AuditLog (Registro de Auditoría)
+
+**Propósito**: Trazabilidad completa de acciones administrativas.
+
+```sql
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    user_id VARCHAR(100) NOT NULL,
+    action VARCHAR(100) NOT NULL, -- CREATE, UPDATE, DELETE, OVERRIDE, SYNC, etc.
+    entity_type VARCHAR(50) NOT NULL, -- show, event, setting, alert
+    entity_id INTEGER,
+    
+    -- Detalles del cambio
+    old_values JSONB,
+    new_values JSONB,
+    
+    -- Contexto adicional
+    ip_address INET,
+    user_agent TEXT,
+    request_id UUID,
+    
+    -- Índices para búsquedas
+    INDEX idx_audit_user_timestamp (user_id, timestamp DESC),
+    INDEX idx_audit_entity (entity_type, entity_id),
+    INDEX idx_audit_action (action, timestamp DESC)
+);
+```
+
+## 2.2 Relaciones y Cardinalidades
+
+### Diagrama de Relaciones
+
+```
+┌─────────────┐         ┌──────────────────┐         ┌────────────────┐
+│    Shows    │ 1     N │ ScheduledEvents  │ 1     1 │ StatusOverride │
+│             ├─────────┤                  ├─────────┤                │
+│ id (PK)     │         │ id (PK)          │         │ id (PK)        │
+│ name        │         │ show_id (FK)     │         │ event_id (FK)  │
+│ is_visible  │         │ external_id      │         │ override_status│
+│ lead_times  │         │ event_date       │         │ is_active      │
+└─────────────┘         │ start_time       │         └────────────────┘
+                        └──────────────────┘
+                                 │
+                                 │ N
+                                 │
+                                 │ 1
+                        ┌──────────────────┐
+                        │   GlobalAlert    │
+                        ├──────────────────┤
+                        │ id (PK)          │
+                        │ message          │
+                        │ is_active        │
+                        └──────────────────┘
+```
+
+### Cardinalidades Detalladas
+
+| Relación | Cardinalidad | Descripción |
+|----------|--------------|-------------|
+| Show → ScheduledEvent | 1:N | Un show tiene múltiples eventos programados |
+| ScheduledEvent → StatusOverride | 1:0..1 | Un evento puede tener máximo un override activo |
+| ScheduledEvent → Show | N:1 | Múltiples eventos pertenecen a un show |
+| GlobalAlert → Sistema | 1:Sistema | Solo una alerta global activa a la vez |
+
+## 2.3 Estados y Transiciones
+
+### Estados Válidos
+
+```
+┌─────────────┐     ┌─────────┐     ┌─────────┐     ┌───────────┐
+│ PROGRAMADO  │────▶│ ABIERTO │────▶│ CERRADO │     │ CANCELADO │
+│   (Gris)    │     │ (Verde) │     │  (Rojo) │     │(Amarillo) │
+└─────────────┘     └─────────┘     └─────────┘     └───────────┘
+      │                   │               │                 ▲
+      │                   │               │                 │
+      └───────────────────┴───────────────┴─────────────────┘
+                        (Override Manual)
+```
+
+### Definición de Estados
+
+| Estado | Color | Significado | Cuándo Ocurre |
+|--------|-------|-------------|---------------|
+| **PROGRAMADO** | Gris/Azul | Espectáculo anunciado pero sin acceso | Antes de `(start_time - lead_time_access)` |
+| **ABIERTO** | Verde | Acceso permitido al espectáculo | Entre `(start_time - lead_time_access)` y `start_time` |
+| **CERRADO** | Rojo | Acceso cerrado, show en curso o finalizado | Después de `(start_time - lead_time_finalized)` |
+| **CANCELADO** | Amarillo | Espectáculo no se realizará | Override manual del operador |
+
+### Prioridad de Estados
+
+1. **Override Manual** (máxima prioridad)
+   - Si existe `status_override.is_active = true`
+   - Ignora cálculo automático
+   - Persiste hasta desactivación manual
+
+2. **Cálculo Automático**
+   - Basado en hora actual vs ventanas temporales
+   - Usa lead times (específicos del show o globales)
+   - Se recalcula en cada consulta
+
+## 2.4 Datos de Sincronización
+
+### Estrategia de Identificación Única
+
+**Clave Principal**: `external_event_id`
+- Inmutable desde el sistema origen
+- Permite tracking de cambios
+- Evita duplicados en importaciones
+
+### Mapeo de Datos Externos
+
+```python
+# Estructura esperada del sistema origen
+{
+    "event_id": "PDF-2024-001-15:30",  # → external_event_id
+    "show_name": "El Último Cantar",    # → match con shows.name
+    "date": "2024-01-15",               # → event_date
+    "start_time": "15:30",              # → start_time
+    "duration": 45,                     # → duration_minutes
+    "type": "SHOW",                     # → event_type
+    "status": "CONFIRMED"               # → validación antes de importar
+}
+```
+
+### Proceso de Actualización No Destructiva
+
+1. **Identificación**:
+   - Buscar por `external_event_id`
+   - Si no existe → CREATE
+   - Si existe → UPDATE (solo campos permitidos)
+
+2. **Preservación de Datos Locales**:
+   - NUNCA modificar `status_overrides`
+   - Mantener `is_visible` de shows
+   - Conservar `display_order` manual
+
+3. **Validaciones en Importación**:
+   - Show debe existir (match por nombre)
+   - Fechas/horas coherentes
+   - No crear eventos en el pasado
+   - Respetar constraints de unicidad
+
+### Campos Actualizables vs Protegidos
+
+**Actualizables en Importación**:
+- `event_date`, `start_time`, `end_time`
+- `duration_minutes`
+- `is_multiple_shows_flag`
+
+**Protegidos (nunca se modifican)**:
+- `status_overrides.*`
+- `shows.is_visible`
+- `shows.display_order`
+- `shows.custom_lead_time_*`
+- Registros de `audit_logs`
+
+---
