@@ -37,6 +37,14 @@ ShowsTrack APP es un sistema de gestión y visualización en tiempo real de hora
 
 ## 1.2 Arquitectura de Alto Nivel
 
+### Flujo de Desarrollo: Enfoque Hybrid-First
+
+El proyecto sigue una filosofía pragmática que combina velocidad y robustez:
+
+1.  **Fase 1 (Prototipado Code-First)**: Se implementa la lógica central en FastAPI para obtener un MVP funcional rápidamente. El `openapi.json` generado es un artefacto del proceso.
+2.  **Fase 2 (Estabilización Schema-Freeze)**: Una vez validado el MVP, el `openapi.json` se versiona y se convierte en el "contrato" oficial y la Fuente Única de la Verdad (SSOT).
+3.  **Fase 3 (Expansión Schema-First)**: El desarrollo posterior, especialmente del frontend, se basa en un SDK de cliente TypeScript autogenerado a partir del contrato congelado, garantizando la sincronización y eliminando errores de integración.
+
 ### Diagrama de Componentes
 
 ```
@@ -220,3 +228,5 @@ ShowsTrack APP es un sistema de gestión y visualización en tiempo real de hora
 - Respuesta síncrona con resultado de importación
 
 ---
+
+*Esta visión general proporciona el contexto completo del sistema ShowsTrack APP, estableciendo las bases para el desarrollo y mantenimiento del proyecto.*

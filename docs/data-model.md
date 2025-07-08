@@ -265,6 +265,7 @@ CREATE TABLE audit_logs (
 | **CERRADO** | Rojo | Acceso cerrado, show en curso o finalizado | Después de `(start_time - lead_time_finalized)` |
 | **CANCELADO** | Amarillo | Espectáculo no se realizará | Override manual del operador |
 
+
 ### Prioridad de Estados
 
 1. **Override Manual** (máxima prioridad)
@@ -333,4 +334,44 @@ CREATE TABLE audit_logs (
 - `shows.custom_lead_time_*`
 - Registros de `audit_logs`
 
+## 2.5 Entidades de Autenticación
+
+### User (Usuarios)
+**Propósito**: Gestionar las cuentas de los operadores que acceden al panel de administración.
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    hashed_password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255),
+    is_active BOOLEAN DEFAULT true,
+    role_id INTEGER NOT NULL REFERENCES roles(id),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Role (Roles)
+
+Propósito: Definir los niveles de permiso dentro del sistema.
+
+```sql
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    permissions JSONB -- Almacena una lista de permisos como ["read:shows", "write:shows"]
+);
+
+-- Datos iniciales
+INSERT INTO roles (name, description, permissions) VALUES
+    ('viewer', 'Solo puede ver información', '["read:shows", "read:events", "read:config"]'),
+    ('operator', 'Operaciones diarias', '["read:*", "override:status", "manage:alerts"]'),
+    ('admin', 'Acceso completo', '["*"]');
+```
 ---
+
+*Este modelo de datos garantiza la integridad, trazabilidad y flexibilidad necesarias para la operación confiable de ShowsTrack APP.*
