@@ -76,6 +76,43 @@ ShowsTrack is a **real-time show management system** built with a **microservice
 - **SSH Access**: Port 222 for remote development
 - **Virtual Environment**: Located at `/workspace/venv`
 
+### Required Environment Variables
+```bash
+# Core Database Connection
+DATABASE_URL=postgresql+asyncpg://showstrack_user:password@showstrack-postgres:5432/showstrack_main
+
+# Application Security
+SECRET_KEY=dev_secret_key_here
+ENVIRONMENT=development
+DEBUG=true
+
+# API Configuration
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+LOG_LEVEL=INFO
+
+# Future External API Integration
+PUY_DU_FOU_API_URL=https://api.puydufou.es/v1
+PUY_DU_FOU_API_KEY=your_api_key_here
+```
+
+## Business Context
+
+### Core Concept: Real-time Show State Management
+ShowsTrack manages **4 show states** with **real-time calculations**:
+- **PROGRAMADO** (gray): Show announced, access not yet open
+- **ABIERTO** (green): Visitors can access the show venue
+- **CERRADO** (red): Access closed, show started/ended
+- **CANCELADO** (yellow): Show cancelled (manual override only)
+
+### Key Business Rules
+- **State Engine**: 5-step algorithm calculates states in real-time
+- **Overrides**: Manual operator interventions NEVER get overwritten by imports
+- **Lead Times**: Configurable minutes before show start (default: 30min for ABIERTO)
+- **Operation Modes**: Automatic (live sync) vs Manual (staged changes)
+
+### Critical Data Flow
+External API → Python Scripts → ShowsTrack API → Real-time Display
+
 ## File Structure Patterns
 
 ### Backend Structure
@@ -122,6 +159,47 @@ showstrack-dev/
 - SSH access on port 222 with user `dev`
 - Git configured with project credentials
 - Docker socket mounted for container management
+
+## Common Development Tasks
+
+### Database Operations
+```bash
+# Run migrations
+cd showstrack-backend/backend
+alembic upgrade head
+
+# Create new migration after model changes
+alembic revision --autogenerate -m "Add new field"
+
+# Reset database (development only)
+alembic downgrade base && alembic upgrade head
+```
+
+### API Testing
+```bash
+# Test public endpoints (no auth required)
+curl http://localhost:8001/api/public/schedules
+curl http://localhost:8001/health
+
+# Test admin endpoints (requires JWT token)
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8001/api/admin/shows
+```
+
+### Quick Data Checks
+```bash
+# Check current shows in database
+cd showstrack-backend/backend
+python -c "
+from app.db.session import get_db
+from app.models.show import Show
+import asyncio
+async def check(): 
+    db = get_db()
+    shows = await db.execute('SELECT name FROM shows')
+    print(shows.fetchall())
+asyncio.run(check())
+"
+```
 
 ## Project Status
 - ✅ **Backend**: FastAPI functional with basic API endpoints
