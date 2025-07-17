@@ -1,4 +1,4 @@
-﻿# 🎭 ShowsTrack APP
+# 🎭 ShowsTrack APP
 
 Sistema de gestión y visualización en tiempo real de horarios de espectáculos para Puy du Fou España.
 
@@ -29,7 +29,7 @@ ShowsTrack APP es una aplicación web que permite:
 │   (HTML/CSS/JS)         │           │    (Vue.js)             │
 │   • Auto-refresh 30s    │           │    • Gestión shows      │
 │   • Estados visuales    │           │    • Overrides          │
-│   • Máximo 5 shows     │           │    • Alertas globales   │
+│   • Máximo 5 shows      │           │    • Alertas globales   │
 └─────────────────────────┘           └─────────────────────────┘
 ```
 
