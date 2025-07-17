@@ -62,13 +62,20 @@ backend/
 
 ### Modelos Implementados
 - **`shows`**: Catálogo maestro de espectáculos
-- **`scheduled_events`**: Eventos programados
-- **`status_overrides`**: Overrides manuales de estado
+- **`scheduled_events`**: Eventos programados (FK → shows)
+- **`status_overrides`**: Overrides manuales de estado (FK → scheduled_events)
 - **`global_settings`**: Configuración del sistema (JSONB)
 - **`global_alerts`**: Alertas globales del sistema
 - **`audit_logs`**: Registro de auditoría
-- **`users`**: Usuarios del sistema
+- **`users`**: Usuarios del sistema (FK → roles)
 - **`roles`**: Roles y permisos
+
+### Relaciones de Base de Datos
+- **Shows → ScheduledEvents** (1:N): Un show tiene múltiples eventos
+- **ScheduledEvents → StatusOverride** (1:0..1): Un evento puede tener un override
+- **Roles → Users** (1:N): Un rol puede tener múltiples usuarios
+
+Para documentación detallada de relaciones, ver: `/docs/database-relationships.md`
 
 ### Configuración de Base de Datos
 ```python
@@ -208,6 +215,7 @@ Para documentación completa del sistema, consultar:
 - `/docs` - Documentación completa del proyecto
 - `/docs/api-specification.md` - Especificación de la API
 - `/docs/data-model.md` - Modelo de datos detallado
+- `/docs/database-relationships.md` - Relaciones y constraints detallados
 
 ## 📊 Estado del Proyecto
 
