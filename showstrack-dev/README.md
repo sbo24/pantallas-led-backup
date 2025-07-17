@@ -23,7 +23,8 @@ python3 -m venv venv
 source venv/bin/activate
 
 # 5. Instalar dependencias del backend
-cd showstrack-backend/backend
+
+
 pip install -r requirements.txt
 ```
 

@@ -116,29 +116,171 @@ GET /api/public/schedules?date=2024-01-15&include_tomorrow=false
 
 ### GET /health
 
-**Propósito**: Health check del sistema para monitoreo.
+**Propósito**: Health check robusto del sistema para monitoreo de producción. Verifica estado de componentes críticos, conectividad de base de datos y métricas del sistema.
 
-**Response** (200 OK):
+**Response** (200 OK - Sistema Saludable):
 ```json
 {
   "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00",
+  "timestamp": "2025-07-17T14:05:28.360799",
   "version": "1.0.0",
-  "components": {
-    "database": "ok",
-    "cache": "ok",
-    "import_system": "ok"
+  "uptime": 62.95,
+  "database": {
+    "status": "healthy",
+    "version": ["PostgreSQL", "15.13"],
+    "database": "showstrack_main",
+    "user": "showstrack_user",
+    "tables_count": 0,
+    "response_time_ms": 67.68
   },
-  "metrics": {
-    "active_shows": 15,
-    "todays_events": 45,
-    "active_overrides": 2
+  "system": {
+    "cpu_percent": 22.2,
+    "memory": {
+      "total": 20621647872,
+      "available": 17148792832,
+      "percent": 16.8,
+      "used": 3059359744
+    },
+    "disk": {
+      "total": 46544191488,
+      "free": 35171442688,
+      "used": 11372748800,
+      "percent": 24.43
+    },
+    "load_average": [0.11865234375, 0.14599609375, 0.09765625]
+  },
+  "components": {
+    "database": {
+      "status": "healthy",
+      "healthy": true
+    },
+    "system": {
+      "status": "healthy",
+      "healthy": true
+    },
+    "api": {
+      "status": "healthy",
+      "healthy": true
+    }
   }
 }
 ```
 
-**Cache**: TTL 30 segundos  
+**Response** (503 Service Unavailable - Sistema No Saludable):
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-07-17T14:05:28.360799",
+  "version": "1.0.0",
+  "uptime": 62.95,
+  "database": {
+    "status": "unhealthy",
+    "error": "Connection refused",
+    "response_time_ms": 5000
+  },
+  "system": {
+    "cpu_percent": 95.8,
+    "memory": {
+      "total": 20621647872,
+      "available": 1048576000,
+      "percent": 94.9,
+      "used": 19573071872
+    },
+    "disk": {
+      "total": 46544191488,
+      "free": 1073741824,
+      "used": 45470449664,
+      "percent": 97.69
+    },
+    "load_average": [8.5, 7.2, 6.8]
+  },
+  "components": {
+    "database": {
+      "status": "unhealthy",
+      "healthy": false
+    },
+    "system": {
+      "status": "healthy",
+      "healthy": true
+    },
+    "api": {
+      "status": "healthy",
+      "healthy": true
+    }
+  }
+}
+```
+
+**Campos de Respuesta**:
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `status` | string | Estado general: `healthy` o `unhealthy` |
+| `timestamp` | datetime | Timestamp ISO 8601 del momento de la consulta |
+| `version` | string | Versión de la API (1.0.0) |
+| `uptime` | float | Tiempo en segundos desde el inicio del servidor |
+| `database.status` | string | Estado de PostgreSQL: `healthy` o `unhealthy` |
+| `database.version` | array | Versión de PostgreSQL [nombre, versión] |
+| `database.response_time_ms` | float | Tiempo de respuesta de la BD en milisegundos |
+| `system.cpu_percent` | float | Porcentaje de uso de CPU |
+| `system.memory.percent` | float | Porcentaje de uso de memoria |
+| `system.disk.percent` | float | Porcentaje de uso de disco |
+| `system.load_average` | array | Load average del sistema [1min, 5min, 15min] |
+| `components.*.healthy` | boolean | Indicador booleano para monitoreo automático |
+
+**Lógica de Estado General**:
+- `healthy`: Todos los componentes críticos están operativos
+- `unhealthy`: Al menos un componente crítico falla
+
+**Componentes Monitoreados**:
+- **Database**: Conectividad PostgreSQL, tiempo de respuesta
+- **System**: Recursos del sistema (CPU, memoria, disco)
+- **API**: Estado del servicio FastAPI
+
+**Casos de Uso**:
+- Monitoreo de infraestructura (Prometheus, Grafana)
+- Health checks de load balancers
+- Alertas automáticas de sistema
+- Diagnóstico de problemas de rendimiento
+
+**Implementación**: 
+- Verificación asíncrona de PostgreSQL con `asyncpg`
+- Métricas de sistema con `psutil`
+- Formato de respuesta con modelo Pydantic
+- Tiempos de respuesta medidos en tiempo real
+
+**Cache**: Sin cache (consulta en tiempo real)  
 **Rate Limit**: 30 requests/minute per IP
+
+## 4.1.1 Implementación de Base de Datos
+
+### Modelos SQLAlchemy implementados (2025-07-17)
+
+El sistema cuenta con los siguientes modelos de base de datos implementados:
+
+#### Tablas Core:
+- **`shows`**: Catálogo maestro de espectáculos (8 campos + timestamps)
+- **`scheduled_events`**: Eventos programados (11 campos + timestamps)
+- **`status_overrides`**: Overrides manuales de estado (8 campos + timestamps)
+- **`global_settings`**: Configuración del sistema (JSONB)
+- **`global_alerts`**: Alertas globales del sistema (6 campos + timestamps)
+- **`audit_logs`**: Registro de auditoría (11 campos + timestamp)
+
+#### Tablas de Autenticación:
+- **`users`**: Usuarios del sistema (7 campos + timestamps)
+- **`roles`**: Roles y permisos (4 campos)
+
+#### Migraciones:
+- **Sistema Alembic**: Configurado para PostgreSQL async
+- **Migración inicial**: `de4808d98963_initial_migration_create_all_tables.py`
+- **Estado actual**: 9 tablas creadas con constraints e índices
+
+#### Características implementadas:
+- **Async/await**: Toda la configuración es asíncrona
+- **Relationships**: Foreign keys y relaciones configuradas
+- **Constraints**: CHECK, UNIQUE, INDEX para integridad
+- **Versionado**: Sistema de migraciones Alembic configurado
+- **Validación**: Modelos Pydantic + SQLAlchemy
 
 ## 4.2 API Administrativa (JWT Authentication)
 

@@ -7,6 +7,12 @@ __pycache__/
 *.log
 venv/
 
+# Python packages
+*.egg-info/
+build/
+dist/
+*.egg
+
 # Node.js
 node_modules/
 npm-debug.log*
@@ -33,3 +39,27 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Project specific test files
+test_db.py
+simple_test.py
+
+# Alembic
+# Note: We want to keep alembic/ directory but not temp files
+alembic/*.pyc
+alembic/__pycache__/
+
+# Environment files
+.env.*
+!.env.example
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
