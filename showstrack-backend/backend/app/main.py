@@ -8,10 +8,21 @@ from pydantic import BaseModel
 import asyncpg
 import os
 
+# Importar routers
+from app.routers import auth_router, admin_router, public_router
+
 app = FastAPI(
     title="ShowsTrack API", 
-    version="1.0.0"
+    version="1.0.0",
+    description="API para gestión de espectáculos en tiempo real",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
+
+# Incluir routers
+app.include_router(auth_router)
+app.include_router(admin_router)
+app.include_router(public_router)
 
 class HealthResponse(BaseModel):
     status: str
