@@ -1,0 +1,57 @@
+============================================================
+📊 REPORTE DE PRUEBAS DE ENDPOINTS
+============================================================
+Timestamp: 2025-07-18T11:26:42.792424
+Autenticación: ✅ Exitosa
+
+📋 SYSTEM ENDPOINTS
+----------------------------------------
+  Total: 4
+  Exitosos: 4
+  Fallidos: 0
+
+  ✅ GET / - 200
+  ✅ GET /health - 200
+  ✅ GET /docs - 200
+  ✅ GET /openapi.json - 200
+
+📋 PUBLIC ENDPOINTS
+----------------------------------------
+  Total: 3
+  Exitosos: 3
+  Fallidos: 0
+
+  ✅ GET /api/public/alert - 200
+  ✅ GET /api/public/schedules - 200
+  ✅ GET /api/public/schedules?date=2024-07-17 - 200
+
+📋 AUTH ENDPOINTS
+----------------------------------------
+  Total: 4
+  Exitosos: 4
+  Fallidos: 0
+
+  ✅ POST /api/admin/auth/login - 200
+  ✅ GET /api/admin/auth/me - 200
+  ✅ POST /api/admin/auth/logout - 200
+  ✅ POST /api/admin/auth/refresh - 200
+
+📋 ADMIN ENDPOINTS
+----------------------------------------
+  Total: 5
+  Exitosos: 3
+  Fallidos: 2
+
+  ❌ GET /api/admin/shows - 500
+  ✅ GET /api/admin/shows/1 - 200
+  ✅ GET /api/admin/events - 200
+  ✅ GET /api/admin/events/1 - 200
+  ❌ PATCH /api/admin/events/1/override - 500
+
+📈 RESUMEN GENERAL
+----------------------------------------
+Total de pruebas: 16
+Pruebas exitosas: 14
+Tasa de éxito: 87.5%
+
+✅ La mayoría de las pruebas pasaron

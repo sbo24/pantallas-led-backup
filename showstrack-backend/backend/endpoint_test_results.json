@@ -1,0 +1,156 @@
+{
+  "timestamp": "2025-07-18T11:26:42.792424",
+  "authentication": true,
+  "system": [
+    {
+      "path": "/",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.001946,
+      "error": null,
+      "response_size": 40
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.149703,
+      "error": null,
+      "response_size": 662
+    },
+    {
+      "path": "/docs",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.001765,
+      "error": null,
+      "response_size": 946
+    },
+    {
+      "path": "/openapi.json",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.036774,
+      "error": null,
+      "response_size": 29200
+    }
+  ],
+  "public": [
+    {
+      "path": "/api/public/alert",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.00189,
+      "error": null,
+      "response_size": 32
+    },
+    {
+      "path": "/api/public/schedules",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.058748,
+      "error": null,
+      "response_size": 180
+    },
+    {
+      "path": "/api/public/schedules?date=2024-07-17",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.058925,
+      "error": null,
+      "response_size": 368
+    }
+  ],
+  "auth": [
+    {
+      "path": "/api/admin/auth/login",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.387838,
+      "error": null,
+      "response_size": 375
+    },
+    {
+      "path": "/api/admin/auth/me",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.050125,
+      "error": null,
+      "response_size": 168
+    },
+    {
+      "path": "/api/admin/auth/logout",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.05038,
+      "error": null,
+      "response_size": 37
+    },
+    {
+      "path": "/api/admin/auth/refresh",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.049942,
+      "error": null,
+      "response_size": 199
+    }
+  ],
+  "admin": [
+    {
+      "path": "/api/admin/shows",
+      "method": "GET",
+      "status_code": 500,
+      "success": false,
+      "response_time": 0.06541,
+      "error": null,
+      "response_size": 21
+    },
+    {
+      "path": "/api/admin/shows/1",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.053791,
+      "error": null,
+      "response_size": 335
+    },
+    {
+      "path": "/api/admin/events",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.08281,
+      "error": null,
+      "response_size": 412
+    },
+    {
+      "path": "/api/admin/events/1",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.076206,
+      "error": null,
+      "response_size": 356
+    },
+    {
+      "path": "/api/admin/events/1/override",
+      "method": "PATCH",
+      "status_code": 500,
+      "success": false,
+      "response_time": 0.065223,
+      "error": null,
+      "response_size": 21
+    }
+  ]
+}
