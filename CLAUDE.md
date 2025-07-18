@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Initial Setup (First Time)
 ```bash
-# Navigate to workspace
-cd /workspace
+# Después de hacer SSH, ejecuta esta línea:
+cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Clone repository (if not already done)
 git clone https://github.com/rvaquerizopdf/showstrack-app.git .
