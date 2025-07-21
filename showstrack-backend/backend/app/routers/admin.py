@@ -249,7 +249,7 @@ async def get_events(
             event_dict["override"] = {
                 "id": event.status_override.id,
                 "override_status": event.status_override.override_status,
-                "reason": event.status_override.reason,
+                "reason": event.status_override.override_reason,
                 "is_active": event.status_override.is_active,
                 "created_by": event.status_override.created_by,
                 "created_at": event.status_override.created_at
@@ -391,7 +391,7 @@ async def manage_event_override(
                 override={
                     "id": override.id,
                     "override_status": override.override_status,
-                    "reason": override.reason,
+                    "reason": override.override_reason,
                     "is_active": override.is_active,
                     "created_by": override.created_by,
                     "created_at": override.created_at

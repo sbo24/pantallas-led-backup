@@ -39,7 +39,7 @@ class StatusOverride(Base, BaseModel):
     __table_args__ = (
         CheckConstraint("override_status IN ('CERRADO', 'CANCELADO')", name='ck_override_status_valid'),
         # Solo un override activo por evento
-        UniqueConstraint('scheduled_event_id', name='uq_one_active_override_per_event'),
+        Index('idx_overrides_active_unique', 'scheduled_event_id', unique=True, postgresql_where=Column('is_active') == True),
         Index('idx_overrides_active', 'scheduled_event_id', postgresql_where=Column('is_active') == True),
     )
     

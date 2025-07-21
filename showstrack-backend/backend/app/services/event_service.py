@@ -199,7 +199,7 @@ class EventService:
         override = StatusOverride(
             scheduled_event_id=event_id,
             override_status=override_data.status,
-            reason=override_data.reason,
+            override_reason=override_data.reason,
             created_by=created_by,
             is_active=True
         )
