@@ -10,6 +10,8 @@ from app.database.session import get_db
 from app.dependencies import get_current_active_user
 from app.services.show_service import ShowService
 from app.services.event_service import EventService
+from app.services.alert_service import AlertService
+from app.services.config_service import ConfigService
 from app.schemas.show import (
     ShowCreate,
     ShowUpdate,
@@ -23,6 +25,22 @@ from app.schemas.event import (
     EventListResponse,
     OverrideRequest,
     OverrideResponse
+)
+from app.schemas.alert import (
+    AlertCreate,
+    AlertResponse,
+    AlertStatus,
+    AlertHistory,
+    AlertDeactivateResponse
+)
+from app.schemas.config import (
+    GlobalConfig,
+    GlobalConfigUpdate,
+    OperationModeResponse,
+    OperationModeUpdate,
+    VenueHoursResponse,
+    VenueHoursUpdate,
+    ConfigurationChangeResponse
 )
 from app.models.user import User
 
@@ -423,4 +441,299 @@ async def manage_event_override(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+# ===== GLOBAL ALERTS ENDPOINTS =====
+
+@router.get("/alerts/global", response_model=AlertStatus)
+async def get_global_alert_status(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current global alert status with active alert and today's count.
+    
+    **CU-02**: Panel admin verifica si hay alerta activa para mostrar botón "DESACTIVAR" en rojo.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        alert_service = AlertService(db)
+        status_info = await alert_service.get_current_status()
+        return status_info
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting alert status: {str(e)}"
+        )
+
+
+@router.post("/alerts/global", response_model=AlertResponse)
+async def create_global_alert(
+    alert_data: AlertCreate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create new global emergency alert. Only one alert can be active at a time.
+    
+    **EMERGENCIA**: "Evacuación preventiva por tormenta eléctrica - Todos los espectáculos suspendidos"
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        # Set creator from authenticated user
+        alert_data.created_by = current_user.username
+        
+        alert_service = AlertService(db)
+        new_alert = await alert_service.create_alert(alert_data)
+        return new_alert
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating alert: {str(e)}"
+        )
+
+
+@router.delete("/alerts/global", response_model=AlertDeactivateResponse)
+async def deactivate_global_alert(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Deactivate currently active global alert.
+    
+    **Post-Emergencia**: Operador desactiva alerta tras pasar tormenta, pantallas vuelven a mostrar horarios normales.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        alert_service = AlertService(db)
+        deactivated_alert = await alert_service.deactivate_current_alert(current_user.username)
+        
+        if not deactivated_alert:
+            return AlertDeactivateResponse(
+                success=False,
+                message="No hay alerta activa para desactivar",
+                deactivated_alert=None
+            )
+        
+        return AlertDeactivateResponse(
+            success=True,
+            message="Alerta global desactivada correctamente",
+            deactivated_alert=deactivated_alert
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deactivating alert: {str(e)}"
+        )
+
+
+@router.get("/alerts/history", response_model=AlertHistory)
+async def get_alerts_history(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Página"),
+    limit: int = Query(20, ge=1, le=100, description="Elementos por página"),
+    days_back: int = Query(30, ge=1, le=365, description="Días hacia atrás")
+):
+    """
+    Get paginated history of global alerts.
+    
+    **Auditoría**: Admin revisa alertas del último mes: 3 por lluvia, 1 por corte eléctrico, duración promedio 45min.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        alert_service = AlertService(db)
+        history = await alert_service.get_alert_history(
+            page=page,
+            limit=limit,
+            days_back=days_back
+        )
+        return history
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting alert history: {str(e)}"
+        )
+
+
+# ===== GLOBAL CONFIGURATION ENDPOINTS =====
+
+@router.get("/config/global", response_model=GlobalConfig)
+async def get_global_configuration(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get complete global system configuration.
+    
+    **Configuración Sistema**: Admin consulta configuración completa: lead times 30min, 
+    modo automático, parque abre 10:00-22:00, max 5 shows en pantalla.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        global_config = await config_service.get_global_config()
+        return global_config
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting global configuration: {str(e)}"
+        )
+
+
+@router.put("/config/global", response_model=ConfigurationChangeResponse)
+async def update_global_configuration(
+    config_update: GlobalConfigUpdate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update global system configuration (partial updates supported).
+    
+    **Actualización Configuración**: Admin actualiza lead time a 45min y modo manual 
+    para mantenimiento programado hasta 18:00.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        change_response = await config_service.update_global_config(
+            config_update=config_update,
+            updated_by=current_user.username
+        )
+        return change_response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating global configuration: {str(e)}"
+        )
+
+
+@router.get("/config/operation-mode", response_model=OperationModeResponse)
+async def get_operation_mode(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current system operation mode.
+    
+    **Modo Operación**: Admin verifica modo actual - "manual" desde 14:30 por admin 
+    para mantenimiento hasta 18:00.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        operation_mode = await config_service.get_operation_mode()
+        return operation_mode
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting operation mode: {str(e)}"
+        )
+
+
+@router.put("/config/operation-mode", response_model=ConfigurationChangeResponse)
+async def update_operation_mode(
+    mode_update: OperationModeUpdate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update system operation mode.
+    
+    **Cambio Modo**: Admin cambia a "automático" tras finalizar mantenimiento - 
+    sincronización continua reanudada a las 18:15.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        change_response = await config_service.update_operation_mode(
+            mode_update=mode_update,
+            updated_by=current_user.username
+        )
+        return change_response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating operation mode: {str(e)}"
+        )
+
+
+@router.get("/config/venue-hours", response_model=VenueHoursResponse)
+async def get_venue_hours(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current venue operating hours and status.
+    
+    **Horarios Venue**: Admin consulta horarios - parque abierto 10:00-22:00, 
+    zona horaria Europe/Madrid, actualmente abierto.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        venue_hours = await config_service.get_venue_hours()
+        return venue_hours
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting venue hours: {str(e)}"
+        )
+
+
+@router.put("/config/venue-hours", response_model=ConfigurationChangeResponse)
+async def update_venue_hours(
+    hours_update: VenueHoursUpdate,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update venue operating hours.
+    
+    **Horarios Especiales**: Admin actualiza horarios a 09:30-23:00 para evento especial 
+    nocturno - efectivo inmediatamente.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        change_response = await config_service.update_venue_hours(
+            hours_update=hours_update,
+            updated_by=current_user.username
+        )
+        return change_response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating venue hours: {str(e)}"
         )

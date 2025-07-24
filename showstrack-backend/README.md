@@ -140,6 +140,240 @@ alembic history
 
 ## 🔧 Desarrollo
 
+### 📋 **Guía para Crear Nuevos Endpoints**
+
+#### **Patrón de Desarrollo Establecido**
+Todos los nuevos endpoints siguen este patrón estructurado de 5 pasos:
+
+1. **Schemas Pydantic** - Definir modelos de entrada y salida
+2. **Servicio de Negocio** - Implementar lógica de negocio
+3. **Endpoints REST** - Crear rutas HTTP con autenticación
+4. **Tests Automatizados** - Validar funcionalidad completa
+5. **Pruebas Manuales** - Verificar en servidor real
+
+#### **Ejemplo: Implementación Sistema de Alertas**
+
+**Paso 1: Schemas (`app/schemas/alert.py`)**
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, List
+
+class AlertBase(BaseModel):
+    message: str = Field(..., min_length=1, max_length=500)
+    alert_type: Literal["emergency", "warning", "info"] = "warning"
+
+class AlertCreate(AlertBase):
+    created_by: Optional[str] = Field(None, description="Set by server from JWT")
+
+class AlertResponse(AlertBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    created_by: str
+    deactivated_at: Optional[datetime] = None
+```
+
+**Paso 2: Servicio (`app/services/alert_service.py`)**
+```python
+class AlertService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+    
+    async def get_current_status(self) -> AlertStatus:
+        # Lógica de negocio para obtener estado actual
+        pass
+    
+    async def create_alert(self, alert_data: AlertCreate) -> AlertResponse:
+        # Lógica para crear alerta (auto-desactiva anteriores)
+        pass
+    
+    async def deactivate_current_alert(self, user: str) -> Optional[AlertResponse]:
+        # Lógica para desactivar alerta activa
+        pass
+```
+
+**Paso 3: Endpoints (`app/routers/admin.py`)**
+```python
+@router.get("/alerts/global", response_model=AlertStatus)
+async def get_global_alert_status(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current global alert status with active alert and today's count."""
+    try:
+        alert_service = AlertService(db)
+        status_info = await alert_service.get_current_status()
+        return status_info
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting alert status: {str(e)}"
+        )
+```
+
+**Paso 4: Tests (`tests/test_alerts.py`)**
+```python
+class TestGlobalAlerts:
+    @pytest.mark.asyncio
+    async def test_get_alert_status_no_alerts(self, test_client, auth_headers):
+        response = await test_client.get("/api/admin/alerts/global", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_active_alert"] == False
+        assert data["total_alerts_today"] == 0
+```
+
+**Paso 5: Validación Manual**
+```bash
+# Obtener token JWT
+TOKEN=$(curl -s -X POST http://localhost:8000/api/admin/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=admin" | jq -r '.access_token')
+
+# Probar endpoint
+curl -X GET http://localhost:8000/api/admin/alerts/global \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+#### **🔐 Gestión de Usuarios y Autenticación**
+
+##### **Usuarios por Defecto**
+```bash
+# Usuario Admin (ya creado)
+Username: admin
+Password: admin
+Rol: admin
+Permisos: Acceso completo a todos los endpoints
+```
+
+##### **Crear Nuevos Usuarios**
+```python
+# Script para crear usuarios adicionales
+from app.models.user import User, Role
+from app.dependencies import get_password_hash
+
+async def create_user(username: str, password: str, role_name: str):
+    # Obtener rol
+    role = await db.execute(select(Role).where(Role.name == role_name))
+    role = role.scalar_one()
+    
+    # Crear usuario
+    user = User(
+        username=username,
+        email=f"{username}@showstrack.com",
+        full_name=f"{username.capitalize()} User",
+        password_hash=get_password_hash(password),
+        role_id=role.id,
+        is_active=True
+    )
+    
+    db.add(user)
+    await db.commit()
+```
+
+##### **Roles Disponibles**
+- **admin**: Acceso completo (CRUD shows, eventos, configuración, alertas)
+- **operator**: Operaciones básicas (overrides, consulta shows/eventos)  
+- **viewer**: Solo lectura (consulta datos, sin modificaciones)
+
+##### **Autenticación JWT**
+```python
+# Configuración JWT
+SECRET_KEY = "dev_secret_key_here"  # Cambiar en producción
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Headers requeridos
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+#### **🗄️ Trabajo con Base de Datos**
+
+##### **Migraciones con Alembic**
+```bash
+# Crear nueva migración tras cambios en modelos
+alembic revision --autogenerate -m "Add new configuration fields"
+
+# Aplicar migraciones pendientes
+alembic upgrade head
+
+# Ver historial de migraciones
+alembic history
+
+# Rollback a migración anterior
+alembic downgrade -1
+```
+
+##### **Queries Asíncronas**
+```python
+# Patrón para queries async
+async def get_shows_with_events(db: AsyncSession, limit: int = 10):
+    query = (
+        select(Show)
+        .options(selectinload(Show.scheduled_events))
+        .where(Show.is_visible == True)
+        .order_by(Show.display_order)
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    return result.scalars().all()
+```
+
+##### **Transacciones y Commits**
+```python
+# Patrón para operaciones con transacciones
+async def update_with_audit(db: AsyncSession, entity, changes, user: str):
+    try:
+        # Actualizar entidad
+        for field, value in changes.items():
+            setattr(entity, field, value)
+        
+        # Crear entrada de auditoría
+        audit_log = AuditLog(
+            entity_type=entity.__class__.__name__.lower(),
+            entity_id=entity.id,
+            action="UPDATE",
+            user_id=user,
+            new_values=changes
+        )
+        db.add(audit_log)
+        
+        # Commit todo junto
+        await db.commit()
+        await db.refresh(entity)
+        return entity
+        
+    except Exception as e:
+        await db.rollback()
+        raise e
+```
+
+### **📊 Testing y Validación**
+
+#### **Testing Automatizado**
+```bash
+# Ejecutar tests completos
+cd /workspace/showstrack-backend/backend
+pytest tests/ -v
+
+# Tests específicos por módulo
+pytest tests/test_alerts.py -v
+pytest tests/test_config.py -v
+
+# Tests con coverage
+pytest tests/ --cov=app --cov-report=html
+```
+
+#### **Script de Testing Manual**
+```bash
+# Script completo de validación de endpoints
+python scripts/test_all_endpoints.py
+
+# Resultado esperado: 28/28 endpoints (100% success)
+```
+
 ### Comandos Útiles
 ```bash
 # Verificar estado de la base de datos
@@ -266,6 +500,20 @@ docker run -p 8000:8000 showstrack-backend
 - `PUT /api/admin/events/{id}` - Actualizar evento
 - `DELETE /api/admin/events/{id}` - Eliminar evento
 - `PATCH /api/admin/events/{id}/override` - Gestionar overrides
+
+### ✅ **SISTEMA DE ALERTAS GLOBALES (Requiere JWT)**
+- `GET /api/admin/alerts/global` - Estado actual de alerta + historial
+- `POST /api/admin/alerts/global` - Activar alerta emergencia  
+- `DELETE /api/admin/alerts/global` - Desactivar alerta activa
+- `GET /api/admin/alerts/history` - Historial paginado de alertas
+
+### ✅ **SISTEMA DE CONFIGURACIÓN GLOBAL (Requiere JWT)**
+- `GET /api/admin/config/global` - Configuración completa del sistema
+- `PUT /api/admin/config/global` - Actualizar configuración parcial/completa
+- `GET /api/admin/config/operation-mode` - Modo operación actual (auto/manual)
+- `PUT /api/admin/config/operation-mode` - Cambiar modo operación
+- `GET /api/admin/config/venue-hours` - Horarios específicos del venue
+- `PUT /api/admin/config/venue-hours` - Actualizar horarios del venue
 
 ### API Pública
 - `GET /api/public/schedules` - Horarios públicos para pantallas

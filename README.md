@@ -253,7 +253,35 @@ curl -X PATCH http://localhost:8000/api/admin/events/123/override \
 ### Cambio de Modo Operación
 ```bash
 # Cambiar a modo manual por evento especial
-curl -X PUT http://localhost:8000/api/admin/config/global \
+curl -X PUT http://localhost:8000/api/admin/config/operation-mode \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"operation_mode": "manual"}'
+  -d '{"mode": "manual", "reason": "Evento especial - control manual requerido"}'
 ```
+
+## 🎯 **Estado Actual del Desarrollo**
+
+### **✅ Sistemas Completados (100% Funcionales)**
+
+#### **🚨 Sistema de Alertas Globales**
+- **4/4 endpoints** implementados y validados
+- **Funcionalidades**: Activar/desactivar alertas de emergencia, historial completo
+- **Casos de uso**: "Evacuación por tormenta - Todos los shows suspendidos"
+- **Testing**: Suite completa con 10 test cases
+
+#### **⚙️ Sistema de Configuración Global**
+- **6/6 endpoints** implementados y validados  
+- **Funcionalidades**: Configuración completa del sistema, modos de operación, horarios venue
+- **Casos de uso**: Lead times, modo automático/manual, horarios especiales
+- **Testing**: Validación manual exitosa con casos reales
+
+### **📊 Progreso General**
+- **Endpoints desarrollados**: 28/65 (43% del sistema completo)
+- **Sistemas críticos completados**: 2/4 (Alertas + Configuración)
+- **Base sólida establecida**: Patrón Schemas→Service→Router→Tests
+- **Próxima prioridad**: Sistema de Importación/Sincronización (8 endpoints)
+
+### **🔗 Información Técnica Completa**
+Para documentación técnica detallada:
+- **Backend**: [showstrack-backend/README.md](showstrack-backend/README.md)
+- **Endpoints**: [showstrack-backend/DESARROLLO_ENDPOINTS.md](showstrack-backend/DESARROLLO_ENDPOINTS.md)
+- **Progreso**: [PROCESO_DESARROLLO.md](PROCESO_DESARROLLO.md)

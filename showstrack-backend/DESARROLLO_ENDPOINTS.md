@@ -341,12 +341,353 @@ La API actual cubre **~29%** del sistema completo especificado.
 
 | Endpoint | Funcionalidad | Caso de Uso Detallado | Estado |
 |----------|---------------|----------------------|--------|
-| `GET /api/admin/config/global` | Obtener configuración completa | **CU-02**: Panel admin carga configuración actual: modo manual, lead time 30min, máx 5 shows, refresh 30s, timezone Madrid | ❌ **Faltante** |
-| `PUT /api/admin/config/global` | Actualizar configuración global | **CU-02**: Admin cambia a modo manual por evento especial, aumenta máx shows a 6, cambia refresh a 15s por mayor dinamismo | ❌ **Faltante** |
-| `GET /api/admin/config/operation-mode` | Modo de operación actual | **CU-02**: Dashboard consulta si está en modo automático o manual para mostrar controles correctos | ❌ **Faltante** |
-| `PUT /api/admin/config/operation-mode` | Cambiar modo operación | **CU-02**: Admin cambia de automático a manual porque habrá evento especial y quiere control total sobre cambios | ❌ **Faltante** |
-| `GET /api/admin/config/venue-hours` | Horarios del venue | **Configuración**: Admin revisa horarios: Lu-Ju 10-18h, Vi 10-20h, Sa 10-22h, Do 10-20h para configurar lead times | ❌ **Faltante** |
-| `PUT /api/admin/config/venue-hours` | Actualizar horarios venue | **Temporada**: Admin actualiza horarios de verano: Lu-Do 10-22h para temporada alta turística | ❌ **Faltante** |
+| `GET /api/admin/config/global` | Obtener configuración completa | **CU-02**: Panel admin carga configuración actual: modo manual, lead time 30min, máx 5 shows, refresh 30s, timezone Madrid | ✅ **Desarrollado** |
+| `PUT /api/admin/config/global` | Actualizar configuración global | **CU-02**: Admin cambia a modo manual por evento especial, aumenta máx shows a 6, cambia refresh a 15s por mayor dinamismo | ✅ **Desarrollado** |
+| `GET /api/admin/config/operation-mode` | Modo de operación actual | **CU-02**: Dashboard consulta si está en modo automático o manual para mostrar controles correctos | ✅ **Desarrollado** |
+| `PUT /api/admin/config/operation-mode` | Cambiar modo operación | **CU-02**: Admin cambia de automático a manual porque habrá evento especial y quiere control total sobre cambios | ✅ **Desarrollado** |
+| `GET /api/admin/config/venue-hours` | Horarios del venue | **Configuración**: Admin revisa horarios: Lu-Ju 10-18h, Vi 10-20h, Sa 10-22h, Do 10-20h para configurar lead times | ✅ **Desarrollado** |
+| `PUT /api/admin/config/venue-hours` | Actualizar horarios venue | **Temporada**: Admin actualiza horarios de verano: Lu-Do 10-22h para temporada alta turística | ✅ **Desarrollado** |
+
+---
+
+## 🎯 **SISTEMA DE CONFIGURACIÓN GLOBAL - DOCUMENTACIÓN TÉCNICA**
+
+### **Arquitectura Implementada**
+
+El sistema de configuración global utiliza el modelo `GlobalSettings` existente con estructura clave-valor JSONB que permite flexibilidad mientras mantiene estructura en las claves.
+
+#### **Componentes del Sistema:**
+
+1. **Modelo de Datos**: `GlobalSettings` (tabla: `global_settings`)
+   ```python
+   # Estructura tabla
+   key: String(100) PRIMARY KEY          # Clave de configuración
+   value: JSONB NOT NULL                 # Valor en formato JSON
+   description: Text                     # Descripción de la configuración
+   updated_at: DateTime                  # Timestamp de última actualización
+   updated_by: String(100)              # Usuario que realizó el cambio
+   ```
+
+2. **Schemas Pydantic** (`app/schemas/config.py`):
+   - `GlobalConfig`: Configuración completa del sistema
+   - `GlobalConfigUpdate`: Actualización parcial de configuración
+   - `OperationModeResponse/Update`: Gestión específica del modo de operación
+   - `VenueHoursResponse/Update`: Gestión específica de horarios del venue
+   - `ConfigurationChangeResponse`: Respuesta detallada de cambios
+
+3. **Servicio de Negocio** (`app/services/config_service.py`):
+   - `ConfigService`: Gestión completa de configuraciones
+   - Métodos principales: get/update para cada tipo de configuración
+   - Auditoría automática en `AuditLog`
+   - Creación automática de valores por defecto
+
+#### **Configuraciones Gestionadas:**
+
+##### **Lead Times (Tiempos de Anticipación)**
+```json
+{
+  "lead_times": {
+    "default_lead_time_access_minutes": 30,    // Minutos para cambiar PROGRAMADO→ABIERTO
+    "default_lead_time_finalized_minutes": 0   // Minutos para cambiar ABIERTO→CERRADO
+  }
+}
+```
+
+##### **Configuración de Display**
+```json
+{
+  "display": {
+    "max_shows_display": 5,                    // Máximo shows en pantallas públicas
+    "display_refresh_seconds": 30              // Intervalo de actualización
+  }
+}
+```
+
+##### **Configuración del Venue**
+```json
+{
+  "venue": {
+    "venue_name": "Puy du Fou España",
+    "venue_timezone": "Europe/Madrid",
+    "park_opening_time": "10:00",              // Formato HH:MM
+    "park_closing_time": "22:00"               // Formato HH:MM
+  }
+}
+```
+
+##### **Configuración de Importación**
+```json
+{
+  "import_settings": {
+    "auto_import_enabled": true,
+    "import_schedule_cron": "0 6 * * *"        // Cron para importación automática
+  }
+}
+```
+
+##### **Estados del Sistema**
+```json
+{
+  "system_states": {
+    "states": {
+      "programado": {"color": "gray", "label": "Programado"},
+      "abierto": {"color": "green", "label": "Abierto"},
+      "cerrado": {"color": "red", "label": "Cerrado"},
+      "cancelado": {"color": "yellow", "label": "Cancelado"}
+    }
+  }
+}
+```
+
+##### **Modo de Operación**
+```json
+{
+  "operation_mode": "automatic"                // "automatic" | "manual"
+}
+```
+
+### **Endpoints Implementados - Especificación Técnica**
+
+#### **1. GET /api/admin/config/global**
+```http
+GET /api/admin/config/global
+Authorization: Bearer <jwt_token>
+```
+
+**Respuesta:**
+```json
+{
+  "lead_times": {
+    "default_lead_time_access_minutes": 30,
+    "default_lead_time_finalized_minutes": 0
+  },
+  "display": {
+    "max_shows_display": 5,
+    "display_refresh_seconds": 30
+  },
+  "venue": {
+    "venue_name": "Puy du Fou España",
+    "venue_timezone": "Europe/Madrid",
+    "park_opening_time": "10:00",
+    "park_closing_time": "22:00"
+  },
+  "import_settings": {
+    "auto_import_enabled": true,
+    "import_schedule_cron": "0 6 * * *"
+  },
+  "system_states": {
+    "states": {
+      "programado": {"color": "gray", "label": "Programado"},
+      "abierto": {"color": "green", "label": "Abierto"},
+      "cerrado": {"color": "red", "label": "Cerrado"},
+      "cancelado": {"color": "yellow", "label": "Cancelado"}
+    }
+  },
+  "operation_mode": "automatic"
+}
+```
+
+**Funcionalidad:**
+- Carga configuración completa del sistema
+- Crea valores por defecto si no existen
+- Auto-inicialización en primera consulta
+
+#### **2. PUT /api/admin/config/global**
+```http
+PUT /api/admin/config/global
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "operation_mode": "manual",
+  "lead_times": {
+    "default_lead_time_access_minutes": 45,
+    "default_lead_time_finalized_minutes": 5
+  },
+  "display": {
+    "max_shows_display": 6
+  }
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "message": "Configuración actualizada correctamente",
+  "updated_fields": ["operation_mode", "lead_times", "display"],
+  "previous_values": {
+    "operation_mode": "automatic",
+    "lead_times": {
+      "default_lead_time_access_minutes": 30,
+      "default_lead_time_finalized_minutes": 0
+    }
+  },
+  "new_values": {
+    "operation_mode": "manual",
+    "lead_times": {
+      "default_lead_time_access_minutes": 45,
+      "default_lead_time_finalized_minutes": 5
+    }
+  },
+  "updated_at": "2025-07-22T16:24:14.917718+00:00",
+  "updated_by": "admin"
+}
+```
+
+**Funcionalidad:**
+- Actualización parcial (solo campos enviados)
+- Preserva valores no modificados
+- Auditoría completa de cambios
+- Validación de tipos y rangos
+
+#### **3. GET /api/admin/config/operation-mode**
+```http
+GET /api/admin/config/operation-mode
+Authorization: Bearer <jwt_token>
+```
+
+**Respuesta:**
+```json
+{
+  "current_mode": "manual",
+  "description": "Sistema en modo manual - cambios retenidos hasta sincronización",
+  "last_changed_at": "2025-07-22T16:24:14.866065+00:00",
+  "changed_by": "admin"
+}
+```
+
+**Funcionalidad:**
+- Consulta específica del modo actual
+- Descripción contextual del modo
+- Metadatos del último cambio
+
+#### **4. PUT /api/admin/config/operation-mode**
+```http
+PUT /api/admin/config/operation-mode
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "mode": "automatic",
+  "reason": "Mantenimiento finalizado - reanudando sincronización automática"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "message": "Modo de operación cambiado a automatic",
+  "updated_fields": ["operation_mode"],
+  "previous_values": {"operation_mode": "manual"},
+  "new_values": {"operation_mode": "automatic"},
+  "updated_at": "2025-07-22T16:25:06.126015+00:00",
+  "updated_by": "admin"
+}
+```
+
+**Funcionalidad:**
+- Cambio específico de modo operativo
+- Validación de estado actual
+- Auditoría con motivo del cambio
+
+#### **5. GET /api/admin/config/venue-hours**
+```http
+GET /api/admin/config/venue-hours
+Authorization: Bearer <jwt_token>
+```
+
+**Respuesta:**
+```json
+{
+  "park_opening_time": "09:30",
+  "park_closing_time": "23:00",
+  "venue_timezone": "Europe/Madrid",
+  "is_open_now": true,
+  "next_opening": null,
+  "next_closing": null
+}
+```
+
+**Funcionalidad:**
+- Horarios específicos del venue
+- Estado actual (abierto/cerrado)
+- Próximos eventos de apertura/cierre (TODO)
+
+#### **6. PUT /api/admin/config/venue-hours**
+```http
+PUT /api/admin/config/venue-hours
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "park_opening_time": "09:30",
+  "park_closing_time": "23:00"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "message": "Horarios del venue actualizados correctamente",
+  "updated_fields": ["park_opening_time", "park_closing_time"],
+  "previous_values": {
+    "park_opening_time": "10:00",
+    "park_closing_time": "22:00"
+  },
+  "new_values": {
+    "park_opening_time": "09:30",
+    "park_closing_time": "23:00"
+  },
+  "updated_at": "2025-07-22T16:25:57.683362+00:00",
+  "updated_by": "admin"
+}
+```
+
+**Funcionalidad:**
+- Actualización específica de horarios
+- Validación formato HH:MM
+- Preserva resto de configuración del venue
+
+### **Validaciones Implementadas**
+
+1. **Rangos de Valores:**
+   - `lead_time_access_minutes`: 0-120 minutos
+   - `lead_time_finalized_minutes`: 0-60 minutos
+   - `max_shows_display`: 1-10 shows
+   - `display_refresh_seconds`: 10-300 segundos
+
+2. **Formatos:**
+   - Horarios: Formato HH:MM validado
+   - Operation mode: Solo "automatic" | "manual"
+   - Timezone: String válido (TODO: validación timezone)
+
+3. **Reglas de Negocio:**
+   - Solo un modo operativo a la vez
+   - Preservación de configuraciones no modificadas
+   - Auditoría obligatoria de todos los cambios
+
+### **Sistema de Auditoría**
+
+Todos los cambios de configuración se registran en `audit_logs`:
+```python
+# Registro automático
+entity_type: "configuration"
+entity_id: None                    # Config global no tiene ID específico  
+action: "UPDATE_GLOBAL_CONFIG" | "UPDATE_OPERATION_MODE" | "UPDATE_VENUE_HOURS"
+user_id: <username_from_jwt>
+new_values: {"details": "Descripción del cambio"}
+```
+
+### **Casos de Uso Validados**
+
+1. **✅ Configuración Inicial**: Sistema crea valores por defecto automáticamente
+2. **✅ Actualización Parcial**: Solo campos modificados se actualizan
+3. **✅ Cambio de Modo**: Transición automatic ↔ manual con auditoría
+4. **✅ Horarios Especiales**: Actualización para eventos especiales
+5. **✅ Auditoría Completa**: Todos los cambios registrados con usuario y timestamp
 
 ---
 
@@ -354,10 +695,10 @@ La API actual cubre **~29%** del sistema completo especificado.
 
 | Endpoint | Funcionalidad | Caso de Uso Detallado | Estado |
 |----------|---------------|----------------------|--------|
-| `GET /api/admin/alerts/global` | Estado actual de alerta | **CU-02**: Panel admin verifica si hay alerta activa para mostrar botón "DESACTIVAR" en rojo si está activa | ❌ **Faltante** |
-| `POST /api/admin/alerts/global` | Activar alerta global | **EMERGENCIA**: Operador activa alerta "Evacuación preventiva por tormenta eléctrica - Todos los espectáculos suspendidos" | ❌ **Faltante** |
-| `DELETE /api/admin/alerts/global` | Desactivar alerta global | **Post-Emergencia**: Operador desactiva alerta tras pasar tormenta, pantallas vuelven a mostrar horarios normales | ❌ **Faltante** |
-| `GET /api/admin/alerts/history` | Historial de alertas | **Auditoría**: Admin revisa alertas del último mes: 3 por lluvia, 1 por corte eléctrico, duración promedio 45min | ❌ **Faltante** |
+| `GET /api/admin/alerts/global` | Estado actual de alerta | **CU-02**: Panel admin verifica si hay alerta activa para mostrar botón "DESACTIVAR" en rojo si está activa | ✅ **Desarrollado** |
+| `POST /api/admin/alerts/global` | Activar alerta global | **EMERGENCIA**: Operador activa alerta "Evacuación preventiva por tormenta eléctrica - Todos los espectáculos suspendidos" | ✅ **Desarrollado** |
+| `DELETE /api/admin/alerts/global` | Desactivar alerta global | **Post-Emergencia**: Operador desactiva alerta tras pasar tormenta, pantallas vuelven a mostrar horarios normales | ✅ **Desarrollado** |
+| `GET /api/admin/alerts/history` | Historial de alertas | **Auditoría**: Admin revisa alertas del último mes: 3 por lluvia, 1 por corte eléctrico, duración promedio 45min | ✅ **Desarrollado** |
 
 ---
 
@@ -429,14 +770,14 @@ La API actual cubre **~29%** del sistema completo especificado.
 | **Gestión Shows** | 8 | 5 | 3 | 63% |
 | **Gestión Eventos** | 7 | 6 | 1 | 86% |
 | **Dashboard/Métricas** | 7 | 0 | 7 | 0% ❌ |
-| **Configuración Sistema** | 6 | 0 | 6 | 0% ❌ |
-| **Alertas Globales** | 4 | 0 | 4 | 0% ❌ |
+| **Configuración Sistema** | 6 | 6 | 0 | 100% ✅ |
+| **Alertas Globales** | 4 | 4 | 0 | 100% ✅ |
 | **Importación/Sync** | 8 | 0 | 8 | 0% ❌ |
 | **Auditoría** | 4 | 0 | 4 | 0% ❌ |
 | **Herramientas Dev** | 4 | 0 | 4 | 0% ❌ |
 | **Performance** | 3 | 1 | 2 | 33% |
 | **Integraciones** | 4 | 0 | 4 | 0% ❌ |
-| **TOTAL GENERAL** | **65** | **18** | **47** | **28%** |
+| **TOTAL GENERAL** | **65** | **28** | **37** | **43%** |
 
 ### 🎯 Conclusión
-La API actual tiene una base sólida para gestión básica de shows/eventos, pero le faltan **47 endpoints críticos** (72%) para ser un sistema completo según especificaciones. Los gaps más críticos están en configuración del sistema, alertas de emergencia e importación de datos.
+La API actual tiene una base sólida para gestión básica de shows/eventos, y ha completado sistemas críticos de **alertas globales** y **configuración del sistema**. Faltan **37 endpoints** (57%) para ser un sistema completo según especificaciones. Los gaps más críticos restantes están en sistema de importación/sincronización y herramientas de dashboard.
