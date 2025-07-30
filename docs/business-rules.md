@@ -482,4 +482,102 @@ El Último Cantar | 15:30 | ABIERTO | Próximo: 18:00
 
 ---
 
+## 3.6 Estado de Implementación
+
+### ✅ Motor de Estados - IMPLEMENTADO (2025-07-24)
+
+El algoritmo de 5 pasos ha sido **completamente implementado** en el sistema:
+
+#### **Archivo Principal**: `app/services/state_engine.py`
+
+```python
+class StateEngine:
+    async def calculate_event_state(self, event: ScheduledEvent, 
+                                   current_time: Optional[datetime] = None) -> str:
+        """
+        Algoritmo de 5 pasos implementado según esta especificación:
+        1. Verificación de overrides activos
+        2. Resolución de lead times efectivos  
+        3. Cálculo de ventanas temporales
+        4. Determinación de estado por tiempo
+        5. Aplicación de casos especiales
+        """
+```
+
+#### **Estados Calculados en Tiempo Real**
+- **PROGRAMADO** → **ABIERTO** → **CERRADO** según lead times
+- **CANCELADO** solo por override manual con prioridad máxima
+- **Casos especiales**: Ventanas de disponibilidad continua soportadas
+
+#### **Lead Times Configurables**: `app/services/lead_time_service.py`
+
+```python  
+class LeadTimeService:
+    async def get_effective_lead_times(self, show: Show) -> Dict[str, int]:
+        """Jerarquía: show específico > configuración global"""
+        
+    async def configure_show_lead_times(self, show_id: int, 
+                                       access_minutes: int, 
+                                       finalized_minutes: int, user: str):
+        """Configuración personalizada por show con auditoría"""
+```
+
+**Rangos validados**:
+- Lead time acceso: 0-120 minutos
+- Lead time finalización: 0-60 minutos
+- Jerarquía respetada: configuración específica > global
+
+#### **Sistema de Overrides - Integrado**
+
+```python
+# Paso 1 del algoritmo - Prioridad máxima
+async def _check_active_override(self, event_id: int) -> Optional[StatusOverride]:
+    """Override activo anula cualquier cálculo automático"""
+```
+
+- **Estados permitidos**: CERRADO, CANCELADO
+- **Persistencia**: Hasta desactivación manual explícita  
+- **Auditoría**: Registro completo en audit_logs
+- **Alcance**: Por evento específico (no se propaga)
+
+#### **Integración API Pública - Operativa**
+
+**Endpoint**: `/api/public/schedules`
+```python
+# Antes (lógica básica)
+if event_datetime > now: return "PROGRAMADO"
+elif event_datetime <= now: return "CERRADO"
+
+# Ahora (algoritmo completo)
+event_status = await EventService.calculate_event_status(event, db)
+# Usa StateEngine con 5 pasos completos
+```
+
+#### **Performance y Escalabilidad**
+
+```python
+async def calculate_multiple_events_states(self, events: list[ScheduledEvent]) -> Dict[int, str]:
+    """Optimización batch para múltiples eventos simultáneos"""
+    # Pre-carga overrides una sola vez
+    # Cálculo eficiente para 50+ eventos
+```
+
+#### **Suite de Testing Completa**: `tests/test_state_engine.py`
+
+**Cobertura validada**:
+- ✅ Paso 1: Override con prioridad máxima
+- ✅ Paso 2: Lead times globales vs personalizados  
+- ✅ Paso 3: Cálculo ventanas temporales correcto
+- ✅ Paso 4: Estados por tiempo (PROGRAMADO/ABIERTO/CERRADO)
+- ✅ Paso 5: Casos especiales (ventanas disponibilidad)
+- ✅ Performance: Múltiples eventos eficientemente
+
+### 🎯 **Resultado Final**
+
+El **motor de cálculo de estados** está **100% operativo** y calcula estados reales en tiempo real según las reglas de negocio especificadas en este documento. 
+
+**API pública `/api/public/schedules`** ahora proporciona estados calculados precisos para las pantallas de información del parque.
+
+---
+
 *Estas reglas de negocio forman el núcleo operativo de ShowsTrack APP, garantizando flexibilidad para el operador mientras mantiene la automatización como base del sistema.*

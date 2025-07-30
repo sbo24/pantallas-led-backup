@@ -374,4 +374,172 @@ INSERT INTO roles (name, description, permissions) VALUES
 ```
 ---
 
-*Este modelo de datos garantiza la integridad, trazabilidad y flexibilidad necesarias para la operación confiable de ShowsTrack APP.*
+## 2.7 Integración con Motor de Estados
+
+### 🎯 **StateEngine - Utilización del Modelo de Datos**
+
+El motor de estados implementado en `app/services/state_engine.py` utiliza las entidades del modelo de datos de la siguiente manera:
+
+#### **Show Entity - Lead Times Dinámicos**
+
+```python
+# En StateEngine._resolve_lead_times()
+class StateEngine:
+    async def _resolve_lead_times(self, show: Show) -> LeadTimeConfig:
+        """Jerarquía de configuración de lead times."""
+        
+        # 1. Configuración específica del show (prioridad)
+        if (show.custom_lead_time_access_minutes is not None and 
+            show.custom_lead_time_finalized_minutes is not None):
+            return LeadTimeConfig(
+                access_minutes=show.custom_lead_time_access_minutes,
+                finalized_minutes=show.custom_lead_time_finalized_minutes
+            )
+        
+        # 2. Configuración global (fallback)
+        return LeadTimeConfig(access_minutes=30, finalized_minutes=0)
+```
+
+**Campos utilizados**:
+- `custom_lead_time_access_minutes`: Personalización por show
+- `custom_lead_time_finalized_minutes`: Override de configuración global
+- Relationship con `scheduled_events`: Carga eventos del show
+
+#### **ScheduledEvent Entity - Cálculo de Ventanas Temporales**
+
+```python
+# En StateEngine._calculate_time_windows()  
+def _calculate_time_windows(self, event: ScheduledEvent, lead_times: LeadTimeConfig) -> TimeWindows:
+    """Utiliza campos de evento para calcular transiciones."""
+    
+    # Combinar fecha y hora del evento
+    event_datetime = datetime.combine(event.event_date, event.start_time)
+    
+    return TimeWindows(
+        access_start=event_datetime - timedelta(minutes=lead_times.access_minutes),
+        finalized_start=event_datetime - timedelta(minutes=lead_times.finalized_minutes),
+        show_start=event_datetime,
+        show_end=datetime.combine(event.event_date, event.end_time) if event.end_time else None
+    )
+```
+
+**Campos utilizados**:
+- `event_date` + `start_time`: Timestamp del show
+- `end_time`: Duración del evento (opcional)
+- `availability_window_start/end`: Casos especiales (shows continuos)
+- `is_multiple_shows_flag`: Identificación de múltiples pases
+
+#### **StatusOverride Entity - Prioridad Máxima**
+
+```python
+# En StateEngine._check_active_override()
+async def _check_active_override(self, event_id: int) -> Optional[StatusOverride]:
+    """Override activo anula cualquier cálculo automático."""
+    
+    stmt = select(StatusOverride).where(
+        and_(
+            StatusOverride.scheduled_event_id == event_id,
+            StatusOverride.is_active == True  # Solo overrides activos
+        )
+    )
+    return await self.db.execute(stmt).scalar_one_or_none()
+```
+
+**Campos utilizados**:
+- `scheduled_event_id`: Vinculación con evento específico
+- `override_status`: CERRADO o CANCELADO (prioridad máxima)
+- `is_active`: Solo overrides activos afectan el cálculo
+- `override_reason`: Trazabilidad (no usado en cálculo)
+
+#### **GlobalSettings Entity - Configuración por Defecto**
+
+```python
+# En LeadTimeService.get_effective_lead_times()
+# Configuración global desde ConfigService
+global_config = await self.config_service.get_global_config(self.db)
+lead_times = global_config.lead_times
+
+return {
+    'access_minutes': lead_times.default_lead_time_access_minutes,    # 30 min
+    'finalized_minutes': lead_times.default_lead_time_finalized_minutes # 0 min
+}
+```
+
+**Configuración utilizada**:
+- `default_lead_time_access_minutes`: Valor global para PROGRAMADO → ABIERTO
+- `default_lead_time_finalized_minutes`: Valor global para ABIERTO → CERRADO
+
+### 📊 **Performance Optimizations Implementadas**
+
+#### **Batch Loading de Overrides**
+```python
+# En StateEngine.calculate_multiple_events_states()
+async def calculate_multiple_events_states(self, events: list[ScheduledEvent]) -> Dict[int, str]:
+    """Pre-carga overrides para múltiples eventos eficientemente."""
+    
+    event_ids = [event.id for event in events]
+    
+    # Una sola query para todos los overrides
+    stmt = select(StatusOverride).where(
+        and_(
+            StatusOverride.scheduled_event_id.in_(event_ids),
+            StatusOverride.is_active == True
+        )
+    )
+    result = await self.db.execute(stmt)
+    overrides = {override.scheduled_event_id: override 
+                for override in result.scalars().all()}
+```
+
+#### **Eager Loading de Relationships**
+```python
+# En EventService.get_events_by_date_range()
+query = select(ScheduledEvent).options(
+    selectinload(ScheduledEvent.show),              # Pre-carga show data
+    selectinload(ScheduledEvent.status_override)    # Pre-carga override data
+)
+```
+
+### 🔄 **Audit Trail Integration**
+
+#### **AuditLog Entity - Trazabilidad Completa**
+```python
+# En LeadTimeService._log_lead_time_change()
+audit_entry = AuditLog(
+    entity_type="show_lead_times",
+    entity_id=show_id,
+    action="UPDATE_LEAD_TIMES",
+    user_id=user,
+    old_values={"access_minutes": previous_values.get('access_minutes')},
+    new_values={"access_minutes": new_values.get('access_minutes')},
+)
+```
+
+**Eventos auditados**:
+- Cambios de lead times personalizados por show
+- Activación/desactivación de overrides manuales
+- Cambios de configuración global que afectan cálculo de estados
+
+### 🎯 **Estado de Implementación del Modelo**
+
+#### **Entidades Completamente Integradas**
+- ✅ **Show**: Lead times personalizados funcionando
+- ✅ **ScheduledEvent**: Cálculo de ventanas temporales operativo  
+- ✅ **StatusOverride**: Sistema de prioridad máxima implementado
+- ✅ **GlobalSettings**: Configuración por defecto integrada
+- ✅ **AuditLog**: Trazabilidad de cambios funcionando
+
+#### **Relationships Utilizadas**
+- ✅ **Show ↔ ScheduledEvent**: One-to-many para eventos del show
+- ✅ **ScheduledEvent ↔ StatusOverride**: One-to-one para override activo
+- ✅ **Show ↔ StateEngine**: Configuración de lead times por show
+- ✅ **GlobalSettings ↔ ConfigService**: Valores por defecto del sistema
+
+#### **Índices de Performance**
+- ✅ **idx_shows_visible**: Optimiza consultas de shows públicos
+- ✅ **idx_events_show_date**: Optimiza búsqueda de eventos por show y fecha
+- ✅ **idx_overrides_active**: Optimiza búsqueda de overrides activos
+
+---
+
+*Este modelo de datos garantiza la integridad, trazabilidad y flexibilidad necesarias para la operación confiable de ShowsTrack APP, con motor de estados completamente integrado y operativo.*

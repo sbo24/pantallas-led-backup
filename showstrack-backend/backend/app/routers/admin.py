@@ -12,6 +12,8 @@ from app.services.show_service import ShowService
 from app.services.event_service import EventService
 from app.services.alert_service import AlertService
 from app.services.config_service import ConfigService
+from app.services.import_service import ImportService
+from app.services.sync_service import SyncService
 from app.schemas.show import (
     ShowCreate,
     ShowUpdate,
@@ -41,6 +43,20 @@ from app.schemas.config import (
     VenueHoursResponse,
     VenueHoursUpdate,
     ConfigurationChangeResponse
+)
+from app.schemas.import_sync import (
+    ImportRequest,
+    ImportResponse,
+    ImportPreviewRequest,
+    ImportPreviewResponse,
+    ImportHistoryResponse,
+    SyncStatus,
+    SyncPendingResponse,
+    SyncExecuteRequest,
+    SyncExecuteResponse,
+    SyncApplyRequest,
+    SyncDiscardRequest,
+    SyncActionResponse
 )
 from app.models.user import User
 
@@ -260,7 +276,7 @@ async def get_events(
                 "name": event.show.name
             },
             "override": None,
-            "calculated_status": await EventService.calculate_event_status(event)
+            "calculated_status": await EventService.calculate_event_status(event, db)
         }
         
         if event.status_override:
@@ -736,4 +752,273 @@ async def update_venue_hours(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating venue hours: {str(e)}"
+        )
+
+
+# ===== IMPORT/SYNC SYSTEM ENDPOINTS =====
+
+@router.post("/import", response_model=ImportResponse, status_code=status.HTTP_201_CREATED)
+async def import_data(
+    import_request: ImportRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Recibir e importar datos desde scripts de extracción Python.
+    
+    **Integración Scripts**: Script de extracción envía 45 eventos de Puy du Fou extraídos de API,
+    sistema valida formato, detecta 12 nuevos y 33 actualizaciones, aplica según modo operación.
+    
+    **Formato exacto**: Acepta JSON generado por scripts/extraction/showstrack_formatter.py
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        result = await ImportService.process_import(
+            db=db,
+            import_data=import_request.data,
+            dry_run=import_request.dry_run,
+            preserve_overrides=import_request.preserve_overrides,
+            user_id=current_user.username
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing import: {str(e)}"
+        )
+
+
+@router.post("/import/validate", response_model=ImportPreviewResponse)
+async def validate_import_data(
+    preview_request: ImportPreviewRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validar datos de importación sin aplicar cambios (preview).
+    
+    **Preview Validación**: Admin valida 45 eventos antes de importar - detecta 3 conflictos 
+    con overrides manuales, 12 eventos nuevos, tiempo estimado 2.3s.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        # Ejecutar dry_run para obtener validación
+        validation_result = await ImportService.process_import(
+            db=db,
+            import_data=preview_request.data,
+            dry_run=True,
+            preserve_overrides=True,
+            user_id=current_user.username
+        )
+        
+        # Determinar si se aplicaría automáticamente
+        config_service = ConfigService(db)
+        operation_mode = await config_service.get_operation_mode()
+        would_be_applied = operation_mode.current_mode == "automatic"
+        
+        # Crear respuesta de preview
+        preview_summary = {
+            "total_events": validation_result.validation_result.total_events,
+            "new_events": validation_result.validation_result.new_events,
+            "updated_events": validation_result.validation_result.updated_events,
+            "conflicted_events": validation_result.validation_result.conflicted_events,
+            "operation_mode": operation_mode.current_mode
+        }
+        
+        return ImportPreviewResponse(
+            validation_result=validation_result.validation_result,
+            preview_summary=preview_summary,
+            would_be_applied=would_be_applied,
+            estimated_execution_time=validation_result.execution_time_seconds
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error validating import data: {str(e)}"
+        )
+
+
+@router.get("/import/history", response_model=ImportHistoryResponse)
+async def get_import_history(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Página"),
+    size: int = Query(20, ge=1, le=100, description="Elementos por página"),
+    source: Optional[str] = Query(None, description="Filtrar por fuente")
+):
+    """
+    Obtener historial paginado de importaciones.
+    
+    **Historial Importaciones**: Admin revisa últimas 10 importaciones - 8 exitosas automáticas 
+    de puy_du_fou_api, 2 manuales con conflictos resueltos por operator_1.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        history = await ImportService.get_import_history(
+            db=db,
+            page=page,
+            size=size,
+            source=source
+        )
+        return history
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting import history: {str(e)}"
+        )
+
+
+@router.get("/sync/status", response_model=SyncStatus)
+async def get_sync_status(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtener estado actual del sistema de sincronización.
+    
+    **Estado Sync**: Sistema en modo "manual", 7 cambios pendientes desde 14:30, 
+    última importación exitosa hace 2h, sistema saludable.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        status = await SyncService.get_sync_status(db)
+        return status
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting sync status: {str(e)}"
+        )
+
+
+@router.get("/sync/pending", response_model=SyncPendingResponse)
+async def get_pending_changes(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500, description="Máximo número de cambios"),
+    source: Optional[str] = Query(None, description="Filtrar por fuente"),
+    entity_type: Optional[str] = Query(None, description="Filtrar por tipo de entidad")
+):
+    """
+    Obtener cambios pendientes de aplicar en modo manual.
+    
+    **Cambios Pendientes**: 7 cambios pendientes - 3 updates de horarios, 4 creates de eventos nuevos,
+    todos de puy_du_fou_api, más antiguo desde hace 2h15min.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        pending = await SyncService.get_pending_changes(
+            db=db,
+            limit=limit,
+            source=source,
+            entity_type=entity_type
+        )
+        return pending
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting pending changes: {str(e)}"
+        )
+
+
+@router.post("/sync/execute", response_model=SyncExecuteResponse)
+async def execute_sync(
+    sync_request: SyncExecuteRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Ejecutar sincronización completa de cambios pendientes.
+    
+    **Sincronización Masiva**: Admin ejecuta sync completa - 7 cambios aplicados exitosamente,
+    0 fallaron, 0 omitidos, ejecución en 1.8s, sistema vuelve a estado consistente.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        result = await SyncService.execute_sync(
+            db=db,
+            force=sync_request.force,
+            change_ids=sync_request.change_ids,
+            reason=sync_request.reason,
+            user_id=current_user.username
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error executing sync: {str(e)}"
+        )
+
+
+@router.post("/sync/apply", response_model=SyncActionResponse)
+async def apply_changes(
+    apply_request: SyncApplyRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Aplicar cambios pendientes específicos seleccionados.
+    
+    **Aplicación Selectiva**: Admin selecciona 3 de 7 cambios para aplicar - 
+    actualiza horarios de El Último Cantar, aprueba tras revisar conflictos.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        result = await SyncService.apply_changes(
+            db=db,
+            change_ids=apply_request.change_ids,
+            reason=apply_request.reason,
+            user_id=current_user.username
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error applying changes: {str(e)}"
+        )
+
+
+@router.post("/sync/discard", response_model=SyncActionResponse)
+async def discard_changes(
+    discard_request: SyncDiscardRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Descartar cambios pendientes sin aplicarlos.
+    
+    **Descarte Selectivo**: Admin descarta 2 cambios con horarios incorrects de API externa - 
+    "Horarios erróneos detectados, mantener horarios actuales hasta corrección".
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        result = await SyncService.discard_changes(
+            db=db,
+            change_ids=discard_request.change_ids,
+            reason=discard_request.reason,
+            user_id=current_user.username
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error discarding changes: {str(e)}"
         )

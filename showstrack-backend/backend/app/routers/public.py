@@ -77,7 +77,7 @@ async def get_public_schedules(
             continue
         
         event_datetime = datetime.combine(event.event_date, event.start_time)
-        event_status = await EventService.calculate_event_status(event)
+        event_status = await EventService.calculate_event_status(event, db)
         
         event_info = {
             "start_time": event.start_time.strftime("%H:%M"),

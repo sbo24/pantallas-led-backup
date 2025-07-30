@@ -7,6 +7,7 @@ from .settings import GlobalSettings
 from .alert import GlobalAlert
 from .audit import AuditLog
 from .user import User, Role
+from .import_sync import ImportHistory, PendingChanges, SyncOperations
 
 # Import all models to ensure they're registered with Base.metadata
 # This is necessary for Alembic to detect them
@@ -19,5 +20,8 @@ __all__ = [
     "GlobalAlert",
     "AuditLog",
     "User",
-    "Role"
+    "Role",
+    "ImportHistory",
+    "PendingChanges", 
+    "SyncOperations"
 ]

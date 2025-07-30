@@ -791,4 +791,88 @@ X-Deprecation-Notice: Esta versión será deprecada el 2025-01-01
 
 ---
 
+## 🎯 Estado de Implementación de API Pública
+
+### ✅ GET /api/public/schedules - COMPLETAMENTE IMPLEMENTADO (2025-07-24)
+
+#### **Motor de Estados Integrado**
+
+El endpoint ahora utiliza el **StateEngine completo** implementado en `app/services/state_engine.py`:
+
+```python
+# En app/routers/public.py - Línea 80
+event_status = await EventService.calculate_event_status(event, db)
+# Utiliza algoritmo de 5 pasos para cálculo real-time
+```
+
+#### **Cálculo de Estados Real-Time**
+
+**Antes** (lógica básica):
+```python
+if event_datetime > now: return "PROGRAMADO"
+elif event_datetime <= now: return "CERRADO"
+```
+
+**Ahora** (algoritmo completo):
+- ✅ **Paso 1**: Verificación de overrides activos (prioridad máxima)
+- ✅ **Paso 2**: Resolución de lead times (show específico > global)
+- ✅ **Paso 3**: Cálculo de ventanas temporales
+- ✅ **Paso 4**: Determinación por tiempo: PROGRAMADO → ABIERTO → CERRADO
+- ✅ **Paso 5**: Casos especiales (ventanas de disponibilidad continua)
+
+#### **Estados Calculados Correctamente**
+
+| Estado | Descripción | Color | Cuándo Se Aplica |
+|--------|-------------|-------|------------------|
+| PROGRAMADO | Show anunciado, acceso no abierto | #6B7280 (gris) | Antes de (start_time - lead_time_access) |
+| ABIERTO | Visitantes pueden acceder | #10B981 (verde) | Entre (start_time - lead_time_access) y start_time |
+| CERRADO | Acceso cerrado, show iniciado | #EF4444 (rojo) | Después de start_time |
+| CANCELADO | Show cancelado | #F59E0B (amarillo) | Solo por override manual |
+
+#### **Lead Times Dinámicos**
+
+- **Configuración global**: 30 min acceso, 0 min finalización (por defecto)
+- **Configuración por show**: Valores personalizables vía `LeadTimeService`
+- **Jerarquía respetada**: Show específico > configuración global
+- **Ejemplo**: Show con lead time personalizado de 45 min → acceso abierto 45 min antes
+
+#### **Sistema de Overrides Integrado**
+
+```json
+// Ejemplo de evento con override activo
+{
+  "show_id": 1,
+  "show_name": "El Último Cantar", 
+  "current_pass": {
+    "start_time": "15:30",
+    "status": "CANCELADO",     // Override manual activo
+    "status_color": "#F59E0B", // Amarillo para cancelado
+    "override_reason": "Motivos técnicos" // Visible en admin
+  }
+}
+```
+
+#### **Performance Optimizada**
+
+- **Cálculo batch**: StateEngine procesa múltiples eventos eficientemente
+- **Pre-carga de overrides**: Una sola query para todos los eventos
+- **Caching preparado**: Estructura lista para FASE 2 (optimizaciones)
+
+#### **Testing Validado**
+
+Endpoint completamente probado con:
+- ✅ Estados calculados correctamente por tiempo
+- ✅ Overrides con prioridad máxima
+- ✅ Lead times personalizados por show
+- ✅ Casos especiales (ventanas disponibilidad)
+- ✅ Performance con múltiples eventos
+
+### 🔄 Próximas Mejoras (FASE 2)
+
+- **Caching inteligente**: TTL basado en próximo cambio de estado
+- **WebSocket**: Actualizaciones en tiempo real para pantallas
+- **Métricas**: Tiempo de respuesta y uso de recursos
+
+---
+
 *Esta especificación define completamente las interfaces de comunicación de ShowsTrack APP, proporcionando la base para la integración de todos los componentes del sistema.*

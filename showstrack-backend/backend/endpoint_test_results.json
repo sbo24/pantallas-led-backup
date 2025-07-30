@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-21T09:05:40.457494",
+  "timestamp": "2025-07-30T16:18:17.761801",
   "authentication": true,
   "system": [
     {
@@ -7,7 +7,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.001786,
+      "response_time": 0.001996,
       "error": null,
       "response_size": 40
     },
@@ -16,16 +16,16 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.151096,
+      "response_time": 0.149265,
       "error": null,
-      "response_size": 661
+      "response_size": 662
     },
     {
       "path": "/docs",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.001651,
+      "response_time": 0.001804,
       "error": null,
       "response_size": 946
     },
@@ -34,9 +34,9 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.062022,
+      "response_time": 0.07596,
       "error": null,
-      "response_size": 29200
+      "response_size": 69946
     }
   ],
   "public": [
@@ -45,7 +45,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.002072,
+      "response_time": 0.001788,
       "error": null,
       "response_size": 32
     },
@@ -54,7 +54,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.056547,
+      "response_time": 0.056317,
       "error": null,
       "response_size": 180
     },
@@ -63,9 +63,9 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.061748,
+      "response_time": 0.05041,
       "error": null,
-      "response_size": 368
+      "response_size": 180
     }
   ],
   "auth": [
@@ -74,7 +74,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.392885,
+      "response_time": 0.386795,
       "error": null,
       "response_size": 375
     },
@@ -83,7 +83,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.050648,
+      "response_time": 0.047379,
       "error": null,
       "response_size": 168
     },
@@ -92,7 +92,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.049823,
+      "response_time": 0.047281,
       "error": null,
       "response_size": 37
     },
@@ -101,7 +101,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.051696,
+      "response_time": 0.047229,
       "error": null,
       "response_size": 199
     }
@@ -112,34 +112,34 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.057658,
+      "response_time": 0.054457,
       "error": null,
-      "response_size": 1028
+      "response_size": 4777
     },
     {
       "path": "/api/admin/shows/1",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.053113,
+      "response_time": 0.052957,
       "error": null,
-      "response_size": 335
+      "response_size": 325
     },
     {
       "path": "/api/admin/events",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.062111,
+      "response_time": 0.067384,
       "error": null,
-      "response_size": 553
+      "response_size": 1638
     },
     {
       "path": "/api/admin/events/1",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.060547,
+      "response_time": 0.059459,
       "error": null,
       "response_size": 356
     },
@@ -148,9 +148,215 @@
       "method": "PATCH",
       "status_code": 200,
       "success": true,
-      "response_time": 0.115661,
+      "response_time": 0.112992,
       "error": null,
-      "response_size": 190
+      "response_size": 191
+    }
+  ],
+  "alerts": [
+    {
+      "path": "/api/admin/alerts/global",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.055723,
+      "error": null,
+      "response_size": 70
+    },
+    {
+      "path": "/api/admin/alerts/history",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.05378,
+      "error": null,
+      "response_size": 3814
+    },
+    {
+      "path": "/api/admin/alerts/global",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.105684,
+      "error": null,
+      "response_size": 211
+    },
+    {
+      "path": "/api/admin/alerts/global",
+      "method": "DELETE",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.099728,
+      "error": null,
+      "response_size": 326
+    }
+  ],
+  "config": [
+    {
+      "path": "/api/admin/config/global",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.053637,
+      "error": null,
+      "response_size": 619
+    },
+    {
+      "path": "/api/admin/config/operation-mode",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.050437,
+      "error": null,
+      "response_size": 180
+    },
+    {
+      "path": "/api/admin/config/venue-hours",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.049737,
+      "error": null,
+      "response_size": 149
+    },
+    {
+      "path": "/api/admin/config/operation-mode",
+      "method": "PUT",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.050512,
+      "error": null,
+      "response_size": 239
+    },
+    {
+      "path": "/api/admin/config/venue-hours",
+      "method": "PUT",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.112131,
+      "error": null,
+      "response_size": 349
+    },
+    {
+      "path": "/api/admin/config/global",
+      "method": "PUT",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.10829,
+      "error": null,
+      "response_size": 391
+    }
+  ],
+  "import_sync": [
+    {
+      "path": "/api/admin/import/history",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.069995,
+      "error": null,
+      "response_size": 8556
+    },
+    {
+      "path": "/api/admin/sync/status",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.063076,
+      "error": null,
+      "response_size": 225
+    },
+    {
+      "path": "/api/admin/sync/pending",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.062962,
+      "error": null,
+      "response_size": 7844
+    },
+    {
+      "path": "/api/admin/import/validate",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.187633,
+      "error": null,
+      "response_size": 415
+    },
+    {
+      "path": "/api/admin/import",
+      "method": "POST",
+      "status_code": 201,
+      "success": true,
+      "response_time": 0.1261,
+      "error": null,
+      "response_size": 419
+    },
+    {
+      "path": "/api/admin/sync/execute",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.090997,
+      "error": null,
+      "response_size": 297
+    },
+    {
+      "path": "/api/admin/sync/apply",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.064703,
+      "error": null,
+      "response_size": 133
+    },
+    {
+      "path": "/api/admin/sync/discard",
+      "method": "POST",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.061163,
+      "error": null,
+      "response_size": 181
+    }
+  ],
+  "crud": [
+    {
+      "path": "/api/admin/shows",
+      "method": "POST",
+      "status_code": 201,
+      "success": true,
+      "response_time": 0.100247,
+      "error": null,
+      "response_size": 344
+    },
+    {
+      "path": "/api/admin/events",
+      "method": "POST",
+      "status_code": 500,
+      "success": false,
+      "response_time": 0.067065,
+      "error": null,
+      "response_size": 21
+    },
+    {
+      "path": "/api/admin/shows/1",
+      "method": "PUT",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.103807,
+      "error": null,
+      "response_size": 325
+    },
+    {
+      "path": "/api/admin/events/1",
+      "method": "PUT",
+      "status_code": 200,
+      "success": true,
+      "response_time": 0.108014,
+      "error": null,
+      "response_size": 356
     }
   ]
 }

@@ -257,21 +257,45 @@ class EventService:
         return result.scalars().all()
     
     @staticmethod
-    async def calculate_event_status(event: ScheduledEvent) -> str:
-        """Calcular estado del evento basado en reglas de negocio"""
-        # TODO: Implementar lógica de cálculo de estados
-        # Por ahora retornamos un estado básico
+    async def calculate_event_status(event: ScheduledEvent, db: AsyncSession = None) -> str:
+        """
+        Calcular estado del evento usando el motor de estados completo.
         
-        if event.status_override and event.status_override.is_active:
-            return event.status_override.override_status
+        Implementa el algoritmo de 5 pasos definido en business-rules.md:
+        1. Verificación de overrides activos (prioridad máxima)
+        2. Resolución de lead times (show específico > global)  
+        3. Cálculo de ventanas temporales
+        4. Determinación de estado por hora actual
+        5. Aplicación de casos especiales
         
-        # Lógica básica de estados
-        now = datetime.now()
-        event_datetime = datetime.combine(event.event_date, event.start_time)
+        Args:
+            event: Evento programado con show y override precargados
+            db: Sesión de base de datos (requerida para consultas adicionales)
+            
+        Returns:
+            Estado calculado: PROGRAMADO, ABIERTO, CERRADO, CANCELADO
+        """
+        # Si no se proporciona db session, usar lógica básica como fallback
+        if db is None:
+            # Lógica de fallback sin StateEngine (compatibilidad)
+            if event.status_override and event.status_override.is_active:
+                return event.status_override.override_status
+            
+            now = datetime.now()
+            event_datetime = datetime.combine(event.event_date, event.start_time)
+            
+            # Implementar lead time básico (30 minutos por defecto)
+            access_start = event_datetime - timedelta(minutes=30)
+            
+            if now < access_start:
+                return "PROGRAMADO"
+            elif now < event_datetime:
+                return "ABIERTO" 
+            else:
+                return "CERRADO"
         
-        if event_datetime > now:
-            return "PROGRAMADO"
-        elif event_datetime <= now:
-            return "CERRADO"
-        else:
-            return "ABIERTO"
+        # Usar StateEngine completo cuando hay session de DB disponible
+        from app.services.state_engine import StateEngine
+        
+        state_engine = StateEngine(db)
+        return await state_engine.calculate_event_state(event)

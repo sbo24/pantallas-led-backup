@@ -1,7 +1,7 @@
 ============================================================
 📊 REPORTE DE PRUEBAS DE ENDPOINTS
 ============================================================
-Timestamp: 2025-07-21T09:05:40.457494
+Timestamp: 2025-07-30T16:18:17.761801
 Autenticación: ✅ Exitosa
 
 📋 SYSTEM ENDPOINTS
@@ -48,10 +48,60 @@ Autenticación: ✅ Exitosa
   ✅ GET /api/admin/events/1 - 200
   ✅ PATCH /api/admin/events/1/override - 200
 
+📋 ALERTS ENDPOINTS
+----------------------------------------
+  Total: 4
+  Exitosos: 4
+  Fallidos: 0
+
+  ✅ GET /api/admin/alerts/global - 200
+  ✅ GET /api/admin/alerts/history - 200
+  ✅ POST /api/admin/alerts/global - 200
+  ✅ DELETE /api/admin/alerts/global - 200
+
+📋 CONFIG ENDPOINTS
+----------------------------------------
+  Total: 6
+  Exitosos: 6
+  Fallidos: 0
+
+  ✅ GET /api/admin/config/global - 200
+  ✅ GET /api/admin/config/operation-mode - 200
+  ✅ GET /api/admin/config/venue-hours - 200
+  ✅ PUT /api/admin/config/operation-mode - 200
+  ✅ PUT /api/admin/config/venue-hours - 200
+  ✅ PUT /api/admin/config/global - 200
+
+📋 IMPORT_SYNC ENDPOINTS
+----------------------------------------
+  Total: 8
+  Exitosos: 8
+  Fallidos: 0
+
+  ✅ GET /api/admin/import/history - 200
+  ✅ GET /api/admin/sync/status - 200
+  ✅ GET /api/admin/sync/pending - 200
+  ✅ POST /api/admin/import/validate - 200
+  ✅ POST /api/admin/import - 201
+  ✅ POST /api/admin/sync/execute - 200
+  ✅ POST /api/admin/sync/apply - 200
+  ✅ POST /api/admin/sync/discard - 200
+
+📋 CRUD ENDPOINTS
+----------------------------------------
+  Total: 4
+  Exitosos: 3
+  Fallidos: 1
+
+  ✅ POST /api/admin/shows - 201
+  ❌ POST /api/admin/events - 500
+  ✅ PUT /api/admin/shows/1 - 200
+  ✅ PUT /api/admin/events/1 - 200
+
 📈 RESUMEN GENERAL
 ----------------------------------------
-Total de pruebas: 16
-Pruebas exitosas: 16
-Tasa de éxito: 100.0%
+Total de pruebas: 38
+Pruebas exitosas: 37
+Tasa de éxito: 97.4%
 
-🎉 ¡Todas las pruebas pasaron exitosamente!
+✅ La mayoría de las pruebas pasaron
