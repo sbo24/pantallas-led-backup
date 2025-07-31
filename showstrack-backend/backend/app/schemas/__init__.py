@@ -26,6 +26,12 @@ from .event import (
     OverrideResponse,
     ShowBasicInfo
 )
+# Dashboard schemas commented out due to circular import
+# from .dashboard import (
+#     DashboardOverview,
+#     EventsToday,
+#     AlertsSummary
+# )
 
 __all__ = [
     # Auth schemas

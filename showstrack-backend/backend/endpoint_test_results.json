@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-30T16:18:17.761801",
+  "timestamp": "2025-07-31T12:27:41.770999",
   "authentication": true,
   "system": [
     {
@@ -7,7 +7,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.001996,
+      "response_time": 0.002131,
       "error": null,
       "response_size": 40
     },
@@ -16,16 +16,16 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.149265,
+      "response_time": 0.182542,
       "error": null,
-      "response_size": 662
+      "response_size": 666
     },
     {
       "path": "/docs",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.001804,
+      "response_time": 0.001965,
       "error": null,
       "response_size": 946
     },
@@ -34,7 +34,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.07596,
+      "response_time": 0.003897,
       "error": null,
       "response_size": 69946
     }
@@ -45,7 +45,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.001788,
+      "response_time": 0.002123,
       "error": null,
       "response_size": 32
     },
@@ -54,7 +54,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.056317,
+      "response_time": 0.057402,
       "error": null,
       "response_size": 180
     },
@@ -63,7 +63,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.05041,
+      "response_time": 0.051363,
       "error": null,
       "response_size": 180
     }
@@ -74,7 +74,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.386795,
+      "response_time": 0.382591,
       "error": null,
       "response_size": 375
     },
@@ -83,7 +83,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.047379,
+      "response_time": 0.048441,
       "error": null,
       "response_size": 168
     },
@@ -92,7 +92,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.047281,
+      "response_time": 0.048357,
       "error": null,
       "response_size": 37
     },
@@ -101,7 +101,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.047229,
+      "response_time": 0.050469,
       "error": null,
       "response_size": 199
     }
@@ -112,16 +112,16 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.054457,
+      "response_time": 0.053477,
       "error": null,
-      "response_size": 4777
+      "response_size": 5119
     },
     {
       "path": "/api/admin/shows/1",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.052957,
+      "response_time": 0.050367,
       "error": null,
       "response_size": 325
     },
@@ -130,7 +130,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.067384,
+      "response_time": 0.067067,
       "error": null,
       "response_size": 1638
     },
@@ -139,7 +139,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.059459,
+      "response_time": 0.054784,
       "error": null,
       "response_size": 356
     },
@@ -148,7 +148,7 @@
       "method": "PATCH",
       "status_code": 200,
       "success": true,
-      "response_time": 0.112992,
+      "response_time": 0.140791,
       "error": null,
       "response_size": 191
     }
@@ -159,25 +159,25 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.055723,
+      "response_time": 0.055454,
       "error": null,
-      "response_size": 70
+      "response_size": 69
     },
     {
       "path": "/api/admin/alerts/history",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.05378,
+      "response_time": 0.057699,
       "error": null,
-      "response_size": 3814
+      "response_size": 4052
     },
     {
       "path": "/api/admin/alerts/global",
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.105684,
+      "response_time": 0.129383,
       "error": null,
       "response_size": 211
     },
@@ -186,7 +186,7 @@
       "method": "DELETE",
       "status_code": 200,
       "success": true,
-      "response_time": 0.099728,
+      "response_time": 0.103946,
       "error": null,
       "response_size": 326
     }
@@ -197,7 +197,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.053637,
+      "response_time": 0.055143,
       "error": null,
       "response_size": 619
     },
@@ -206,7 +206,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.050437,
+      "response_time": 0.049708,
       "error": null,
       "response_size": 180
     },
@@ -215,7 +215,7 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.049737,
+      "response_time": 0.056764,
       "error": null,
       "response_size": 149
     },
@@ -224,7 +224,7 @@
       "method": "PUT",
       "status_code": 200,
       "success": true,
-      "response_time": 0.050512,
+      "response_time": 0.05116,
       "error": null,
       "response_size": 239
     },
@@ -233,7 +233,7 @@
       "method": "PUT",
       "status_code": 200,
       "success": true,
-      "response_time": 0.112131,
+      "response_time": 0.135669,
       "error": null,
       "response_size": 349
     },
@@ -242,7 +242,7 @@
       "method": "PUT",
       "status_code": 200,
       "success": true,
-      "response_time": 0.10829,
+      "response_time": 0.116626,
       "error": null,
       "response_size": 391
     }
@@ -253,16 +253,16 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.069995,
+      "response_time": 0.065834,
       "error": null,
-      "response_size": 8556
+      "response_size": 9502
     },
     {
       "path": "/api/admin/sync/status",
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.063076,
+      "response_time": 0.058081,
       "error": null,
       "response_size": 225
     },
@@ -271,16 +271,16 @@
       "method": "GET",
       "status_code": 200,
       "success": true,
-      "response_time": 0.062962,
+      "response_time": 0.062286,
       "error": null,
-      "response_size": 7844
+      "response_size": 8698
     },
     {
       "path": "/api/admin/import/validate",
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.187633,
+      "response_time": 0.181832,
       "error": null,
       "response_size": 415
     },
@@ -289,7 +289,7 @@
       "method": "POST",
       "status_code": 201,
       "success": true,
-      "response_time": 0.1261,
+      "response_time": 0.124733,
       "error": null,
       "response_size": 419
     },
@@ -298,7 +298,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.090997,
+      "response_time": 0.08572,
       "error": null,
       "response_size": 297
     },
@@ -307,7 +307,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.064703,
+      "response_time": 0.06274,
       "error": null,
       "response_size": 133
     },
@@ -316,7 +316,7 @@
       "method": "POST",
       "status_code": 200,
       "success": true,
-      "response_time": 0.061163,
+      "response_time": 0.063182,
       "error": null,
       "response_size": 181
     }
@@ -327,7 +327,7 @@
       "method": "POST",
       "status_code": 201,
       "success": true,
-      "response_time": 0.100247,
+      "response_time": 0.108519,
       "error": null,
       "response_size": 344
     },
@@ -336,7 +336,7 @@
       "method": "POST",
       "status_code": 500,
       "success": false,
-      "response_time": 0.067065,
+      "response_time": 0.1,
       "error": null,
       "response_size": 21
     },
@@ -345,7 +345,7 @@
       "method": "PUT",
       "status_code": 200,
       "success": true,
-      "response_time": 0.103807,
+      "response_time": 0.114871,
       "error": null,
       "response_size": 325
     },
@@ -354,7 +354,7 @@
       "method": "PUT",
       "status_code": 200,
       "success": true,
-      "response_time": 0.108014,
+      "response_time": 0.108107,
       "error": null,
       "response_size": 356
     }
