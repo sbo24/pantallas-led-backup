@@ -6,9 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Initial Setup (First Time)
 ```bash
-# Después de hacer SSH, ejecuta esta línea:
-cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
 # Clone repository (if not already done)
 git clone https://github.com/rvaquerizopdf/showstrack-app.git .
 
@@ -21,6 +18,9 @@ source venv/bin/activate
 # Install backend dependencies
 cd showstrack-backend/backend
 pip install -r requirements.txt
+
+# After setup, start server with this command:
+cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Daily Development Workflow
@@ -28,11 +28,17 @@ pip install -r requirements.txt
 # SSH into development container
 ssh dev@[IP_SERVIDOR] -p 222
 
-# Activate Python environment
+# Activate Python environment and start server (single command)
+cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Alternative: Step by step commands
+# 1. Navigate to workspace and activate virtual environment
 cd /workspace && source venv/bin/activate
 
-# Start backend server for development
+# 2. Navigate to backend directory
 cd showstrack-backend/backend
+
+# 3. Start FastAPI server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -47,8 +53,8 @@ cd /workspace/showstrack-dev/scripts
 ```
 
 ### Important URLs
-- **Backend DEV**: `http://[IP_SERVIDOR]:8001`
-- **API Documentation**: `http://[IP_SERVIDOR]:8001/docs`
+- **Backend DEV**: `http://[IP_SERVIDOR]:8000`
+- **API Documentation**: `http://[IP_SERVIDOR]:8000/docs`
 - **Backend PROD**: `http://[IP_SERVIDOR]:8000`
 
 ## Architecture Overview
@@ -70,7 +76,7 @@ ShowsTrack is a **real-time show management system** built with a **microservice
 - **Development**: Python 3.10, Node.js 18, Claude Code, SSH access
 
 ### Environment Configuration
-- **Development Port**: 8001 (backend dev server)
+- **Development Port**: 8000 (backend dev server)
 - **Production Port**: 8000 (backend prod server)
 - **Database**: PostgreSQL accessible via `$DATABASE_URL` environment variable
 - **SSH Access**: Port 222 for remote development
@@ -160,6 +166,34 @@ showstrack-dev/
 - Git configured with project credentials
 - Docker socket mounted for container management
 
+## Troubleshooting Server Issues
+
+### If Server Doesn't Respond
+1. **Check if process is running**: Look for zombie/defunct processes
+   ```bash
+   ps aux | grep uvicorn
+   ```
+
+2. **Kill zombie processes if needed**:
+   ```bash
+   pkill -f "uvicorn app.main:app"
+   ```
+
+3. **Start server from correct directory**:
+   ```bash
+   cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+4. **Test connectivity**:
+   ```bash
+   curl http://localhost:8000/docs
+   curl http://localhost:8000/health
+   ```
+
+### Port Usage
+- **Always use port 8000** for both development and production
+- If port 8000 is in use, check for other processes: `ps aux | grep 8000`
+
 ## Common Development Tasks
 
 ### Database Operations
@@ -178,11 +212,11 @@ alembic downgrade base && alembic upgrade head
 ### API Testing
 ```bash
 # Test public endpoints (no auth required)
-curl http://localhost:8001/api/public/schedules
-curl http://localhost:8001/health
+curl http://localhost:8000/api/public/schedules
+curl http://localhost:8000/health
 
 # Test admin endpoints (requires JWT token)
-curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8001/api/admin/shows
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/admin/shows
 ```
 
 ### Quick Data Checks
