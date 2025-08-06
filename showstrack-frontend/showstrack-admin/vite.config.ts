@@ -18,12 +18,19 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
     proxy: {
-      // Proxy API calls to FastAPI backend running on port 8000
+      // Proxy API calls to FastAPI backend
+      // Docker environment: container-to-container via network
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('Proxying request:', req.method, req.url, 'to', options.target);
+          });
+        },
       },
     },
   },

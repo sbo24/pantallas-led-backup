@@ -11,6 +11,13 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
+    "test:stores": "vitest run src/stores",
+    "test:api": "vitest run src/services/api",
+    "test:router": "vitest run src/router",
+    "test:connectivity": "vitest run src/__tests__/connectivity.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:phase2": "/workspace/test-phase2-infrastructure.sh",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix"
@@ -25,7 +32,9 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@pinia/testing": "^1.0.2",
     "@tailwindcss/postcss": "^4.1.11",
+    "@testing-library/vue": "^8.1.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.16.5",
