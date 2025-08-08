@@ -52,24 +52,59 @@ npm install -D tailwindcss postcss autoprefixer
 npx tailwindcss init -p
 ```
 
-### **Desarrollo**
+### **🚀 Comandos de Inicio Rápido**
+
+#### **Iniciar Frontend (Desarrollo Diario)**
+```bash
+# 1. Navegar al directorio del frontend
+cd /workspace/showstrack-frontend/showstrack-admin
+
+# 2. Verificar que no hay procesos zombie (si hay problemas)
+ps aux | grep vite | grep -v grep
+pkill -f "node.*vite" || true  # Solo si hay procesos colgados
+
+# 3. Iniciar servidor de desarrollo
+npm run dev
+
+# La aplicación estará disponible en:
+# - Interno (container): http://localhost:3000
+# - Externo: http://[IP_SERVIDOR]:3001 (si aplica)
+```
+
+#### **Solución de Problemas Comunes**
+```bash
+# Si ves página en blanco:
+# 1. Verificar que todos los archivos de views existen
+ls -la src/views/  # Debe mostrar 8 archivos .vue
+
+# 2. Reiniciar el servidor limpiamente
+pkill -f "node.*vite" || true
+npm run dev
+
+# 3. Verificar conectividad
+curl http://localhost:3000  # Debe responder HTML
+```
+
+### **Desarrollo Completo**
 ```bash
 # Servidor de desarrollo
 npm run dev
 
-# Build para producción
+# Build para producción  
 npm run build
 
 # Preview del build
 npm run preview
 
 # Tests
-npm run test
-npm run test:e2e
+npm run test:unit           # Tests unitarios
+npm run test:stores         # Solo tests de stores
+npm run test:api           # Solo tests de API
+npm run test:router        # Solo tests de router
 
 # Linting y formatting
 npm run lint
-npm run format
+npm run type-check
 ```
 
 ### **Testing y Seguridad**
@@ -86,17 +121,60 @@ npm run test:a11y
 
 ## 📊 **Estado del Proyecto**
 
-| Fase | Estado | Progreso |
-|------|--------|----------|
-| **FASE 1**: Setup Inicial | ⏳ Pendiente | 0% |
-| **FASE 2**: Servicios | ⏳ Pendiente | 0% |
-| **FASE 3**: Layout Base | ⏳ Pendiente | 0% |
-| **FASE 4**: Funcionalidades | ⏳ Pendiente | 0% |
-| **FASE 5**: Testing Final | ⏳ Pendiente | 0% |
+| Fase | Estado | Progreso | ETA |
+|------|--------|----------|-----|
+| **FASE 1**: Setup Inicial | ✅ **COMPLETADA** | 100% | ~~2 días~~ |
+| **FASE 2**: Servicios | ✅ **COMPLETADA** | 100% | ~~3 días~~ |
+| **Testing Pre-FASE 3** | ✅ **COMPLETADO** | 100% | ~~0.5 días~~ |
+| **FASE 3**: Layout Base | 🎨 **LISTO PARA INICIAR** | 0% | 2-3 días |
+| **FASE 4**: Funcionalidades | ⏳ Esperando FASE 3 | 0% | 4-5 días |
+| **FASE 5**: Testing Final | ⏳ Esperando FASE 4 | 0% | 1-2 días |
 
-**Próximo paso**: Ejecutar FASE 1 - Setup inicial del proyecto
+**Progreso total**: 2/5 fases completadas (40%)  
+**Próximo paso**: **FASE 3 - Layout y Componentes Base**
+
+## 🏗️ **Infraestructura Implementada (FASE 1 + 2)**
+
+### **✅ Stack Tecnológico Operativo**
+- **Vue.js 3.5.18** con Composition API (`<script setup>`)
+- **TypeScript 5.8.0** con type safety completo
+- **Tailwind CSS v4.1.11** con @tailwindcss/vite plugin
+- **Pinia 3.0.3** para gestión de estado reactiva
+- **Vue Router 4.5.1** con guards de autenticación
+- **Vite 5.4.19** como build tool optimizado
+
+### **🏪 Stores Implementados (6/6)**
+- `useAuthStore` - JWT, roles, persistencia segura
+- `useShowsStore` - Gestión completa de espectáculos  
+- `useEventsStore` - Eventos con tiempo real y overrides
+- `useAlertsStore` - Sistema de alertas globales
+- `useConfigStore` - Configuración del sistema
+- `useDashboardStore` - Métricas con auto-refresh
+
+### **📡 API Integration (61+ endpoints)**
+- **Authentication** - Login, JWT refresh, roles
+- **Shows CRUD** - Gestión completa de espectáculos
+- **Events CRUD** - Eventos, horarios, overrides
+- **Alerts System** - Alertas globales y emergencias
+- **Configuration** - Parámetros del sistema
+- **Dashboard** - Métricas en tiempo real
+
+### **🧪 Testing Suite (207+ tests)**
+- Store testing con Pinia Testing utilities
+- API client testing con mocks
+- Router guards y navigation testing
+- TypeScript compilation y linting
+- Security audit y dependency validation
+
+## 🎨 **Próximo: FASE 3 - UI Layout**
+
+### **Componentes a Implementar**
+1. **Layout System**: `AppLayout`, `AppSidebar`, `AppHeader`
+2. **Base Components**: `BaseButton`, `BaseModal`, `BaseTable`, `BaseForm`
+3. **Notification System**: Toast notifications integrado
+4. **Responsive Design**: Mobile-first con Tailwind CSS
 
 ## 🔗 **Enlaces Relacionados**
 - **Backend API**: [showstrack-backend](../showstrack-backend/)
-- **Documentación**: [docs](../docs/)
-- **Proceso de desarrollo**: [PROCESO_DESARROLLO.md](../PROCESO_DESARROLLO.md)
+- **Proceso completo**: [PROCESO_DESARROLLO_VUE.md](../PROCESO_DESARROLLO_VUE.md)
+- **Testing Plan**: [showstrack-admin/test-phase2-infrastructure.sh](showstrack-admin/test-phase2-infrastructure.sh)
