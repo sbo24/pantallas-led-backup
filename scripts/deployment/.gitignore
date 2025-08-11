@@ -1,0 +1,4 @@
+# Ignorar archivos de configuración de entorno
+.env
+# Creación del schema, contiene credenciales de conexión a bbdd
+01-create-extensions.sql
