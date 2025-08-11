@@ -3,12 +3,12 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed, type ComputedRef } from 'vue'
-import { apiPost } from '@/services/api/client'
+import { apiPost, apiGet } from '@/services/api/client'
 import { tokenStorage } from '@/services/api/client'
 import type { User, LoginCredentials, AuthResponse, AuthTokens } from '@/types/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State
+  // State - Start with null, will be populated from localStorage or login
   const user = ref<User | null>(null)
   const tokens = ref<AuthTokens | null>(null)
   const isLoading = ref(false)
@@ -37,16 +37,44 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = null
       
-      const response = await apiPost<AuthResponse>('/api/auth/login', credentials)
+      // Create form data for backend (expects application/x-www-form-urlencoded)
+      const formData = new URLSearchParams()
+      formData.append('username', credentials.username)
+      formData.append('password', credentials.password)
       
-      if (response.data) {
-        user.value = response.data.user
-        tokens.value = response.data.tokens
+      // Make request with form data
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.access_token && data.user) {
+        // Adapt backend user format to frontend format
+        const backendUser = data.user as any // Backend format
+        user.value = {
+          ...backendUser,
+          roles: [backendUser.role] // Convert single role string to array
+        }
+        tokens.value = {
+          accessToken: data.access_token,
+          refreshToken: '', // Backend doesn't provide refresh token yet
+          expiresIn: data.expires_in,
+          tokenType: data.token_type
+        }
         
         // Persist tokens
         tokenStorage.setTokens(
-          response.data.tokens.accessToken,
-          response.data.tokens.refreshToken
+          data.access_token,
+          '' // No refresh token from backend yet
         )
         
         return true
@@ -68,7 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Optional: Call logout endpoint to invalidate server-side session
       if (tokens.value?.refreshToken) {
-        await apiPost('/api/auth/logout', {
+        await apiPost('/api/admin/auth/logout', {
           refresh_token: tokens.value.refreshToken
         }).catch(error => {
           // Continue with local logout even if server call fails
@@ -95,10 +123,15 @@ export const useAuthStore = defineStore('auth', () => {
       
       isLoading.value = true
       
-      const response = await apiPost<User>('/api/auth/me')
+      const response = await apiGet<User>('/api/admin/auth/me')
       
       if (response.data) {
-        user.value = response.data
+        // Adapt backend user format to frontend format
+        const backendUser = response.data as any // Backend format
+        user.value = {
+          ...backendUser,
+          roles: [backendUser.role] // Convert single role string to array
+        }
         return true
       }
       
@@ -154,7 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = null
       
-      await apiPost('/api/auth/change-password', {
+      await apiPost('/api/admin/auth/change-password', {
         current_password: currentPassword,
         new_password: newPassword
       })
@@ -174,7 +207,7 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = null
       
-      const response = await apiPost<User>('/api/auth/profile', profileData)
+      const response = await apiPost<User>('/api/admin/auth/profile', profileData)
       
       if (response.data) {
         user.value = { ...user.value!, ...response.data }

@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncpg
 import os
@@ -17,6 +18,18 @@ app = FastAPI(
     description="API para gestión de espectáculos en tiempo real",
     docs_url="/docs",
     redoc_url="/redoc"
+)
+
+# Configurar CORS
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080,http://localhost:5173").split(",")
+allowed_origins = [origin.strip() for origin in allowed_origins]  # Limpiar espacios
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Incluir routers

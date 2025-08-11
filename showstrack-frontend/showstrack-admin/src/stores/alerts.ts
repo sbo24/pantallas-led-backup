@@ -7,7 +7,7 @@ import AlertsApiService from '@/services/api/alerts'
 import type { GlobalAlert, CreateAlertData } from '@/types/api'
 
 export const useAlertsStore = defineStore('alerts', () => {
-  // State
+  // State - Empty arrays for real data from backend
   const alerts = ref<GlobalAlert[]>([])
   const activeAlerts = ref<GlobalAlert[]>([])
   const currentAlert = ref<GlobalAlert | null>(null)
@@ -33,6 +33,10 @@ export const useAlertsStore = defineStore('alerts', () => {
       acc[type].push(alert)
       return acc
     }, {} as Record<string, GlobalAlert[]>)
+  })
+  
+  const unreadCount: ComputedRef<number> = computed(() => {
+    return activeAlerts.value.length
   })
   
   const alertsByPriority: ComputedRef<Record<string, GlobalAlert[]>> = computed(() => {
@@ -466,6 +470,7 @@ export const useAlertsStore = defineStore('alerts', () => {
     alertsByPriority,
     criticalAlerts,
     highPriorityAlerts,
+    unreadCount,
     expiringSoonAlerts,
     alertsStats,
     

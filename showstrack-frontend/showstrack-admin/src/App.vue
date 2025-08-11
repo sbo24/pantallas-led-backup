@@ -1,85 +1,51 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { computed, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+import AppLayout from './components/AppLayout.vue'
+import { useAuthStore } from './stores/auth'
+
+const route = useRoute()
+const authStore = useAuthStore()
+
+// Routes that don't need the layout (login, etc.)
+const routesWithoutLayout = ['/login', '/unauthorized', '/404']
+
+const showLayout = computed(() => {
+  // For development testing - show layout for all routes except login-specific ones
+  return !routesWithoutLayout.includes(route.path)
+  // TODO: Restore auth check when ready: && authStore.isAuthenticated
+})
+
+// Initialize auth check on app mount
+onMounted(() => {
+  // authStore.checkAuth() // TODO: Enable when not using mock data
+})
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <div id="app">
+    <!-- Show layout for authenticated routes -->
+    <AppLayout v-if="showLayout">
+      <RouterView />
+    </AppLayout>
+    
+    <!-- Show router view directly for non-layout routes -->
+    <RouterView v-else />
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+<style>
+/* Global styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+#app {
+  min-height: 100vh;
 }
 </style>
