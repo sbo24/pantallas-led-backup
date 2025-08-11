@@ -43,6 +43,10 @@ logs/
 # Project specific test files
 test_db.py
 simple_test.py
+*claude*.md
+*PROCESO*.md
+*DESARROLLO*.md
+*MCP*.md
 
 # Alembic
 # Note: We want to keep alembic/ directory but not temp files
