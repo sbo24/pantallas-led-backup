@@ -4,20 +4,15 @@
  */
 
 export { useShows } from './useShows'
-export { useNotifications } from './useNotifications'
 export { useSettings } from './useSettings'
+export { useNotifications } from './useNotifications'
+export { useTable } from './useTable'
 
 export type {
   UseShowsOptions,
   UseShowsReturn,
   BulkOperationResult
 } from './useShows'
-
-export type {
-  ToastType,
-  Toast,
-  UseNotificationsReturn
-} from './useNotifications'
 
 export type {
   UseSettingsOptions,
@@ -27,3 +22,19 @@ export type {
   ValidationError,
   ChangeTracker
 } from './useSettings'
+
+export type {
+  ToastType,
+  Toast,
+  UseNotificationsReturn
+} from './useNotifications'
+
+export type {
+  UseTableOptions,
+  UseTableReturn,
+  TableColumn,
+  SortOptions,
+  FilterOptions,
+  ExportOptions,
+  PaginationState
+} from './useTable'
