@@ -7,6 +7,7 @@ export { useShows } from './useShows'
 export { useSettings } from './useSettings'
 export { useNotifications } from './useNotifications'
 export { useTable } from './useTable'
+export { useModal, showConfirmationModal, showAlertModal, showFormModal } from './useModal'
 
 export type {
   UseShowsOptions,
@@ -38,3 +39,13 @@ export type {
   ExportOptions,
   PaginationState
 } from './useTable'
+
+export type {
+  UseModalOptions,
+  UseModalReturn,
+  ModalConfig,
+  ModalInstance,
+  ModalSize,
+  ModalVariant,
+  ModalPosition
+} from './useModal'

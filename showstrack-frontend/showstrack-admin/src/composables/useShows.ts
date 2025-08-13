@@ -14,7 +14,7 @@
 import { computed, ref, type ComputedRef } from 'vue'
 import { useShowsStore } from '@/stores/shows'
 import { useNotifications } from './useNotifications'
-import type { Show, CreateShowData, ShowsListParams } from '@/types/api'
+import type { Show, CreateShowRequest, ShowFilters, ApiShow, CreateShowData, ShowsListParams } from '@/types'
 
 export interface UseShowsOptions {
   autoSync?: boolean
@@ -47,10 +47,10 @@ export interface UseShowsReturn {
   }>
   
   // CRUD Operations
-  createShow: (data: CreateShowData) => Promise<Show | null>
-  updateShow: (id: string, data: Partial<CreateShowData>) => Promise<Show | null>
+  createShow: (data: CreateShowRequest) => Promise<Show | null>
+  updateShow: (id: string, data: Partial<CreateShowRequest>) => Promise<Show | null>
   deleteShow: (id: string) => Promise<boolean>
-  fetchShows: (params?: ShowsListParams) => Promise<boolean>
+  fetchShows: (filters?: ShowFilters) => Promise<boolean>
   fetchShow: (id: string) => Promise<Show | null>
   
   // Bulk Operations
@@ -87,15 +87,15 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
   const syncTimer = ref<NodeJS.Timeout | null>(null)
   const isRealTimeSyncActive = computed(() => syncTimer.value !== null)
 
-  // State computed from store
-  const shows = computed(() => store.shows)
-  const currentShow = computed(() => store.currentShow)
+  // State computed from store with type adaptation
+  const shows = computed(() => store.shows.map(adaptApiShowToShow))
+  const currentShow = computed(() => store.currentShow ? adaptApiShowToShow(store.currentShow) : null)
   const loading = computed(() => store.isLoading)
   const error = computed(() => store.error)
   
   // Enhanced computed properties
-  const activeShows = computed(() => store.activeShows)
-  const inactiveShows = computed(() => store.inactiveShows)
+  const activeShows = computed(() => store.activeShows.map(adaptApiShowToShow))
+  const inactiveShows = computed(() => store.inactiveShows.map(adaptApiShowToShow))
   const venues = computed(() => store.venues)
   const showsStats = computed(() => store.showsStats)
   
@@ -116,15 +116,45 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
     shows.value.filter(show => show.venue === venue)
   )
   
-  // Active shows only
+  // Active shows only (based on status instead of isActive)
   const getActiveShowsOnly = computed(() => 
-    shows.value.filter(show => show.isActive)
+    shows.value.filter(show => show.status === 'ABIERTO' || show.status === 'PROGRAMADO')
   )
 
-  // CRUD Operations with enhanced error handling and notifications
-  const createShow = async (data: CreateShowData): Promise<Show | null> => {
+  // Type adapter to convert API Show to frontend Show
+const adaptApiShowToShow = (apiShow: ApiShow): Show => {
+  return {
+    id: apiShow.id,
+    name: apiShow.name,
+    status: 'PROGRAMADO', // Default status, should be calculated based on business logic
+    venue: apiShow.venue,
+    capacity: apiShow.capacity,
+    leadTimeMinutes: apiShow.leadTimeMinutes,
+    description: apiShow.description,
+    createdAt: apiShow.createdAt,
+    updatedAt: apiShow.updatedAt
+  }
+}
+
+// Type adapter to convert frontend Show to API format
+const adaptShowToApiFormat = (show: CreateShowRequest | Partial<CreateShowRequest>): CreateShowData => {
+  return {
+    name: show.name || '',
+    description: show.description,
+    duration: 60, // Default duration, should be configurable
+    capacity: show.capacity || 0,
+    venue: show.venue || '',
+    leadTimeMinutes: show.leadTimeMinutes,
+    isActive: true // Default to active
+  }
+}
+
+// CRUD Operations with enhanced error handling and notifications
+  const createShow = async (data: CreateShowRequest): Promise<Show | null> => {
     try {
-      const result = await store.createShow(data)
+      const apiData = adaptShowToApiFormat(data)
+      const apiResult = await store.createShow(apiData)
+      const result = apiResult ? adaptApiShowToShow(apiResult) : null
       
       if (result) {
         showSuccessToast('Espectáculo creado exitosamente')
@@ -143,9 +173,18 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
     }
   }
 
-  const updateShow = async (id: string, data: Partial<CreateShowData>): Promise<Show | null> => {
+  const updateShow = async (id: string, data: Partial<CreateShowRequest>): Promise<Show | null> => {
     try {
-      const result = await store.updateShow(id, data)
+      // Only pass defined fields to avoid overwriting with defaults
+      const apiData: Partial<CreateShowData> = {}
+      if (data.name !== undefined) apiData.name = data.name
+      if (data.description !== undefined) apiData.description = data.description
+      if (data.capacity !== undefined) apiData.capacity = data.capacity
+      if (data.venue !== undefined) apiData.venue = data.venue
+      if (data.leadTimeMinutes !== undefined) apiData.leadTimeMinutes = data.leadTimeMinutes
+      
+      const apiResult = await store.updateShow(id, apiData)
+      const result = apiResult ? adaptApiShowToShow(apiResult) : null
       
       if (result) {
         showSuccessToast('Espectáculo actualizado exitosamente')
@@ -185,9 +224,16 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
     }
   }
 
-  const fetchShows = async (params?: ShowsListParams): Promise<boolean> => {
+  const fetchShows = async (filters?: ShowFilters): Promise<boolean> => {
     try {
-      const result = await store.fetchShows(params)
+      // Convert frontend filters to API params if needed
+      const apiParams: ShowsListParams | undefined = filters ? {
+        search: filters.search,
+        venue: filters.venue?.[0], // Take first venue for API compatibility
+        // Add other API-compatible filters
+      } : undefined
+      
+      const result = await store.fetchShows(apiParams)
       
       if (!result && store.error) {
         showErrorToast(`Error al cargar espectáculos: ${store.error}`)
@@ -202,7 +248,8 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
 
   const fetchShow = async (id: string): Promise<Show | null> => {
     try {
-      const result = await store.fetchShow(id)
+      const apiResult = await store.fetchShow(id)
+      const result = apiResult ? adaptApiShowToShow(apiResult) : null
       
       if (!result && store.error) {
         showErrorToast(`Error al cargar espectáculo: ${store.error}`)
