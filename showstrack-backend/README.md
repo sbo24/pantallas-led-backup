@@ -501,13 +501,13 @@ docker run -p 8000:8000 showstrack-backend
 - `DELETE /api/admin/events/{id}` - Eliminar evento
 - `PATCH /api/admin/events/{id}/override` - Gestionar overrides
 
-### ✅ **SISTEMA DE ALERTAS GLOBALES (Requiere JWT)**
+### 🚧 **SISTEMA DE ALERTAS GLOBALES (Requiere JWT)** - En desarrollo
 - `GET /api/admin/alerts/global` - Estado actual de alerta + historial
 - `POST /api/admin/alerts/global` - Activar alerta emergencia  
 - `DELETE /api/admin/alerts/global` - Desactivar alerta activa
 - `GET /api/admin/alerts/history` - Historial paginado de alertas
 
-### ✅ **SISTEMA DE CONFIGURACIÓN GLOBAL (Requiere JWT)**
+### 🚧 **SISTEMA DE CONFIGURACIÓN GLOBAL (Requiere JWT)** - En desarrollo
 - `GET /api/admin/config/global` - Configuración completa del sistema
 - `PUT /api/admin/config/global` - Actualizar configuración parcial/completa
 - `GET /api/admin/config/operation-mode` - Modo operación actual (auto/manual)
@@ -523,57 +523,95 @@ docker run -p 8000:8000 showstrack-backend
 - `GET /health` - Health check completo
 - `GET /` - Endpoint raíz
 
-## 📖 Documentación Adicional
+## 📖 Documentación y Desarrollo
 
-Para documentación completa del sistema, consultar:
-- `/docs` - Documentación completa del proyecto
-- `/docs/api-specification.md` - Especificación de la API
-- `/docs/data-model.md` - Modelo de datos detallado
+### **Documentación Técnica**
 - `/docs/database-relationships.md` - Relaciones y constraints detallados
+- `/docs/api-specification.md` - Especificación de la API
 - `TESTING_PLAN.md` - Plan y resultados de testing automatizado
-- `/workspace/showstrack-dev/scripts/` - Scripts de testing y diagnóstico
+
+### **Integración con Frontend FASE 4**
+- **Frontend Admin README**: `/workspace/showstrack-frontend/showstrack-admin/README.md`
+- **FASE 4 Estado**: `/workspace/PROCESO_DESARROLLO_FASE4.md` - 90% completado
+- **Composables usando esta API**: useShows, useSettings (570+ líneas cada uno)
+- **Views integradas**: ShowsView (1090+ líneas) usando endpoints backend
+
+### **Development Scripts**
+- `/workspace/showstrack-dev/scripts/` - Testing y diagnóstico
+- **Daily Workflow**: Documented in `/workspace/CLAUDE.md`
+
+### **Próxima Documentación**
+- **API Integration Guide**: Cómo frontend consume backend
+- **State Management**: Cómo composables mapean a endpoints
+- **Error Handling**: Patterns entre frontend-backend
 
 ## 🧪 Testing de Endpoints
 
-### Endpoints Funcionando ✅
+### 🧪 Endpoints Testing Status
+
+#### **✅ Core Endpoints (Validados)**
 ```bash
 # Endpoint raíz
 curl http://localhost:8000/
-# Respuesta: {"message":"ShowsTrack API funcionando"}
+# ✅ Respuesta: {"message":"ShowsTrack API funcionando"}
 
 # Health check robusto
 curl http://localhost:8000/health
-# Respuesta: JSON completo con métricas del sistema
+# ✅ Respuesta: JSON completo con métricas del sistema + DB
 
 # Documentación Swagger
 curl http://localhost:8000/docs
-# Respuesta: Interfaz web interactiva con todos los endpoints
+# ✅ Respuesta: Interfaz web interactiva con todos los endpoints
+```
 
-# Alertas públicas
-curl http://localhost:8000/api/public/alert
-# Respuesta: {"has_alert":false,"alert":null}
-
-# Schedules públicos (con fecha específica)
-curl "http://localhost:8000/api/public/schedules?date=2024-07-17"
-# Respuesta: JSON con shows y eventos
-
-# Autenticación JWT
+#### **✅ Authentication Flow (Usado por Frontend FASE 4)**
+```bash
+# Login JWT (usado por frontend admin)
 curl -X POST http://localhost:8000/api/admin/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin&password=admin"
-# Respuesta: {"access_token":"...", "user":{...}}
+# ✅ Respuesta: {"access_token":"...", "user":{...}}
 
-# Usuario actual
+# Usuario actual (usado por stores frontend)
 curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/admin/auth/me
-# Respuesta: {"id":1,"username":"admin",...}
+# ✅ Respuesta: {"id":1,"username":"admin",...}
 ```
 
-### Endpoints con Verificación Pendiente ⚠️
+#### **🔗 Frontend Integration Points (FASE 4)**
 ```bash
-# Algunos endpoints admin pueden necesitar verificación adicional
+# Shows CRUD (usado por useShows composable)
 curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/admin/shows
+# ✅ Used by: useShows.ts (400+ lines, 13 tests)
+
+# Events CRUD (usado por ShowsView)
 curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/admin/events
+# ✅ Used by: ShowsView.vue (1090+ lines)
 ```
+
+#### **🚧 Public Endpoints (Pendientes validación completa)**
+```bash
+# Alertas públicas
+curl http://localhost:8000/api/public/alert
+# ⚠️ Respuesta: {"has_alert":false,"alert":null} - Básico
+
+# Schedules públicos
+curl "http://localhost:8000/api/public/schedules?date=2024-07-17"
+# ⚠️ Respuesta: JSON con shows y eventos - Necesita validación
+```
+
+#### **📊 Frontend Usage Statistics (Basado en FASE 4)**
+
+**API Clients Activos**:
+- ✅ **Admin Frontend**: Vue 3 app consumiendo JWT + CRUD endpoints
+- ✅ **Authentication**: 100% funcional con refresh token flow  
+- ✅ **CRUD Operations**: Shows/Events management en uso por composables
+- ✅ **Real-time Health**: Dashboard usando /health endpoint
+
+**Endpoints más usados por Frontend**:
+1. `/api/admin/auth/login` - Authentication (daily use)
+2. `/api/admin/shows` - CRUD operations (useShows composable)
+3. `/api/admin/events` - Event management (ShowsView)
+4. `/health` - System monitoring (Dashboard)
 
 ### Problemas Resueltos ✅
 - **Unicode encoding errors** - Corregidos en dependencies.py
@@ -585,37 +623,66 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/admin/event
 
 ## 📊 Estado del Proyecto
 
-**Última actualización**: 2025-07-18
+![Estado](https://img.shields.io/badge/Estado-BASE%20COMPLETA-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
+![Tests](https://img.shields.io/badge/Tests-Configurado-yellow)
 
-### Implementado ✅ (98% Completado)
-- **Modelos SQLAlchemy completos** - 8 modelos con relaciones
-- **Sistema de migraciones Alembic** - Configuración completa
-- **Health endpoint robusto** - Con métricas del sistema
-- **Configuración async completa** - PostgreSQL + asyncpg
-- **Sistema de autenticación JWT** - Con bcrypt y tokens seguros
-- **Endpoints CRUD completos** - 19 endpoints implementados
-- **Esquemas Pydantic para validación** - Schemas completos con ejemplos
-- **Servicios de negocio separados** - ShowService + EventService
-- **Documentación automática con Swagger** - Interfaz web interactiva
-- **Dependencias instaladas** - JWT, multipart, bcrypt, testing
-- **Servidor funcionando** - Uvicorn en puerto 8000 con auto-reload
-- **Problemas de conexión DB resueltos** - Unicode, hashing, imports corregidos
-- **Usuario admin configurado** - Con password hash bcrypt correcto
-- **Relaciones eager loading** - Role relationship cargada correctamente
-- **Testing automatizado** - Script completo con **100% de éxito** (16/16 endpoints)
-- **Suite de testing** - Pytest configurado con fixtures async
+**Última actualización**: 2025-08-13  
+**Estado de desarrollo**: Base arquitectónica completada  
+**Integración con Frontend**: ✅ FASE 4 Frontend usando esta API base
 
-### ✅ Estado Actual (100% Completado - 2025-07-21)
-- **19 endpoints implementados** y **16 testeados** (100% éxito)
-- **Testing automatizado** con suite completa funcionando
-- **Todos los problemas críticos resueltos**
-- **Sistema de override funcionando** completamente
-- **Base de datos** con constraints corregidos
-- **API completamente operativa** y lista para producción
+### ✅ Base Arquitectónica Completada (100%)
 
-### Próximos Pasos 🔄
-- Implementar lógica avanzada de estados de shows
-- Optimización de rendimiento y caching
-- Integración con sistema externo de Puy du Fou
-- Desarrollo del frontend administrativo
-- Implementación de alertas en tiempo real
+#### **Database Layer** ✅
+- **9 Modelos SQLAlchemy**: Shows, Events, Overrides, Settings, Alerts, Audit, Users, Roles + version
+- **Migraciones Alembic**: Sistema completo configurado y funcional
+- **PostgreSQL 15**: Configuración async con asyncpg driver
+- **Relationships**: Foreign keys y constraints implementadas
+
+#### **API Layer** ✅
+- **FastAPI 0.104.1**: Framework async con auto-reload
+- **19+ Endpoints**: CRUD básico para shows, events, auth
+- **JWT Authentication**: Sistema seguro con bcrypt
+- **Health Check Robusto**: Métricas completas de sistema y DB
+- **Swagger Docs**: Documentación interactiva automática
+
+#### **Business Logic** ✅
+- **Pydantic Schemas**: Validación de entrada/salida completa
+- **Service Layer**: ShowService + EventService separados
+- **Error Handling**: HTTPException patterns implementados
+- **Async Patterns**: Database operations completamente async
+
+#### **Development Environment** ✅
+- **Docker Integration**: Configuración para desarrollo
+- **Environment Variables**: Configuración por entornos
+- **Testing Setup**: Pytest con fixtures async configurado
+- **Scripts**: Testing automatizado funcional
+
+### 🔗 Integración con Frontend FASE 4
+
+**Estado**: ✅ **INTEGRADO** - Frontend admin usando esta API base
+
+- ✅ **API Client**: Frontend tiene Axios client configurado
+- ✅ **JWT Flow**: Authentication funcionando entre frontend-backend
+- ✅ **CRUD Operations**: Frontend composables usan endpoints backend
+- ✅ **Type Safety**: Frontend types adaptados desde schemas backend
+- ✅ **Development Workflow**: Both servers corriendo simultáneamente
+
+### 🚧 Próximas Mejoras (Post-FASE 4)
+
+#### **Business Logic Avanzada**
+- **State Engine**: Lógica de estados de shows en tiempo real
+- **Override System**: Mejoras en sistema de overrides manuales
+- **Notification System**: Real-time alerts y notificaciones
+
+#### **Performance & Production**
+- **Caching Layer**: Redis para optimización
+- **API Rate Limiting**: Throttling y security
+- **Monitoring**: APM y logging avanzado
+- **External Integration**: Puy du Fou API sync
+
+#### **Testing & Quality**
+- **API Testing Suite**: Comprehensive test coverage
+- **Integration Tests**: Full workflow testing
+- **Load Testing**: Performance benchmarking
