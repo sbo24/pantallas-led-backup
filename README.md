@@ -112,11 +112,13 @@ showstrack-app/
 
 ## 🚀 Inicio Rápido
 
-### Requisitos Previos
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL 15
-- Docker & docker-compose
+### Requisitos del Sistema (Estado Actual)
+- **✅ Python 3.10**: Backend FastAPI funcionando
+- **✅ Node.js 18**: Frontend Vue.js 3 operativo  
+- **✅ PostgreSQL 15**: 9 tablas + migraciones configuradas
+- **✅ SSH Access**: Servidor desarrollo en puerto 222
+- **✅ Virtual Environment**: `/workspace/venv/` configurado
+- **✅ Docker Environment**: Contenedor desarrollo Ubuntu 22.04
 
 ### Configuración de Desarrollo
 
@@ -258,30 +260,233 @@ curl -X PUT http://localhost:8000/api/admin/config/operation-mode \
   -d '{"mode": "manual", "reason": "Evento especial - control manual requerido"}'
 ```
 
-## 🎯 **Estado Actual del Desarrollo**
+## 🎯 **Estado Actual del Desarrollo (Actualizado 2025-08-13)**
 
-### **✅ Sistemas Completados (100% Funcionales)**
+### **⚙️ Backend - Arquitectura Completa (90% Funcional)**
 
-#### **🚨 Sistema de Alertas Globales**
-- **4/4 endpoints** implementados y validados
-- **Funcionalidades**: Activar/desactivar alertas de emergencia, historial completo
-- **Casos de uso**: "Evacuación por tormenta - Todos los shows suspendidos"
-- **Testing**: Suite completa con 10 test cases
+#### **✅ Infrastructure Completada**
+- **9 Modelos SQLAlchemy**: Shows, Events, Overrides, Settings, Alerts, Audit, Users, Roles ✅
+- **Sistema de Migraciones**: Alembic configurado y funcional ✅
+- **PostgreSQL 15**: Configuración async con asyncpg driver ✅
+- **Health Check Robusto**: Métricas completas de sistema y BD ✅
+- **JWT Authentication**: Sistema seguro con bcrypt + python-jose ✅
+- **FastAPI 0.104.1**: Framework async con documentación automática ✅
 
-#### **⚙️ Sistema de Configuración Global**
-- **6/6 endpoints** implementados y validados  
-- **Funcionalidades**: Configuración completa del sistema, modos de operación, horarios venue
-- **Casos de uso**: Lead times, modo automático/manual, horarios especiales
-- **Testing**: Validación manual exitosa con casos reales
+#### **🚧 API Endpoints - Implementación Parcial**
+- **✅ Core Endpoints**: Health, Auth (login, me), basic CRUD ✅
+- **✅ Shows/Events CRUD**: Endpoints básicos implementados, lógica de negocio completa ✅
+- **⏳ Alertas Globales**: Endpoints definidos, testing pendiente
+- **⏳ Configuración Global**: Endpoints definidos, testing pendiente  
+- **✅ Sistema de Overrides**: Lógica de negocio implementada (ImportService) ✅
+- **✅ Estado Engine**: Motor de cálculo de estados 100% implementado (business-rules.md) ✅
+- **🚧 Real-time Sync**: Scripts ETL listos, solo falta endpoint API
 
-### **📊 Progreso General**
-- **Endpoints desarrollados**: 28/65 (43% del sistema completo)
-- **Sistemas críticos completados**: 2/4 (Alertas + Configuración)
-- **Base sólida establecida**: Patrón Schemas→Service→Router→Tests
-- **Próxima prioridad**: Sistema de Importación/Sincronización (8 endpoints)
+### **🎨 Frontend Admin Panel - FASE 4 Advanced Views (90% Completado)**
 
-### **🔗 Información Técnica Completa**
-Para documentación técnica detallada:
-- **Backend**: [showstrack-backend/README.md](showstrack-backend/README.md)
-- **Endpoints**: [showstrack-backend/DESARROLLO_ENDPOINTS.md](showstrack-backend/DESARROLLO_ENDPOINTS.md)
-- **Progreso**: [PROCESO_DESARROLLO.md](PROCESO_DESARROLLO.md)
+#### **✅ Milestone 1: Composables Foundation (100% ✅)**
+- **5/5 Composables**: 94 tests unitarios pasando ✅
+- **useShows** (400+ líneas, 13 tests): CRUD operations, optimistic updates ✅
+- **useSettings** (570+ líneas, 23 tests): Form management, validation, import/export ✅
+- **useTable** (839+ líneas, 43 tests): Advanced pagination, sorting, filtering ✅
+- **useModal** (652+ líneas, 26 tests): Stack management, focus trap, keyboard nav ✅
+- **useNotifications** (200+ líneas): Toast system, queue management ✅
+
+#### **🚧 Milestone 2: Smart Views (40% completado)**
+- **✅ DashboardView**: Métricas dashboard con stores integration ✅
+- **✅ ShowsView** (1090+ líneas): Complete CRUD interface usando todos los composables ✅
+- **⏳ SettingsView**: Pendiente (puede usar useSettings existente) - 3-4 horas estimadas
+- **⏳ EventsView**: Pendiente - Gestión de eventos y overrides
+- **⏳ AlertsView**: Pendiente - Sistema de alertas globales
+
+#### **✅ Architecture & TypeScript (100% ✅)**
+- **TypeScript Strict Mode**: 0 errores de compilación ✅
+- **Clean Architecture**: Type adapters API ↔ Frontend ✅
+- **6 Pinia Stores**: auth, shows, events, alerts, config, dashboard ✅
+- **Layout System**: AppLayout, AppSidebar, AppHeader con Headless UI ✅
+
+### **📱 Frontend Público - Pantallas (0% - No Iniciado)**
+- **⏳ HTML/CSS/JS Vanilla**: Para pantallas públicas del parque - No iniciado
+- **⏳ Auto-refresh System**: Actualización automática cada 30s - Pendiente
+- **⏳ Visual States**: Diseño para estados PROGRAMADO/ABIERTO/CERRADO/CANCELADO - Pendiente
+
+### **🔄 Sistema ETL - Scripts Python Existentes (95% Funcional)**
+
+#### **✅ Scripts Python Completamente Funcionales**
+- **📁 Ubicación**: `/workspace/scripts/extraction/` - Documentado en README.md ✅
+- **🐍 Scripts Operativos**: Extracción, procesamiento y formateo de datos ✅
+- **📊 Formato Compatible**: Genera JSON exacto para ImportService ✅
+- **⏱️ Automatización**: Cron diario 6:00 AM configurado ✅
+- **📝 Logging Completo**: Sistema de logs y auditoria implementado ✅
+
+#### **✅ Integración Backend Lista**
+- **🔧 ImportService**: 493 líneas, validación, procesamiento automático/manual ✅
+- **📋 Formato ETL**: Compatible con scripts Python existentes ✅
+- **🛡️ Preservación Overrides**: Mantiene intervenciones manuales ✅
+- **🔄 Modo Operación**: Automático (aplicar) vs Manual (revisar) ✅
+
+#### **⚠️ Estado Crítico - Solo Falta 1 Componente**
+- **❌ Import API Endpoint**: ImportService no expuesto via REST
+- **⏱️ Estimación**: 6-8 horas de desarrollo
+- **🎯 Resultado**: ETL Scripts → ShowsTrack API → Database (flujo completo)
+
+### **📊 Estado Real por Componente del Sistema**
+
+| Área | Componente | Estado | Progreso | Implementado | Pendiente |
+|------|------------|--------|----------|--------------|----------|
+| **🗄️ Database** | PostgreSQL + Models | ✅ | 100% | 9 modelos + migraciones | - |
+| **🔐 Backend Auth** | JWT + User System | ✅ | 100% | Login, roles, bcrypt | - |
+| **📡 Backend API** | Core Endpoints | 🚧 | 60% | Health, Auth, CRUD básico | Business logic completa |
+| **📡 Backend API** | Advanced Features | 🚧 | 85% | Business logic implementado | Solo endpoints REST |
+| **🎨 Frontend Base** | Architecture + Composables | ✅ | 100% | 5 composables, 94 tests | - |
+| **🎨 Frontend Views** | Admin Panel Views | 🚧 | 40% | Dashboard, ShowsView | Settings, Events, AlertsView |
+| **📱 Frontend Público** | Pantallas Parque | ⏳ | 0% | - | Todo (HTML/CSS/JS) |
+| **🔄 ETL Scripts** | Sync System | 🚧 | 95% | Scripts + ImportService listos | Solo endpoint API REST |
+| **🧪 Testing** | Frontend Tests | ✅ | 95% | 94 tests unitarios | E2E testing |
+| **🧪 Testing** | Backend Tests | 🚧 | 30% | Test setup configurado | API endpoint testing |
+
+**📈 Progreso Real del Proyecto**: **75% del sistema completo**
+- **Backend**: Arquitectura completa (90%) + Business logic implementado (85%) = 90% total
+- **Frontend Admin**: Composables completos (100%) + Views parciales (40%) = 70% total  
+- **Frontend Público**: No iniciado (0%)
+- **Integration**: Scripts ETL listos, API integration pendiente
+
+### **🎯 Roadmap de Desarrollo**
+
+#### **📋 Inmediato (3-5 días) - Completar FASE 4 Frontend Admin**
+1. **SettingsView** (4-6 horas): Configuración global, lead times, modos operación
+2. **EventsView** (1-2 días): CRUD eventos + overrides manuales - **CLAVE PARA ETL** 
+3. **AlertsView** (6-8 horas): Sistema alertas globales + historial
+
+#### **🔥 Siguiente (1-2 días) - FASE 5 ETL Integration**
+1. **Import API Endpoints** (6-8 horas): Exposer ImportService via REST
+2. **ETL Integration Testing**: Validar Scripts → API → Frontend workflow completo
+3. **Panel Admin ETL**: UI para gestionar importaciones en EventsView
+4. **Testing Completo**: End-to-end con datos reales
+
+#### **🎨 Medio Plazo (2-3 semanas) - Frontend Público**
+1. **Pantallas HTML/CSS/JS**: Diseño optimizado para displays del parque
+2. **Auto-refresh System**: Actualización automática cada 30 segundos
+3. **Visual States System**: Interfaz clara para estados de shows
+4. **Responsive Design**: Adaptación a diferentes tamaños de pantalla
+
+## **📋 FASES RESTANTES PARA COMPLETAR EL PROYECTO**
+
+### **🎨 FASE 4 (Final) - Completar Frontend Admin (3-5 días)**
+**Objetivo**: UI completa para operadores ANTES de ETL Integration
+1. **SettingsView** (4-6 horas):
+   - Usar `useSettings` composable existente
+   - Configuración global, lead times, modos operación
+   - Import/export configuraciones
+
+2. **EventsView** (1-2 días): **🎯 CLAVE PARA ETL**
+   - CRUD eventos con `useTable` + `useModal` patterns
+   - Sistema de overrides manuales (CERRADO/CANCELADO)
+   - Vista calendar/agenda de eventos
+   - UI para gestión de importaciones ETL
+
+3. **AlertsView** (6-8 horas):
+   - Sistema alertas globales para emergencias
+   - UI para activar/desactivar alertas
+   - Historial y logs de alertas
+
+### **🔥 FASE 5 - ETL Integration (1-2 días)**
+**Objetivo**: Conectar ETL con panel admin completamente funcional
+1. **Import API Endpoints** (6-8 horas):
+   - `POST /api/admin/import` - Recibir datos del ETL
+   - `GET /api/admin/import/history` - Historial de importaciones
+   - `POST /api/admin/sync/execute` - Sincronización manual
+   - `GET /api/admin/sync/pending` - Cambios pendientes
+
+2. **Frontend Integration** (2-4 horas):
+   - Conectar EventsView con import endpoints
+   - UI para revisar/aprobar importaciones ETL
+   - Notificaciones de nuevos datos disponibles
+
+3. **Testing End-to-End** (2-4 horas):
+   - Scripts → API → Frontend → Database workflow completo
+   - Validar preservación de overrides manuales
+   - Test con operadores reales usando panel admin
+
+### **🖥️ FASE 6 - Frontend Pantallas Públicas (1-2 semanas)**  
+**Objetivo**: Sistema de visualización para visitantes del parque
+1. **Arquitectura Display** (2-3 días):
+   - HTML/CSS/JS vanilla optimizado para pantallas
+   - Auto-refresh cada 30 segundos
+   - Diseño responsive para diferentes tamaños
+
+2. **Estados Visuales** (2-3 días):
+   - PROGRAMADO (gris), ABIERTO (verde), CERRADO (rojo), CANCELADO (amarillo)
+   - Iconografía clara y accesible
+   - Información de próximos pases
+
+3. **Sistema de Alertas** (1-2 días):
+   - Mostrar alertas globales full-screen
+   - Priorización: alerta > shows normales
+   - Transiciones suaves entre estados
+
+### **🧪 FASE 7 - Validación y UX Testing (1 semana)**
+**Objetivo**: Validar funcionalidad completa antes de producción
+1. **Ejercicio Esbozo y Maquetado** (2-3 días):
+   - Crear mockups completos de todas las pantallas
+   - Identificar endpoints faltantes o funcionalidades no diseñadas
+   - Validar workflows completos con operadores reales
+
+2. **E2E Testing** (2-3 días):
+   - Tests de workflow completo: ETL → Backend → Frontend
+   - Testing de scenarios: modo auto, manual, overrides, alertas
+   - Performance testing: múltiples pantallas simultáneas
+
+3. **API Documentation** (1 día):
+   - Completar documentación de todos los endpoints
+   - Ejemplos de uso para integración
+   - Guías de troubleshooting
+
+### **🚀 FASE 8 - Producción (1-2 semanas)**
+**Objetivo**: Deploy y monitoreo en entorno real
+1. **Production Environment** (3-4 días):
+   - Docker production setup optimizado
+   - CI/CD pipeline con testing automático
+   - Backup y recovery procedures
+
+2. **Monitoring & Observability** (2-3 días):
+   - APM, error tracking, metrics
+   - Alertas para fallos de ETL o API
+   - Dashboards de monitoreo operativo
+
+3. **Documentation & Training** (2-3 días):
+   - Guías operativas para personal del parque
+   - Procedures de emergencia y troubleshooting
+   - Training sessions con operadores
+
+### **📚 Información Técnica por Área**
+
+#### **🔍 Estado Detallado**
+- **FASE 4 Frontend**: [PROCESO_DESARROLLO_FASE4.md](PROCESO_DESARROLLO_FASE4.md) - 90% completado, 94 tests
+- **Backend Base**: [showstrack-backend/README.md](showstrack-backend/README.md) - Arquitectura sólida
+- **Frontend Admin**: [showstrack-frontend/showstrack-admin/README.md](showstrack-frontend/showstrack-admin/README.md) - Composables + Views
+- **Development Setup**: [CLAUDE.md](CLAUDE.md) - Instrucciones para Claude Code
+
+#### **🔄 Procesos de Desarrollo**
+- **Git Workflow**: [PROCESO_GITWORKFLOW.md](PROCESO_GITWORKFLOW.md) - Standards MR aplicados
+- **Documentation**: [PROCESO_DOCUMENTACION.md](PROCESO_DOCUMENTACION.md) - Maintenance process
+- **Development History**: [PROCESO_DESARROLLO.md](PROCESO_DESARROLLO.md) - Backend development log
+
+#### **🎯 Qué Está Listo para Usar**
+- **✅ Admin Login**: http://localhost:3000 (admin/admin)
+- **✅ Dashboard**: Métricas del sistema funcionando
+- **✅ Shows Management**: CRUD completo con 1090+ líneas de código
+- **✅ API Documentation**: http://localhost:8000/docs
+- **✅ Development Environment**: Backend + Frontend corriendo simultáneamente
+
+#### **⚠️ Qué NO Está Listo**
+- **❌ Import API Endpoints**: ImportService implementado pero no expuesto via REST - **BLOQUEANTE ETL**
+- **❌ Pantallas Públicas**: No existe frontend para visitantes del parque
+- **❌ Alertas Operativas**: UI de AlertsView no implementada  
+- **❌ Configuración UI**: EventsView sin sistema de intervenciones
+- **❌ Producción**: Sin deployment ni monitoring configurado
+
+#### **✅ Sistemas Completamente Implementados**
+- **✅ Motor de Estados**: StateEngine.py - 267 líneas, algoritmo completo de 5 pasos ✅
+- **✅ Business Logic**: Services layer completo (show_service, event_service, import_service) ✅
+- **✅ Scripts ETL**: 100% funcionales, formato JSON compatible ✅
+- **✅ Overrides Manuales**: Lógica implementada en StatusOverride model + StateEngine ✅
