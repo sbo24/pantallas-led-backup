@@ -1,0 +1,14 @@
+# Fichiers de configuration sensibles
+.env
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# Fichiers temporaires
+*.tmp
+*.temp

@@ -157,7 +157,7 @@ class SyncService:
                     executed_at=datetime.now()
                 )
             
-            # Procesar cambios
+            # Procesar cambios uno por uno con manejo de transacciones
             applied_count = 0
             failed_count = 0
             skipped_count = 0
@@ -168,6 +168,16 @@ class SyncService:
                     if not force and change.conflict_reason:
                         skipped_count += 1
                         continue
+                    
+                    # Verificar si el evento ya existe
+                    if change.action == ChangeAction.CREATE and change.entity_type == EntityType.EVENT:
+                        existing_query = select(ScheduledEvent).where(
+                            ScheduledEvent.external_event_id == change.external_id
+                        )
+                        existing_event = (await db.execute(existing_query)).scalar_one_or_none()
+                        if existing_event:
+                            skipped_count += 1
+                            continue
                     
                     if change.action == ChangeAction.CREATE:
                         success = await SyncService._apply_create_change(db, change)
@@ -184,12 +194,15 @@ class SyncService:
                         change.applied_at = datetime.now()
                         change.applied_by = user_id
                         applied_count += 1
+                        # Commit individual para evitar rollback masivo
+                        await db.commit()
                     else:
                         failed_count += 1
+                        await db.rollback()
                         
                 except Exception as e:
                     failed_count += 1
-                    # Log error pero continuar
+                    await db.rollback()
                     continue
             
             # Crear registro de operación
@@ -231,16 +244,19 @@ class SyncService:
         except Exception as e:
             await db.rollback()
             
-            # Crear registro de operación fallida
-            sync_operation = SyncOperations(
-                sync_id=sync_id,
-                operation_type="execute",
-                status=ImportStatus.FAILED,
-                error_details=str(e),
-                executed_by=user_id
-            )
-            db.add(sync_operation)
-            await db.commit()
+            # Crear registro de operación fallida en nueva transacción
+            try:
+                sync_operation = SyncOperations(
+                    sync_id=sync_id,
+                    operation_type="execute",
+                    status=ImportStatus.FAILED,
+                    error_details=str(e),
+                    executed_by=user_id
+                )
+                db.add(sync_operation)
+                await db.commit()
+            except:
+                pass
             
             return SyncExecuteResponse(
                 sync_id=sync_id,
@@ -387,13 +403,10 @@ class SyncService:
                 new_show = Show(
                     name=change.new_data["show_name"],
                     description=change.new_data.get("description", "Importado automáticamente"),
-                    venue=change.new_data.get("venue", "Por determinar"),
-                    duration_minutes=change.new_data.get("duration_minutes", 60),
-                    capacity=change.new_data.get("capacity", 100),
-                    min_age=change.new_data.get("min_age", 0),
-                    accessibility_info=change.new_data.get("accessibility_info", "Por determinar"),
-                    show_type=change.new_data.get("event_type", "SHOW").upper(),
-                    is_visible=True
+                    duration_estimated=change.new_data.get("duration_minutes", 60),
+                    show_category=change.new_data.get("event_type", "show"),
+                    is_visible=True,
+                    display_order=0
                 )
                 db.add(new_show)
                 return True
@@ -462,13 +475,10 @@ class SyncService:
             show = Show(
                 name=show_name,
                 description="Show creado automáticamente durante sincronización",
-                venue="Por determinar",
-                duration_minutes=60,
-                capacity=100,
-                min_age=0,
-                accessibility_info="Por determinar",
-                show_type="SHOW",
-                is_visible=True
+                duration_estimated=60,
+                show_category="show",
+                is_visible=True,
+                display_order=0
             )
             db.add(show)
             await db.flush()  # Para obtener el ID

@@ -67,3 +67,6 @@ tmp/
 temp/
 *.tmp
 *.temp
+showstrack-backend/docker/showstrack_backend.yml
+showstrack-dev/docker/showstrack-dev.yml
+showstrack-postgres/docker/showstrack-postgres.yml
