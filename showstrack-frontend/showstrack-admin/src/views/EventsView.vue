@@ -56,7 +56,9 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-gray-50 p-6">
+    <!-- Conteneur principal avec espacement vertical -->
     <div class="w-full space-y-8">
+      
       <!-- Header -->
       <div class="text-center">
         <h1 class="text-3xl font-bold text-gray-900">Gestión de Eventos</h1>
@@ -68,15 +70,17 @@ onMounted(async () => {
         <!-- Modo de Operación -->
         <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
           <div class="flex justify-between items-center">
-            <div :class="[
-              'w-4 h-4 rounded-full',
-              operationMode === 'automatic' ? 'bg-green-500' : 'bg-yellow-500'
-            ]"></div>
-            <div class="text-right">
-              <h3 class="text-lg font-semibold text-gray-900">Modo de Operación</h3>
-              <p class="text-2xl font-bold capitalize" :class="[
-                operationMode === 'automatic' ? 'text-green-600' : 'text-yellow-600'
-              ]">{{ operationMode }}</p>
+            <div class="flex items-center gap-5">
+              <div :class="[
+                'w-4 h-4 rounded-full flex-shrink-0',
+                operationMode === 'automatic' ? 'bg-green-500' : 'bg-yellow-500'
+              ]"></div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">Modo de Operación</h3>
+                <p class="text-2xl font-bold capitalize" :class="[
+                  operationMode === 'automatic' ? 'text-green-600' : 'text-yellow-600'
+                ]">{{ operationMode }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -85,14 +89,14 @@ onMounted(async () => {
         <div class="bg-white rounded-xl shadow-lg p-6 border-l-4" :class="[
           hasPendingSync ? 'border-yellow-500' : 'border-gray-300'
         ]">
-          <div class="flex items-center">
+          <div class="flex items-center gap-4">
             <div class="flex-shrink-0">
               <ExclamationTriangleIcon :class="[
                 'w-8 h-8',
                 hasPendingSync ? 'text-yellow-500' : 'text-gray-400'
               ]" />
             </div>
-            <div class="ml-4">
+            <div class="flex flex-col gap-1">
               <h3 class="text-lg font-semibold text-gray-900">Cambios Pendientes</h3>
               <p class="text-2xl font-bold" :class="[
                 hasPendingSync ? 'text-yellow-600' : 'text-gray-400'
@@ -103,11 +107,11 @@ onMounted(async () => {
 
         <!-- Última Sincronización -->
         <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-gray-300">
-          <div class="flex items-center">
+          <div class="flex items-center gap-4">
             <div class="flex-shrink-0">
               <ClockIcon class="w-8 h-8 text-gray-400" />
             </div>
-            <div class="ml-4">
+            <div class="flex flex-col gap-1">
               <h3 class="text-lg font-semibold text-gray-900">Última Sincronización</h3>
               <p class="text-sm font-medium text-gray-600">{{ lastSyncTime || 'Nunca' }}</p>
             </div>
@@ -199,7 +203,7 @@ onMounted(async () => {
       </div>
 
       <!-- Cambios Pendientes - Table -->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
           <div class="flex justify-between items-center">
             <div>
@@ -237,7 +241,7 @@ onMounted(async () => {
           </template>
           
           <template #cell-type="{ row }">
-            <span :class="[
+            <span :class="[ 
               'px-3 py-1 text-xs font-bold rounded-full',
               row.type === 'CREATE' ? 'bg-blue-100 text-blue-800' :
               row.type === 'UPDATE' ? 'bg-yellow-100 text-yellow-800' :
@@ -262,7 +266,7 @@ onMounted(async () => {
       </div>
 
       <!-- Historial de Importaciones -->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b">
           <h2 class="text-xl font-bold text-gray-900">Historial de Importaciones</h2>
           <p class="text-sm text-gray-600">Registro de sincronizaciones anteriores</p>
@@ -276,7 +280,7 @@ onMounted(async () => {
           empty-message="No hay historial de importaciones"
         >
           <template #cell-status="{ row }">
-            <span :class="[
+            <span :class="[ 
               'px-3 py-1 text-xs font-bold rounded-full',
               row.status === 'SUCCESS' || row.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
               row.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
@@ -291,7 +295,7 @@ onMounted(async () => {
       </div>
 
       <!-- Eventos de Hoy con Overrides -->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b">
           <h2 class="text-xl font-bold text-gray-900">Eventos de Hoy - Overrides Manuales</h2>
           <p class="text-sm text-gray-600">Forzar estados CERRADO/CANCELADO para contingencias</p>
@@ -305,7 +309,7 @@ onMounted(async () => {
           empty-message="No hay eventos programados para hoy"
         >
           <template #cell-calculated_status="{ row }">
-            <span :class="[
+            <span :class="[ 
               'px-3 py-1 text-xs font-bold rounded-full',
               row.calculated_status === 'ABIERTO' ? 'bg-green-100 text-green-800' :
               row.calculated_status === 'CERRADO' ? 'bg-red-100 text-red-800' :
@@ -340,18 +344,4 @@ onMounted(async () => {
       </div>
     </div>
   </div>
-
-  <OverrideModal
-    :show="showOverrideModal"
-    :selected-event="selectedEvent"
-    :override-status="overrideStatus"
-    @close="showOverrideModal = false"
-    @confirm="confirmOverride"
-  />
-
-  <ChangePreviewModal
-    :show="showPreviewModal"
-    :selected-change="selectedChange"
-    @close="showPreviewModal = false"
-  />
 </template>
