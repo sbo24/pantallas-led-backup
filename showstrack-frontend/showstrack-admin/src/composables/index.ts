@@ -8,6 +8,7 @@ export { useSettings } from './useSettings'
 export { useNotifications } from './useNotifications'
 export { useTable } from './useTable'
 export { useModal, showConfirmationModal, showAlertModal, showFormModal } from './useModal'
+export { useEventsView } from './useEventsView'
 
 export type {
   UseShowsOptions,
