@@ -1032,6 +1032,48 @@ async def discard_changes(
         )
 
 
+@router.post("/sync/clean-duplicates")
+async def clean_duplicate_changes(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Limpiar automáticamente todos los cambios pendientes que son duplicados.
+    
+    **Limpieza Automática**: Detecta y marca como aplicados todos los cambios pendientes 
+    que corresponden a entidades ya existentes en la base de datos.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        result = await SyncService.clean_duplicate_changes(
+            db=db,
+            user_id=current_user.username
+        )
+        
+        total_cleaned = result.get("total_cleaned", 0)
+        
+        if "error" in result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error cleaning duplicates: {result['error']}"
+            )
+        
+        return {
+            "success": True,
+            "message": f"Limpieza completada: {total_cleaned} duplicados eliminados",
+            "cleaned_events": result.get("cleaned_events", 0),
+            "cleaned_shows": result.get("cleaned_shows", 0),
+            "total_cleaned": total_cleaned
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error cleaning duplicate changes: {str(e)}"
+        )
+
+
 # ===== DASHBOARD ENDPOINTS =====
 
 @router.get("/dashboard/overview")

@@ -73,7 +73,7 @@ export interface BaseButtonProps {
   href?: string
   
   // Styling
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'ghost' | 'link'
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success' | 'warning' | 'ghost' | 'link'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   block?: boolean
   rounded?: boolean
@@ -179,6 +179,14 @@ const variantClasses = computed(() => {
       'hover:bg-gray-100',
       'focus:ring-indigo-500'
     ],
+    outline: [
+      'bg-transparent',
+      'text-indigo-600',
+      'border',
+      'border-indigo-600',
+      'hover:bg-indigo-50',
+      'focus:ring-indigo-500'
+    ],
     link: [
       'bg-transparent',
       'text-indigo-600',
@@ -220,13 +228,20 @@ const iconClasses = computed(() => {
 
 // Final button classes
 const buttonClasses = computed(() => {
-  return [
+  const classes = [
     ...baseClasses,
     sizeClasses.value,
-    ...variantClasses.value,
     roundedClasses.value,
     blockClasses.value
-  ].filter(Boolean).join(' ')
+  ]
+  
+  // Add variant classes safely
+  const variant = variantClasses.value
+  if (Array.isArray(variant)) {
+    classes.push(...variant)
+  }
+  
+  return classes.filter(Boolean).join(' ')
 })
 
 // Handle click events

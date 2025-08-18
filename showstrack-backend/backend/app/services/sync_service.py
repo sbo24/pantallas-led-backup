@@ -176,8 +176,30 @@ class SyncService:
                         )
                         existing_event = (await db.execute(existing_query)).scalar_one_or_none()
                         if existing_event:
+                            # NUEVO: Limpiar automáticamente el duplicado detectado
+                            change.is_applied = True
+                            change.applied_at = datetime.now()
+                            change.applied_by = user_id
+                            change.resolution_notes = f"AUTO-LIMPIADO: Evento duplicado ya existe (ID: {existing_event.id})"
                             skipped_count += 1
+                            await db.commit()
                             continue
+                    
+                    # Verificar si el show ya existe
+                    if change.action == ChangeAction.CREATE and change.entity_type == EntityType.SHOW:
+                        show_name = change.new_data.get("show_name") or change.new_data.get("name")
+                        if show_name:
+                            existing_show_query = select(Show).where(Show.name == show_name)
+                            existing_show = (await db.execute(existing_show_query)).scalar_one_or_none()
+                            if existing_show:
+                                # NUEVO: Limpiar automáticamente el show duplicado
+                                change.is_applied = True
+                                change.applied_at = datetime.now()
+                                change.applied_by = user_id
+                                change.resolution_notes = f"AUTO-LIMPIADO: Show duplicado ya existe (ID: {existing_show.id})"
+                                skipped_count += 1
+                                await db.commit()
+                                continue
                     
                     if change.action == ChangeAction.CREATE:
                         success = await SyncService._apply_create_change(db, change)
@@ -461,6 +483,79 @@ class SyncService:
             return False
             
         return False
+    
+    @staticmethod
+    async def clean_duplicate_changes(
+        db: AsyncSession,
+        user_id: str = "system"
+    ) -> Dict[str, int]:
+        """Limpia todos los cambios pendientes que son duplicados de entidades existentes"""
+        
+        cleaned_events = 0
+        cleaned_shows = 0
+        
+        try:
+            # Limpiar eventos duplicados
+            event_changes_query = select(PendingChanges).where(
+                and_(
+                    PendingChanges.is_applied == False,
+                    PendingChanges.action == ChangeAction.CREATE,
+                    PendingChanges.entity_type == EntityType.EVENT
+                )
+            )
+            event_changes = (await db.execute(event_changes_query)).scalars().all()
+            
+            for change in event_changes:
+                if change.external_id:
+                    existing_query = select(ScheduledEvent).where(
+                        ScheduledEvent.external_event_id == change.external_id
+                    )
+                    existing_event = (await db.execute(existing_query)).scalar_one_or_none()
+                    if existing_event:
+                        change.is_applied = True
+                        change.applied_at = datetime.now()
+                        change.applied_by = user_id
+                        change.resolution_notes = f"AUTO-LIMPIADO: Evento duplicado detectado (ID: {existing_event.id})"
+                        cleaned_events += 1
+            
+            # Limpiar shows duplicados
+            show_changes_query = select(PendingChanges).where(
+                and_(
+                    PendingChanges.is_applied == False,
+                    PendingChanges.action == ChangeAction.CREATE,
+                    PendingChanges.entity_type == EntityType.SHOW
+                )
+            )
+            show_changes = (await db.execute(show_changes_query)).scalars().all()
+            
+            for change in show_changes:
+                show_name = change.new_data.get("show_name") or change.new_data.get("name")
+                if show_name:
+                    existing_show_query = select(Show).where(Show.name == show_name)
+                    existing_show = (await db.execute(existing_show_query)).scalar_one_or_none()
+                    if existing_show:
+                        change.is_applied = True
+                        change.applied_at = datetime.now()
+                        change.applied_by = user_id
+                        change.resolution_notes = f"AUTO-LIMPIADO: Show duplicado detectado (ID: {existing_show.id})"
+                        cleaned_shows += 1
+            
+            await db.commit()
+            
+            return {
+                "cleaned_events": cleaned_events,
+                "cleaned_shows": cleaned_shows,
+                "total_cleaned": cleaned_events + cleaned_shows
+            }
+            
+        except Exception as e:
+            await db.rollback()
+            return {
+                "cleaned_events": 0,
+                "cleaned_shows": 0,
+                "total_cleaned": 0,
+                "error": str(e)
+            }
     
     @staticmethod
     async def _ensure_show_exists(db: AsyncSession, show_name: str) -> Show:
