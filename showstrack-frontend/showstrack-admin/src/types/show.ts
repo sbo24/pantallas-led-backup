@@ -6,18 +6,17 @@
 export type ShowStatus = 'PROGRAMADO' | 'ABIERTO' | 'CERRADO' | 'CANCELADO'
 
 export interface Show {
-  id: string
+  id: number
   name: string
-  status: ShowStatus
-  venue: string
-  capacity: number
-  leadTimeMinutes: number
-  description?: string
-  createdAt: string
-  updatedAt: string
-  nextEvent?: string
-  events?: Event[]
-  overrides?: ShowOverride[]
+  description: string | null
+  duration_estimated: number | null
+  is_visible: boolean
+  display_order: number
+  custom_lead_time_access_minutes: number | null
+  custom_lead_time_finalized_minutes: number | null
+  created_at: string
+  updated_at: string
+  current_events_count: number
 }
 
 export interface Event {
@@ -82,9 +81,9 @@ export interface ShowResponse {
 }
 
 export interface ShowListResponse {
-  shows: Show[]
+  items: Show[]
   total: number
   page: number
-  pageSize: number
-  totalPages: number
+  size: number
+  pages: number
 }
