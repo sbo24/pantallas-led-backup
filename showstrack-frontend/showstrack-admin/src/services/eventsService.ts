@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 
-const API_BASE_URL = 'http://localhost:8000'
+// Warn : update the API_BASE_URL with the correct url for prod
+const API_BASE_URL = import.meta.env.VITE_SHOWSTRACK_API_URL || 'http://localhost:8000'
 
 const getAuthHeaders = () => {
   const authStore = useAuthStore()
