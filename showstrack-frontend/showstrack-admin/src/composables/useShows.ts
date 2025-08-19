@@ -87,15 +87,15 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
   const syncTimer = ref<NodeJS.Timeout | null>(null)
   const isRealTimeSyncActive = computed(() => syncTimer.value !== null)
 
-  // State computed from store with type adaptation
-  const shows = computed(() => store.shows.map(adaptApiShowToShow))
-  const currentShow = computed(() => store.currentShow ? adaptApiShowToShow(store.currentShow) : null)
+  // State computed from store - direct access since types are now aligned
+  const shows = computed(() => store.shows || [])
+  const currentShow = computed(() => store.currentShow)
   const loading = computed(() => store.isLoading)
   const error = computed(() => store.error)
   
   // Enhanced computed properties
-  const activeShows = computed(() => store.activeShows.map(adaptApiShowToShow))
-  const inactiveShows = computed(() => store.inactiveShows.map(adaptApiShowToShow))
+  const activeShows = computed(() => store.activeShows || [])
+  const inactiveShows = computed(() => store.inactiveShows || [])
   const venues = computed(() => store.venues)
   const showsStats = computed(() => store.showsStats)
   
@@ -106,8 +106,7 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
     const searchTerm = query.toLowerCase().trim()
     return shows.value.filter(show => 
       show.name.toLowerCase().includes(searchTerm) ||
-      show.description?.toLowerCase().includes(searchTerm) ||
-      show.venue.toLowerCase().includes(searchTerm)
+      (show.description && show.description.toLowerCase().includes(searchTerm))
     )
   })
   
@@ -116,9 +115,9 @@ export function useShows(options: UseShowsOptions = {}): UseShowsReturn {
     shows.value.filter(show => show.venue === venue)
   )
   
-  // Active shows only (based on status instead of isActive)
+  // Active shows only (based on is_visible)
   const getActiveShowsOnly = computed(() => 
-    shows.value.filter(show => show.status === 'ABIERTO' || show.status === 'PROGRAMADO')
+    shows.value.filter(show => show.is_visible)
   )
 
   // Type adapter to convert API Show to frontend Show

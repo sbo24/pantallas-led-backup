@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useSlots, type Component } from 'vue'
+import { computed, useSlots, watch, onUnmounted, type Component } from 'vue'
 import {
   Dialog,
   DialogPanel,
@@ -152,6 +152,22 @@ const emit = defineEmits<{
 }>()
 
 const slots = useSlots()
+
+// Scroll lock management
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    // Lock body scroll
+    document.body.style.overflow = 'hidden'
+  } else {
+    // Restore body scroll
+    document.body.style.overflow = ''
+  }
+}, { immediate: true })
+
+// Cleanup on unmount
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 // Size classes
 const sizeClasses = computed(() => {

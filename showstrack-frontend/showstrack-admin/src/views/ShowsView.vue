@@ -125,58 +125,43 @@ const modals = ref({
 
 const tableColumns: TableColumn[] = [
   {
-    key: 'name',
-    label: 'Nombre del Show',
+    key: 'is_visible',
+    label: 'Visible',
     sortable: true,
-    width: '300px',
+    width: '100px',
+    align: 'center',
+    formatter: (value: boolean) => value ? 'Sí' : 'No'
+  },
+  {
+    key: 'display_order',
+    label: 'Orden',
+    sortable: true,
+    width: '80px',
+    align: 'center',
+    formatter: (value: number) => value?.toString() || '0'
+  },
+  {
+    key: 'name',
+    label: 'Nombre',
+    sortable: true,
+    width: '250px',
     align: 'left'
   },
   {
-    key: 'status',
-    label: 'Estado',
+    key: 'current_events_count',
+    label: 'Eventos Hoy',
     sortable: true,
     width: '120px',
     align: 'center',
-    formatter: (value: string) => getStatusLabel(value)
+    formatter: (value: number) => value?.toString() || '0'
   },
   {
-    key: 'venue',
-    label: 'Venue',
-    sortable: true,
-    width: '200px',
-    align: 'left'
-  },
-  {
-    key: 'capacity',
-    label: 'Capacidad',
-    sortable: true,
-    width: '120px',
-    align: 'right',
-    formatter: (value: number) => value?.toLocaleString() || '-'
-  },
-  {
-    key: 'leadTimeMinutes',
+    key: 'custom_lead_time_access_minutes',
     label: 'Lead Time',
     sortable: true,
     width: '120px',
     align: 'center',
-    formatter: (value: number) => `${value || 0} min`
-  },
-  {
-    key: 'nextEvent',
-    label: 'Próximo Evento',
-    sortable: true,
-    width: '180px',
-    align: 'left',
-    formatter: (value: string) => value ? formatDateTime(value) : 'Sin eventos'
-  },
-  {
-    key: 'createdAt',
-    label: 'Creado',
-    sortable: true,
-    width: '150px',
-    align: 'left',
-    formatter: (value: string) => formatDate(value)
+    formatter: (value: number) => value ? `${value} min` : 'Por defecto'
   }
 ]
 
@@ -186,10 +171,10 @@ const tableColumns: TableColumn[] = [
 
 const showsStats = computed(() => ({
   total: shows.value.length,
-  programados: shows.value.filter(s => s.status === 'PROGRAMADO').length,
-  abiertos: shows.value.filter(s => s.status === 'ABIERTO').length,
-  cerrados: shows.value.filter(s => s.status === 'CERRADO').length,
-  cancelados: shows.value.filter(s => s.status === 'CANCELADO').length
+  visible: shows.value.filter(s => s.is_visible).length,
+  hidden: shows.value.filter(s => !s.is_visible).length,
+  withEvents: shows.value.filter(s => s.current_events_count > 0).length,
+  withoutEvents: shows.value.filter(s => s.current_events_count === 0).length
 }))
 
 const bulkActionsAvailable = computed(() => [
@@ -215,16 +200,14 @@ const bulkActionsAvailable = computed(() => [
 ])
 
 const filterOptions = computed(() => ({
-  status: [
-    { value: 'PROGRAMADO', label: 'Programado' },
-    { value: 'ABIERTO', label: 'Abierto' },
-    { value: 'CERRADO', label: 'Cerrado' },
-    { value: 'CANCELADO', label: 'Cancelado' }
+  is_visible: [
+    { value: true, label: 'Visible' },
+    { value: false, label: 'Oculto' }
   ],
-  venue: [...new Set(shows.value.map(s => s.venue))].map(venue => ({
-    value: venue,
-    label: venue
-  }))
+  current_events_count: [
+    { value: 0, label: 'Sin eventos' },
+    { value: 1, label: 'Con eventos' }
+  ]
 }))
 
 // ==========================================
@@ -585,23 +568,23 @@ onMounted(() => {
       </div>
       
       <div class="bg-white rounded-lg border p-4">
-        <div class="text-2xl font-bold text-gray-500">{{ showsStats.programados }}</div>
-        <div class="text-sm text-gray-600">Programados</div>
+        <div class="text-2xl font-bold text-green-600">{{ showsStats.visible }}</div>
+        <div class="text-sm text-gray-600">Visibles</div>
       </div>
       
       <div class="bg-white rounded-lg border p-4">
-        <div class="text-2xl font-bold text-green-600">{{ showsStats.abiertos }}</div>
-        <div class="text-sm text-gray-600">Abiertos</div>
+        <div class="text-2xl font-bold text-gray-500">{{ showsStats.hidden }}</div>
+        <div class="text-sm text-gray-600">Ocultos</div>
       </div>
       
       <div class="bg-white rounded-lg border p-4">
-        <div class="text-2xl font-bold text-red-600">{{ showsStats.cerrados }}</div>
-        <div class="text-sm text-gray-600">Cerrados</div>
+        <div class="text-2xl font-bold text-blue-600">{{ showsStats.withEvents }}</div>
+        <div class="text-sm text-gray-600">Con Eventos</div>
       </div>
       
       <div class="bg-white rounded-lg border p-4">
-        <div class="text-2xl font-bold text-yellow-600">{{ showsStats.cancelados }}</div>
-        <div class="text-sm text-gray-600">Cancelados</div>
+        <div class="text-2xl font-bold text-orange-600">{{ showsStats.withoutEvents }}</div>
+        <div class="text-sm text-gray-600">Sin Eventos</div>
       </div>
     </div>
 
@@ -651,9 +634,9 @@ onMounted(() => {
 
         <!-- Results Info -->
         <div class="text-sm text-gray-500">
-          Mostrando {{ paginatedData.length }} de {{ totalItems }} shows
+          Mostrando {{ filteredData.length }} de {{ shows.length }} shows
           <span v-if="searchQuery || Object.keys(activeFilters).length > 0">
-            ({{ filteredData.length }} filtrados)
+            (filtrados)
           </span>
         </div>
       </div>
@@ -661,43 +644,42 @@ onMounted(() => {
       <!-- Expandable Filters Panel -->
       <div v-if="showFiltersPanel" class="mt-4 pt-4 border-t border-gray-200">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <!-- Status Filter -->
+          <!-- Visibility Filter -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Visibilidad</label>
             <select
-              :value="filters.status || ''"
-              @change="handleFilterChange('status', ($event.target as HTMLSelectElement).value || null)"
+              :value="filters.is_visible ?? ''"
+              @change="handleFilterChange('is_visible', ($event.target as HTMLSelectElement).value === '' ? null : ($event.target as HTMLSelectElement).value === 'true')"
               class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
-              <option value="">Todos los estados</option>
-              <option v-for="option in filterOptions.status" :key="option.value" :value="option.value">
+              <option value="">Todos</option>
+              <option v-for="option in filterOptions.is_visible" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
           </div>
 
-          <!-- Venue Filter -->
+          <!-- Events Filter -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Venue</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Eventos</label>
             <select
-              :value="filters.venue || ''"
-              @change="handleFilterChange('venue', ($event.target as HTMLSelectElement).value || null)"
+              :value="filters.current_events_count ?? ''"
+              @change="handleFilterChange('current_events_count', ($event.target as HTMLSelectElement).value === '' ? null : parseInt(($event.target as HTMLSelectElement).value))"
               class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
-              <option value="">Todos los venues</option>
-              <option v-for="option in filterOptions.venue" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
+              <option value="">Todos</option>
+              <option value="0">Sin eventos</option>
+              <option value="1">Con eventos (1+)</option>
             </select>
           </div>
 
-          <!-- Capacity Range Filter -->
+          <!-- Duration Filter -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Capacidad mínima</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Duración mínima (min)</label>
             <input
               type="number"
-              :value="filters.minCapacity || ''"
-              @input="handleFilterChange('minCapacity', parseInt(($event.target as HTMLInputElement).value) || null)"
+              :value="filters.duration_estimated || ''"
+              @input="handleFilterChange('duration_estimated', parseInt(($event.target as HTMLInputElement).value) || null)"
               placeholder="0"
               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             >
@@ -741,7 +723,7 @@ onMounted(() => {
     <!-- Main Table -->
     <div class="bg-white rounded-lg border overflow-hidden">
       <BaseTable
-        :data="paginatedData"
+        :data="filteredData"
         :columns="tableColumns"
         :loading="showsLoading"
         :selectable="true"
@@ -757,9 +739,9 @@ onMounted(() => {
         class="min-w-full"
       >
         <!-- Custom Status Column -->
-        <template #cell-status="{ value }">
-          <span :class="getStatusBadgeClass(value)">
-            {{ getStatusLabel(value) }}
+        <template #cell-is_visible="{ value }">
+          <span :class="value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+            {{ value ? 'Visible' : 'Oculto' }}
           </span>
         </template>
 
@@ -802,87 +784,7 @@ onMounted(() => {
         </template>
       </BaseTable>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-        <div class="flex items-center justify-between">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <BaseButton
-              @click="goToPage(currentPage - 1)"
-              :disabled="currentPage <= 1"
-              variant="secondary"
-            >
-              Anterior
-            </BaseButton>
-            <BaseButton
-              @click="goToPage(currentPage + 1)"
-              :disabled="currentPage >= totalPages"
-              variant="secondary"
-            >
-              Siguiente
-            </BaseButton>
-          </div>
-          
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700">
-                Mostrando
-                <span class="font-medium">{{ ((currentPage - 1) * pageSize) + 1 }}</span>
-                a
-                <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span>
-                de
-                <span class="font-medium">{{ totalItems }}</span>
-                resultados
-              </p>
-            </div>
-            
-            <div class="flex items-center gap-2">
-              <select
-                :value="pageSize"
-                @change="handlePageSizeChange(parseInt(($event.target as HTMLSelectElement).value))"
-                class="text-sm border-gray-300 rounded-md"
-              >
-                <option value="10">10 por página</option>
-                <option value="25">25 por página</option>
-                <option value="50">50 por página</option>
-                <option value="100">100 por página</option>
-              </select>
-              
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  @click="goToPage(currentPage - 1)"
-                  :disabled="currentPage <= 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Anterior
-                </button>
-                
-                <!-- Page Numbers -->
-                <template v-for="page in Math.min(totalPages, 5)" :key="page">
-                  <button
-                    @click="goToPage(page)"
-                    :class="[
-                      'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
-                      page === currentPage
-                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                    ]"
-                  >
-                    {{ page }}
-                  </button>
-                </template>
-                
-                <button
-                  @click="goToPage(currentPage + 1)"
-                  :disabled="currentPage >= totalPages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Siguiente
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
+
     </div>
 
     <!-- Modals -->

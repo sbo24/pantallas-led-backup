@@ -28,15 +28,15 @@ export const useShowsStore = defineStore('shows', () => {
   
   // Computed
   const activeShows: ComputedRef<Show[]> = computed(() => 
-    shows.value.filter(show => show.isActive)
+    shows.value.filter(show => show.is_visible)
   )
   
   const inactiveShows: ComputedRef<Show[]> = computed(() => 
-    shows.value.filter(show => !show.isActive)
+    shows.value.filter(show => !show.is_visible)
   )
   
   const venues: ComputedRef<string[]> = computed(() => 
-    [...new Set(shows.value.map(show => show.venue))].sort()
+    [...new Set(shows.value.map(show => 'Venue por defecto'))].sort()
   )
   
   const totalShows: ComputedRef<number> = computed(() => shows.value.length)
@@ -63,8 +63,13 @@ export const useShowsStore = defineStore('shows', () => {
       const response = await ShowsApiService.getShows(mergedParams)
       
       if (response.data) {
-        shows.value = response.data.data
-        pagination.value = response.data.pagination
+        shows.value = response.data.items || []
+        pagination.value = {
+          page: response.data.page || 1,
+          limit: response.data.size || 20,
+          total: response.data.total || 0,
+          pages: response.data.pages || 1
+        }
         filters.value = mergedParams
         return true
       }
