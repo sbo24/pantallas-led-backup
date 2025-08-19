@@ -25,7 +25,8 @@ const {
   updateShow, 
   deleteShow,
   bulkDelete,
-  bulkToggleStatus
+  bulkToggleStatus,
+  fetchShows
 } = useShows()
 
 // Table Management
@@ -90,6 +91,16 @@ const {
 
 // Notifications
 const { showSuccessToast, showErrorToast, showWarningToast } = useNotifications()
+
+// ==========================================
+// LIFECYCLE
+// ==========================================
+
+onMounted(async () => {
+  console.log('ShowsView mounting...')
+  await fetchShows()
+  console.log(`ShowsView mounted with ${shows.value.length} shows`)
+})
 
 // ==========================================
 // LOCAL STATE

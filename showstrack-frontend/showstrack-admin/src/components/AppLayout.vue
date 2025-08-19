@@ -37,7 +37,7 @@
       <!-- Main content -->
       <main class="flex-1">
         <div class="py-6">
-          <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 lg:space-y-10">
+          <div class="w-full px-4 sm:px-6 lg:px-8 space-y-8 lg:space-y-10">
             <slot />
           </div>
         </div>

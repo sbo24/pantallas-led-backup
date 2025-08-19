@@ -1,140 +1,149 @@
 """
-Script principal para extraer horarios de Puy du Fou España.
-Soporta exportación a Excel, JSON o ambos formatos.
+Script ETL simple avec intégration API ShowsTrack
 """
 import argparse
+import json
+import logging
 from datetime import datetime
 import os
-from puy_du_fou_api import fetch_schedule_data
-from date_utils import generate_date_range
-from data_processor import process_all_data
-from excel_exporter import export_data
+from api.puy_du_fou_api import fetch_schedule_data
+from utils.date_utils import generate_date_range
+from utils.data_processor import process_all_data
+from api.showstrack_api_client import ShowsTrackAPIClient
+from config import config
+
+# Configuration du logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Extraer horarios de Puy du Fou España')
-    parser.add_argument('--start-date', type=str, required=True, 
-                      help='Fecha de inicio en formato YYYY-MM-DD')
-    parser.add_argument('--end-date', type=str, required=True, 
-                      help='Fecha de fin en formato YYYY-MM-DD')
-    parser.add_argument('--output', type=str, default=None,
-                      help='Ruta base del archivo de salida (sin extensión)')
-    parser.add_argument('--format', type=str, choices=['excel', 'json', 'both'], 
-                      default='both', help='Formato de salida: excel, json o both (default: both)')
+    parser = argparse.ArgumentParser(description='ETL Puy du Fou España con integración API ShowsTrack')
+    parser.add_argument('--start-date', type=str, required=True, help='Fecha de inicio YYYY-MM-DD')
+    parser.add_argument('--end-date', type=str, required=True, help='Fecha de fin YYYY-MM-DD')
+    parser.add_argument('--dry-run', action='store_true', help='Modo test')
     return parser.parse_args()
 
-def validate_dates(start_date_str, end_date_str):
-    """Validate date format and range."""
-    try:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-        if end_date < start_date:
-            raise ValueError("La fecha de fin debe ser posterior a la fecha de inicio")
-        return start_date, end_date
-    except ValueError as e:
-        print(f"Error en el formato de fecha: {e}")
-        exit(1)
-
-def generate_output_path(start_date, end_date, base_path=None, format_type='excel'):
-    """
-    Genera la ruta de salida basada en las fechas.
+def convert_to_showstrack_format(processed_data):
+    """Convertir datos procesados al formato ShowsTrack"""
+    # Usar el formato que ya funciona del test anterior
+    events = []
+    for event in processed_data:
+        events.append({
+            "external_event_id": event.get('EventoID', ''),
+            "show_name": event.get('Evento', ''),
+            "event_date": event.get('Fecha', ''),
+            "start_time": event.get('Hora Inicio', ''),
+            "end_time": event.get('Hora Fin', ''),
+            "duration_minutes": int(event.get('Duración', 0)),
+            "event_type": "system" if "apertura" in event.get('Evento', '').lower() or "cierre" in event.get('Evento', '').lower() else "show"
+        })
     
-    Args:
-        start_date: Fecha de inicio
-        end_date: Fecha de fin
-        base_path: Ruta base personalizada
-        format_type: Tipo de formato para la extensión
-        
-    Returns:
-        str: Ruta completa del archivo
-    """
-    if base_path is None:
-        # Generar nombre basado en fechas
-        date_part = f"{start_date.strftime('%Y%m%d')}"
-        if start_date != end_date:
-            date_part += f"-{end_date.strftime('%Y%m%d')}"
-        
-        if format_type == 'excel':
-            base_path = os.path.join("output", f"horarios_puydufou_{date_part}.xlsx")
-        elif format_type == 'json':
-            base_path = os.path.join("output", f"horarios_puydufou_{date_part}.json")
-        else:  # both
-            base_path = os.path.join("output", f"horarios_puydufou_{date_part}")
-    else:
-        # Si la ruta no incluye un directorio, guardar en output
-        if os.path.dirname(base_path) == "":
-            base_path = os.path.join("output", base_path)
+    # Estadísticas
+    events_by_type = {}
+    events_by_show = {}
+    events_by_date = {}
     
-    return os.path.abspath(base_path)
+    for event in events:
+        # Por tipo
+        event_type = event['event_type']
+        events_by_type[event_type] = events_by_type.get(event_type, 0) + 1
+        
+        # Por show
+        show_name = event['show_name']
+        events_by_show[show_name] = events_by_show.get(show_name, 0) + 1
+        
+        # Por fecha
+        event_date = event['event_date']
+        events_by_date[event_date] = events_by_date.get(event_date, 0) + 1
+    
+    return {
+        "metadata": {
+            "extraction_time": datetime.now().isoformat(),
+            "total_events": len(events),
+            "date_range": list(events_by_date.keys()),
+            "source": "puy_du_fou_api",
+            "version": "1.0",
+            "extraction_summary": {
+                "events_by_type": events_by_type,
+                "events_by_show": events_by_show,
+                "events_by_date": events_by_date,
+                "unique_shows": len(events_by_show),
+                "date_range_days": len(events_by_date)
+            }
+        },
+        "events": events
+    }
 
 def main():
-    """Entry point of the script."""
-    # Crear directorios necesarios
+    args = parse_arguments()
+    
+    # Créer répertoires
     os.makedirs("debug", exist_ok=True)
     os.makedirs("output", exist_ok=True)
     
-    # Parse command line arguments
-    args = parse_arguments()
+    # Valider dates
+    try:
+        start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
+    except ValueError as e:
+        logger.error(f"Format de date invalide: {e}")
+        return
     
-    # Validate dates
-    start_date, end_date = validate_dates(args.start_date, args.end_date)
-    
-    # Generate date range
+    # Générer range de dates
     date_range = generate_date_range(start_date, end_date)
     
-    # Establecer nombre del archivo de salida
-    output_path = generate_output_path(start_date, end_date, args.output, args.format)
+    logger.info(f"Iniciando ETL: {args.start_date} a {args.end_date}")
+    logger.info(f"Modo: {'DRY RUN' if args.dry_run else 'PRODUCCIÓN'}")
     
-    print(f"🔄 Extrayendo horarios de {args.start_date} a {args.end_date}")
-    print(f"📁 Formato de salida: {args.format}")
-    print(f"📂 Ruta base: {output_path}")
-    print()
-    
-    # Fetch data for each date
+    # Extraire données
     all_data = {}
     for date_str in date_range:
-        print(f"Consultando datos para {date_str}...")
+        logger.info(f"Consultando datos para {date_str}...")
         response_data = fetch_schedule_data(date_str)
         all_data[date_str] = response_data
     
-    print()
-    
-    # Process the data
+    # Traiter données
     processed_data = process_all_data(all_data)
     
     if not processed_data:
-        print("❌ No se pudieron procesar datos.")
+        logger.error("No se pudieron procesar datos.")
         return
     
-    print(f"✅ Datos procesados: {len(processed_data)} eventos encontrados")
-    print()
+    logger.info(f"Datos procesados: {len(processed_data)} eventos")
     
-    # Export to specified format(s)
-    results = export_data(processed_data, output_path, args.format)
+    # Convertir au format ShowsTrack
+    showstrack_data = convert_to_showstrack_format(processed_data)
     
-    # Summary
-    print(f"\n🎉 Proceso completado:")
-    total_events = 0
+    # Sauvegarder JSON local
+    date_part = start_date.strftime('%Y%m%d')
+    if start_date != end_date:
+        date_part += f"-{end_date.strftime('%Y%m%d')}"
     
-    if 'excel' in results:
-        total_events = results['excel']
-        print(f"  📊 Excel: {results['excel']} eventos")
+    json_path = os.path.join("output", f"etl_api_{date_part}.json")
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(showstrack_data, f, indent=2, ensure_ascii=False)
+    logger.info(f"JSON guardado: {json_path}")
     
-    if 'json' in results:
-        if 'excel' not in results:
-            total_events = results['json']
-        print(f"  📋 JSON: {results['json']} eventos")
+    # Envoyer à l'API
+    logger.info("Enviando datos a ShowsTrack API...")
     
-    print(f"  📈 Total: {total_events} eventos exportados")
+    # Utiliser la configuration sécurisée
+    api_url, username, password = config.get_credentials()
+    api_client = ShowsTrackAPIClient(api_url, username, password)
+    result = api_client.send_import_data(showstrack_data, dry_run=args.dry_run)
     
-    if args.format == 'both':
-        print("\n💡 Archivos generados:")
-        if 'excel' in results:
-            excel_path = output_path + '.xlsx' if not output_path.endswith('.xlsx') else output_path
-            print(f"  📊 Excel: {excel_path}")
-        if 'json' in results:
-            json_path = output_path + '.json' if not output_path.endswith('.json') else output_path.replace('.xlsx', '.json')
-            print(f"  📋 JSON:  {json_path}")
+    if result["success"]:
+        logger.info("✅ ETL completado exitosamente!")
+        logger.info(f"Message: {result.get('message')}")
+        
+        validation = result.get('validation_result', {})
+        if validation:
+            logger.info(f"Total eventos: {validation.get('total_events', 0)}")
+            logger.info(f"Nuevos: {validation.get('new_events', 0)}")
+            logger.info(f"Actualizados: {validation.get('updated_events', 0)}")
+    else:
+        logger.error(f"❌ ETL falló: {result.get('error')}")
 
 if __name__ == "__main__":
     main()

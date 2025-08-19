@@ -22,8 +22,26 @@ export interface UseNotificationsReturn {
 
 export function useNotifications(): UseNotificationsReturn {
   const showToast = (message: string, type: ToastType = 'info', duration = 5000): void => {
-    // Simple console implementation for testing
-    console.log(`[${type.toUpperCase()}]: ${message}`)
+    // Use global toast service if available, fallback to console
+    if (typeof window !== 'undefined' && (window as any).showToast) {
+      const toastService = (window as any).showToast
+      switch (type) {
+        case 'success':
+          toastService.success(message, undefined, duration)
+          break
+        case 'error':
+          toastService.error(message, undefined, duration)
+          break
+        case 'warning':
+          toastService.warning(message, undefined, duration)
+          break
+        default:
+          toastService.info(message, undefined, duration)
+      }
+    } else {
+      // Fallback to console for testing
+      console.log(`[${type.toUpperCase()}]: ${message}`)
+    }
   }
 
   const showSuccessToast = (message: string, duration = 3000): void => {

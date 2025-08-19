@@ -87,6 +87,7 @@ volumes:
 # RED INTERNA PARA COMUNICACIÓN ENTRE CONTENEDORES
 networks:
   showstrack-network:
-    driver: bridge
+    external: true
+    name: showstrack-network
     # Los contenedores se comunican usando nombres de servicio como hostnames
     # Ejemplo: showstrack-postgres:5432 desde pgadmin

@@ -1,9 +1,0 @@
-﻿name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
-# TODO: Implementar jobs de testing

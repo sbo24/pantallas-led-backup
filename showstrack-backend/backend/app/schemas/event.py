@@ -13,7 +13,7 @@ class EventBase(BaseModel):
     event_date: date = Field(..., description="Fecha del evento")
     start_time: time = Field(..., description="Hora de inicio")
     end_time: Optional[time] = Field(None, description="Hora de fin")
-    duration_minutes: Optional[int] = Field(None, ge=1, le=480, description="Duración en minutos")
+    duration_minutes: Optional[int] = Field(None, ge=0, le=480, description="Duración en minutos")
     is_multiple_shows_flag: bool = Field(False, description="Flag para múltiples shows")
 
 
@@ -44,7 +44,7 @@ class EventUpdate(BaseModel):
     event_date: Optional[date] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
-    duration_minutes: Optional[int] = Field(None, ge=1, le=480)
+    duration_minutes: Optional[int] = Field(None, ge=0, le=480)
     is_multiple_shows_flag: Optional[bool] = None
     
     model_config = {
