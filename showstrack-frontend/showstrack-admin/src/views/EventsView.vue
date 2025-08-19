@@ -118,6 +118,19 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+      <OverrideModal
+      :show="showOverrideModal"
+      :selectedEvent="selectedEvent"
+      :overrideStatus="overrideStatus"
+      @confirm="confirmOverride"
+      @close="showOverrideModal = false"
+    />
+
+    <ChangePreviewModal
+      :show="showPreviewModal"
+      :selectedChange="selectedChange"
+      @close="showPreviewModal = false"
+    />
 
       <!-- Acciones -->
       <div class="bg-white rounded-xl shadow-lg p-6">
