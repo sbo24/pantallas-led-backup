@@ -306,6 +306,10 @@ export function useEventsView() {
     refreshInterval = setInterval(async () => {
       try {
         await Promise.all([loadPendingChanges(), loadTodayEvents()])
+        // automatic mode sync
+        if(operationMode.value === 'automatic' && hasPendingSync.value && !syncInProgress.value) {
+          await executeSyncManual()
+        }
       } catch (error) {
         console.error('Auto-refresh error:', error)
       }

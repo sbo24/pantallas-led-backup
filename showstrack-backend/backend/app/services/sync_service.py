@@ -169,19 +169,42 @@ class SyncService:
                         skipped_count += 1
                         continue
                     
-                    # Verificar si el evento ya existe
+                    # Verificar si el evento ya existe (por external_id o por show+fecha+hora)
                     if change.action == ChangeAction.CREATE and change.entity_type == EntityType.EVENT:
+                        # Verificar por external_id
                         existing_query = select(ScheduledEvent).where(
                             ScheduledEvent.external_event_id == change.external_id
                         )
                         existing_event = (await db.execute(existing_query)).scalar_one_or_none()
+                        
+                        # Si no existe por external_id, verificar por constrainte unique (show_id, event_date, start_time)
+                        if not existing_event:
+                            show_name = change.new_data.get("show_name")
+                            if show_name:
+                                show_query = select(Show).where(Show.name == show_name)
+                                show = (await db.execute(show_query)).scalar_one_or_none()
+                                if show:
+                                    event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
+                                    start_time_str = change.new_data["start_time"]
+                                    try:
+                                        event_start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                                    except ValueError:
+                                        event_start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                                    
+                                    duplicate_query = select(ScheduledEvent).where(
+                                        ScheduledEvent.show_id == show.id,
+                                        ScheduledEvent.event_date == event_date,
+                                        ScheduledEvent.start_time == event_start_time
+                                    )
+                                    existing_event = (await db.execute(duplicate_query)).scalar_one_or_none()
+                        
                         if existing_event:
-                            # NUEVO: Limpiar automáticamente el duplicado detectado
+                            # AUTO-LIMPIAR: Marcar como aplicado el duplicado detectado
                             change.is_applied = True
                             change.applied_at = datetime.now()
                             change.applied_by = user_id
                             change.resolution_notes = f"AUTO-LIMPIADO: Evento duplicado ya existe (ID: {existing_event.id})"
-                            skipped_count += 1
+                            applied_count += 1  # Contar como aplicado, no como omitido
                             await db.commit()
                             continue
                     
@@ -192,12 +215,12 @@ class SyncService:
                             existing_show_query = select(Show).where(Show.name == show_name)
                             existing_show = (await db.execute(existing_show_query)).scalar_one_or_none()
                             if existing_show:
-                                # NUEVO: Limpiar automáticamente el show duplicado
+                                # AUTO-LIMPIAR: Marcar como aplicado el show duplicado
                                 change.is_applied = True
                                 change.applied_at = datetime.now()
                                 change.applied_by = user_id
                                 change.resolution_notes = f"AUTO-LIMPIADO: Show duplicado ya existe (ID: {existing_show.id})"
-                                skipped_count += 1
+                                applied_count += 1  # Contar como aplicado, no como omitido
                                 await db.commit()
                                 continue
                     
@@ -220,6 +243,7 @@ class SyncService:
                         await db.commit()
                     else:
                         failed_count += 1
+                        # Rollback solo este cambio, no afecta los anteriores
                         await db.rollback()
                         
                 except Exception as e:
@@ -259,7 +283,7 @@ class SyncService:
                 changes_applied=applied_count,
                 changes_failed=failed_count,
                 changes_skipped=skipped_count,
-                execution_time_seconds=execution_time,
+                execution_time_seconds=float(execution_time),
                 executed_at=datetime.now()
             )
             
@@ -287,7 +311,7 @@ class SyncService:
                 changes_applied=0,
                 changes_failed=len(change_ids) if change_ids else 0,
                 changes_skipped=0,
-                execution_time_seconds=(datetime.now() - start_time).total_seconds(),
+                execution_time_seconds=float((datetime.now() - start_time).total_seconds()),
                 executed_at=datetime.now()
             )
     
@@ -407,13 +431,27 @@ class SyncService:
                 # Crear o encontrar show
                 show = await SyncService._ensure_show_exists(db, change.new_data["show_name"])
                 
-                # Crear evento
+                # Crear evento - Support des formats d'heure avec ou sans secondes
+                start_time_str = change.new_data["start_time"]
+                end_time_str = change.new_data["end_time"]
+                
+                # Essayer d'abord avec secondes, puis sans
+                try:
+                    start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                except ValueError:
+                    start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                
+                try:
+                    end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+                except ValueError:
+                    end_time = datetime.strptime(end_time_str, '%H:%M').time()
+                
                 new_event = ScheduledEvent(
                     external_event_id=change.external_id,
                     show_id=show.id,
                     event_date=datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date(),
-                    start_time=datetime.strptime(change.new_data["start_time"], '%H:%M').time(),
-                    end_time=datetime.strptime(change.new_data["end_time"], '%H:%M').time(),
+                    start_time=start_time,
+                    end_time=end_time,
                     duration_minutes=change.new_data["duration_minutes"],
                     is_multiple_shows_flag=False
                 )
@@ -433,7 +471,14 @@ class SyncService:
                 db.add(new_show)
                 return True
                 
-        except Exception:
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erreur dans _apply_create_change: {e}")
+            logger.error(f"Change ID: {change.change_id}")
+            logger.error(f"Data: {change.new_data}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
             
         return False
@@ -452,9 +497,17 @@ class SyncService:
                     if "event_date" in change.new_data:
                         event.event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
                     if "start_time" in change.new_data:
-                        event.start_time = datetime.strptime(change.new_data["start_time"], '%H:%M').time()
+                        start_time_str = change.new_data["start_time"]
+                        try:
+                            event.start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                        except ValueError:
+                            event.start_time = datetime.strptime(start_time_str, '%H:%M').time()
                     if "end_time" in change.new_data:
-                        event.end_time = datetime.strptime(change.new_data["end_time"], '%H:%M').time()
+                        end_time_str = change.new_data["end_time"]
+                        try:
+                            event.end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+                        except ValueError:
+                            event.end_time = datetime.strptime(end_time_str, '%H:%M').time()
                     if "duration_minutes" in change.new_data:
                         event.duration_minutes = change.new_data["duration_minutes"]
                     
