@@ -1,7 +1,35 @@
 import { useAuthStore } from '@/stores/auth'
 
-// Warn : update the API_BASE_URL with the correct url for prod
-const API_BASE_URL = import.meta.env.VITE_SHOWSTRACK_API_URL || 'http://localhost:8000'
+// Configuration API avec validation
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_SHOWSTRACK_API_URL
+  const defaultUrl = 'http://localhost:8000'
+  
+  // En production, forcer la configuration d'une URL
+  if (import.meta.env.PROD && !envUrl) {
+    throw new Error(
+      'VITE_SHOWSTRACK_API_URL must be configured in production environment. ' +
+      'Please set this environment variable in your .env file.'
+    )
+  }
+  
+  // Validation de l'URL
+  const apiUrl = envUrl || defaultUrl
+  try {
+    new URL(apiUrl)
+  } catch {
+    throw new Error(`Invalid API URL: ${apiUrl}. Please check VITE_SHOWSTRACK_API_URL configuration.`)
+  }
+  
+  // Log en développement
+  if (import.meta.env.DEV) {
+    console.log(`[EventsService] Using API URL: ${apiUrl} ${envUrl ? '(from env)' : '(default)'}`) 
+  }
+  
+  return apiUrl
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 const getAuthHeaders = () => {
   const authStore = useAuthStore()
