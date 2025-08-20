@@ -337,9 +337,9 @@ class ImportService:
         created_count = 0
         
         try:
-            # Obtener eventos existentes
+            # Obtener eventos existentes con sus shows
             external_ids = [event.external_event_id for event in import_data.events]
-            events_query = select(ScheduledEvent).where(ScheduledEvent.external_event_id.in_(external_ids))
+            events_query = select(ScheduledEvent).options(selectinload(ScheduledEvent.show)).where(ScheduledEvent.external_event_id.in_(external_ids))
             existing_events = {event.external_event_id: event for event in (await db.execute(events_query)).scalars().all()}
             
             for event_data in import_data.events:

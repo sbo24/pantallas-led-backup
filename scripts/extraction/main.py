@@ -86,6 +86,7 @@ def main():
     try:
         start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
         end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
+        logger.info(f"Dates validées: {start_date} à {end_date}")
     except ValueError as e:
         logger.error(f"Format de date invalide: {e}")
         return
@@ -104,6 +105,7 @@ def main():
         all_data[date_str] = response_data
     
     # Traiter données
+    logger.info("Procesando datos...")
     processed_data = process_all_data(all_data)
     
     if not processed_data:
@@ -111,6 +113,7 @@ def main():
         return
     
     logger.info(f"Datos procesados: {len(processed_data)} eventos")
+    logger.info(f"Primer evento: {processed_data[0] if processed_data else 'None'}"[:200])
     
     # Convertir au format ShowsTrack
     showstrack_data = convert_to_showstrack_format(processed_data)
@@ -129,9 +132,19 @@ def main():
     logger.info("Enviando datos a ShowsTrack API...")
     
     # Utiliser la configuration sécurisée
-    api_url, username, password = config.get_credentials()
-    api_client = ShowsTrackAPIClient(api_url, username, password)
-    result = api_client.send_import_data(showstrack_data, dry_run=args.dry_run)
+    logger.info("Initialisation du client API...")
+    try:
+        api_url, username, password = config.get_credentials()
+        logger.info(f"API URL: {api_url}, Username: {username}")
+        api_client = ShowsTrackAPIClient(api_url, username, password)
+        logger.info("Client API créé, envoi des données...")
+        result = api_client.send_import_data(showstrack_data, dry_run=args.dry_run)
+        logger.info(f"Résultat API: {result}")
+    except Exception as e:
+        logger.error(f"Erreur lors de l'envoi à l'API: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return
     
     if result["success"]:
         logger.info("✅ ETL completado exitosamente!")
