@@ -105,8 +105,13 @@ export const useEventsStore = defineStore('events', () => {
       const response = await EventsApiService.getEvents(mergedParams)
       
       if (response.data) {
-        events.value = response.data.data
-        pagination.value = response.data.pagination
+        events.value = response.data.items || []
+        pagination.value = {
+          page: response.data.page || 1,
+          limit: response.data.size || 50,
+          total: response.data.total || 0,
+          pages: response.data.pages || 1
+        }
         filters.value = mergedParams
         return true
       }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { 
   ExclamationTriangleIcon,
   CheckCircleIcon,
@@ -10,11 +10,15 @@ import BaseModal from '@/components/BaseModal.vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useAuthStore } from '@/stores/auth'
+import { useShowsStore } from '@/stores/shows'
+import { useEventsStore } from '@/stores/events'
 
 // Stores
 const alertsStore = useAlertsStore()
 const dashboardStore = useDashboardStore()
 const authStore = useAuthStore()
+const showsStore = useShowsStore()
+const eventsStore = useEventsStore()
 
 // Modal state
 const isModalOpen = ref(false)
@@ -50,18 +54,61 @@ const closeModal = () => {
   isModalOpen.value = false
 }
 
+// Computed properties
+const activeShowsCount = computed(() => 
+  (showsStore.shows || []).filter(show => show.is_visible).length
+)
+
+const todayEventsCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return (eventsStore.events || []).filter(event => 
+    event.event_date === today
+  ).length
+})
+
+const activeOverridesCount = computed(() => {
+  return (eventsStore.events || []).filter(event => 
+    event.override && (event.calculated_status === 'CANCELADO' || event.calculated_status === 'CERRADO')
+  ).length
+})
+
+interface SystemHealth {
+  status: 'healthy' | 'unhealthy' | 'error'
+  message?: string
+}
+// System health state
+const systemHealth = ref<SystemHealth | null>(null)
+
 // Cargar datos reales al montar el componente
 onMounted(async () => {
   // Inicializar autenticación (cargar desde localStorage si existe)
   await authStore.initializeAuth()
   
-  // Cargar métricas del dashboard
-  await dashboardStore.fetchDashboardMetrics()
-  await dashboardStore.fetchSystemHealth()
+  // Cargar shows para calcular shows activos
+  await showsStore.fetchShows()
   
-  // Cargar alertas activas
-  await alertsStore.fetchActiveAlerts()
+  // Cargar eventos para calcular eventos de hoy
+  await eventsStore.fetchEvents()
+  
+  // Cargar estado del sistema
+  await fetchSystemHealth()
 })
+
+const fetchSystemHealth = async () => {
+  try {
+    const apiUrl = import.meta.env.VITE_SHOWSTRACK_API_URL
+    if (!apiUrl) {
+      console.error('VITE_SHOWSTRACK_API_URL is not defined')
+      systemHealth.value = { status: 'error', message: 'API URL not configured' }
+      return
+    }
+    const response = await fetch(`${apiUrl}/health`)
+    systemHealth.value = await response.json()
+  } catch (error) {
+    console.error('Error fetching system health:', error)
+    systemHealth.value = { status: 'error' }
+  }
+}
 </script>
 
 <template>
@@ -85,8 +132,7 @@ onMounted(async () => {
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Shows Activos</dt>
                 <dd class="text-xl font-semibold text-gray-900">
-                  <span v-if="dashboardStore.isLoading">...</span>
-                  <span v-else>{{ dashboardStore.metrics?.activeShows || 0 }}</span>
+                  {{ activeShowsCount }}
                 </dd>
               </dl>
             </div>
@@ -106,8 +152,7 @@ onMounted(async () => {
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Eventos Hoy</dt>
                 <dd class="text-xl font-semibold text-gray-900">
-                  <span v-if="dashboardStore.isLoading">...</span>
-                  <span v-else>{{ dashboardStore.metrics?.todayEvents || 0 }}</span>
+                  {{ todayEventsCount }}
                 </dd>
               </dl>
             </div>
@@ -127,8 +172,7 @@ onMounted(async () => {
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Alertas</dt>
                 <dd class="text-xl font-semibold text-gray-900">
-                  <span v-if="alertsStore.isLoading">...</span>
-                  <span v-else>{{ alertsStore.unreadCount }}</span>
+                  0
                 </dd>
               </dl>
             </div>
@@ -147,7 +191,7 @@ onMounted(async () => {
             <div class="w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Overrides</dt>
-                <dd class="text-xl font-semibold text-gray-900">{{ dashboardStore.metrics?.activeOverrides || 0 }}</dd>
+                <dd class="text-xl font-semibold text-gray-900">{{ activeOverridesCount }}</dd>
               </dl>
             </div>
           </div>
@@ -164,140 +208,27 @@ onMounted(async () => {
             <div 
               class="w-3 h-3 rounded-full"
               :class="{
-                'bg-green-400': dashboardStore.systemHealth?.database === 'healthy' && 
-                               dashboardStore.systemHealth?.apiResponse === 'healthy',
-                'bg-yellow-400': dashboardStore.systemHealth?.database === 'warning' || 
-                                dashboardStore.systemHealth?.apiResponse === 'warning',
-                'bg-red-400': dashboardStore.systemHealth?.database === 'error' || 
-                             dashboardStore.systemHealth?.apiResponse === 'error',
-                'bg-gray-400': !dashboardStore.systemHealth
+                'bg-green-400': systemHealth?.status === 'healthy',
+                'bg-red-400': systemHealth?.status === 'unhealthy' || systemHealth?.status === 'error',
+                'bg-gray-400': !systemHealth
               }"
             ></div>
           </div>
           <div>
             <p class="text-sm text-gray-600">
-              <template v-if="!dashboardStore.systemHealth">
+              <template v-if="!systemHealth">
                 Cargando estado del sistema...
               </template>
-              <template v-else-if="dashboardStore.systemHealth.database === 'healthy' && 
-                                   dashboardStore.systemHealth.apiResponse === 'healthy'">
+              <template v-else-if="systemHealth.status === 'healthy'">
                 Sistema operativo - Todos los servicios funcionando correctamente
               </template>
-              <template v-else-if="dashboardStore.systemHealth.database === 'error' || 
-                                   dashboardStore.systemHealth.apiResponse === 'error'">
-                Sistema con errores - Revisar conexiones de base de datos y API
-              </template>
               <template v-else>
-                Sistema en advertencia - Algunos servicios requieren atención
+                Sistema con problemas - Revisar servicios
               </template>
             </p>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Demo de Componentes Base -->
-    <div class="bg-white shadow-sm rounded-xl border" style="margin: 25px 0;">
-      <div class="p-6 lg:p-8 space-y-6">
-        <h3 class="text-lg font-semibold text-gray-900">Demo - Componentes Base</h3>
-        <p class="text-sm text-gray-600 leading-relaxed">Ejemplos de BaseButton y BaseModal funcionando</p>
-        
-        <!-- Botones de ejemplo -->
-        <div>
-          <div class="flex flex-wrap gap-x-5 gap-y-4 items-center" style="margin: 20px 0;">
-            <BaseButton variant="primary" :left-icon="PlusIcon">
-              Crear Nuevo
-            </BaseButton>
-            
-            <BaseButton variant="secondary" @click="openModal">
-              Abrir Modal
-            </BaseButton>
-            
-            <BaseButton variant="danger" :left-icon="ExclamationTriangleIcon" @click="openConfirmModal">
-              Acción Crítica
-            </BaseButton>
-            
-            <BaseButton variant="success" :left-icon="CheckCircleIcon">
-              Confirmar
-            </BaseButton>
-            
-            <BaseButton variant="ghost" size="sm">
-              Ghost Button
-            </BaseButton>
-            
-            <BaseButton variant="link">
-              Enlace
-            </BaseButton>
-          </div>
-
-          <!-- Botones con estados -->
-          <div class="flex flex-wrap gap-x-5 gap-y-4 items-center" style="margin: 20px 0;">
-            <BaseButton variant="primary" loading>
-              Cargando...
-            </BaseButton>
-            
-            <BaseButton variant="secondary" disabled>
-              Deshabilitado
-            </BaseButton>
-            
-            <BaseButton variant="primary" size="xs">
-              Extra Small
-            </BaseButton>
-            
-            <BaseButton variant="primary" size="lg" block>
-              Botón de Bloque
-            </BaseButton>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal básico -->
-    <BaseModal
-      :is-open="isModalOpen"
-      title="Modal de Ejemplo"
-      size="md"
-      @close="closeModal"
-    >
-      <p class="mb-4">
-        Este es un ejemplo de BaseModal. Puedes poner cualquier contenido aquí.
-      </p>
-      <p>
-        El modal incluye transiciones suaves y se puede cerrar haciendo clic fuera 
-        del contenido o presionando la X.
-      </p>
-      
-      <template #footer>
-        <div class="flex space-x-3">
-          <BaseButton variant="secondary" @click="closeModal">
-            Cerrar
-          </BaseButton>
-          <BaseButton variant="primary" @click="closeModal">
-            Entendido
-          </BaseButton>
-        </div>
-      </template>
-    </BaseModal>
-
-    <!-- Modal de confirmación -->
-    <BaseModal
-      :is-open="isConfirmModalOpen"
-      title="¿Estás seguro?"
-      :icon="ExclamationTriangleIcon"
-      variant="danger"
-      size="sm"
-      show-default-actions
-      confirm-text="Sí, continuar"
-      cancel-text="Cancelar"
-      confirm-variant="danger"
-      :loading="isLoading"
-      @close="handleCancel"
-      @confirm="handleConfirm"
-      @cancel="handleCancel"
-    >
-      <p>
-        Esta acción no se puede deshacer. ¿Estás seguro de que quieres continuar?
-      </p>
-    </BaseModal>
   </div>
 </template>

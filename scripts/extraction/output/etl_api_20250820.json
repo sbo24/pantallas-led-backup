@@ -1,0 +1,208 @@
+{
+  "metadata": {
+    "extraction_time": "2025-08-20T09:52:20.801977",
+    "total_events": 19,
+    "date_range": [
+      "2025-08-20"
+    ],
+    "source": "puy_du_fou_api",
+    "version": "1.0",
+    "extraction_summary": {
+      "events_by_type": {
+        "system": 2,
+        "show": 17
+      },
+      "events_by_show": {
+        "Apertura": 1,
+        "Cetrería de Reyes": 2,
+        "El Misterio de Sorbaces": 2,
+        "A Pluma y Espada": 3,
+        "El Espadero de Vivar": 2,
+        "Allende la Mar Océana": 1,
+        "El Último Cantar": 3,
+        "De Tal Palo": 1,
+        "El tambor de la Libertad": 2,
+        "Cierre": 1,
+        "El Sueño de Toledo": 1
+      },
+      "events_by_date": {
+        "2025-08-20": 19
+      },
+      "unique_shows": 11,
+      "date_range_days": 1
+    }
+  },
+  "events": [
+    {
+      "external_event_id": "2107137254650000441_",
+      "show_name": "Apertura",
+      "event_date": "2025-08-20",
+      "start_time": "12:00",
+      "end_time": "12:00",
+      "duration_minutes": 0,
+      "event_type": "system"
+    },
+    {
+      "external_event_id": "2106740768780000373_",
+      "show_name": "Cetrería de Reyes",
+      "event_date": "2025-08-20",
+      "start_time": "12:45",
+      "end_time": "13:15",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2232491949459820608_",
+      "show_name": "El Misterio de Sorbaces",
+      "event_date": "2025-08-20",
+      "start_time": "13:00",
+      "end_time": "13:25",
+      "duration_minutes": 25,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000369_",
+      "show_name": "A Pluma y Espada",
+      "event_date": "2025-08-20",
+      "start_time": "13:45",
+      "end_time": "14:15",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2232947349450827608_",
+      "show_name": "El Espadero de Vivar",
+      "event_date": "2025-08-20",
+      "start_time": "14:00",
+      "end_time": "14:30",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000370_",
+      "show_name": "Allende la Mar Océana",
+      "event_date": "2025-08-20",
+      "start_time": "14:00",
+      "end_time": "19:00",
+      "duration_minutes": 25,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000372_",
+      "show_name": "El Último Cantar",
+      "event_date": "2025-08-20",
+      "start_time": "15:00",
+      "end_time": "15:30",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000369_",
+      "show_name": "A Pluma y Espada",
+      "event_date": "2025-08-20",
+      "start_time": "15:15",
+      "end_time": "15:45",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000372_",
+      "show_name": "El Último Cantar",
+      "event_date": "2025-08-20",
+      "start_time": "16:30",
+      "end_time": "17:00",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000369_",
+      "show_name": "A Pluma y Espada",
+      "event_date": "2025-08-20",
+      "start_time": "16:45",
+      "end_time": "17:15",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000373_",
+      "show_name": "Cetrería de Reyes",
+      "event_date": "2025-08-20",
+      "start_time": "17:45",
+      "end_time": "18:15",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2232941949479820608_",
+      "show_name": "De Tal Palo",
+      "event_date": "2025-08-20",
+      "start_time": "18:00",
+      "end_time": "20:30",
+      "duration_minutes": 15,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1740673240789621446_",
+      "show_name": "El tambor de la Libertad",
+      "event_date": "2025-08-20",
+      "start_time": "18:30",
+      "end_time": "18:55",
+      "duration_minutes": 25,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2106740768780000372_",
+      "show_name": "El Último Cantar",
+      "event_date": "2025-08-20",
+      "start_time": "18:45",
+      "end_time": "19:15",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2232491949459820608_",
+      "show_name": "El Misterio de Sorbaces",
+      "event_date": "2025-08-20",
+      "start_time": "19:00",
+      "end_time": "19:25",
+      "duration_minutes": 25,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1740673240789621446_",
+      "show_name": "El tambor de la Libertad",
+      "event_date": "2025-08-20",
+      "start_time": "20:00",
+      "end_time": "20:25",
+      "duration_minutes": 25,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2232947349450827608_",
+      "show_name": "El Espadero de Vivar",
+      "event_date": "2025-08-20",
+      "start_time": "20:15",
+      "end_time": "20:45",
+      "duration_minutes": 30,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2107137254650000442_",
+      "show_name": "Cierre",
+      "event_date": "2025-08-20",
+      "start_time": "22:00",
+      "end_time": "22:00",
+      "duration_minutes": 0,
+      "event_type": "system"
+    },
+    {
+      "external_event_id": "2106740768780000371_",
+      "show_name": "El Sueño de Toledo",
+      "event_date": "2025-08-20",
+      "start_time": "22:15",
+      "end_time": "23:35",
+      "duration_minutes": 80,
+      "event_type": "show"
+    }
+  ]
+}

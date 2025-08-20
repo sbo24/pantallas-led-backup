@@ -9,10 +9,8 @@ from .date_utils import format_time
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.DEBUG, 
-    format='%(asctime)s - %(levelname)s: %(message)s',
-    filename='debug/data_processor_diagnostic.log',
-    filemode='w'
+    level=logging.INFO, 
+    format='%(asctime)s - %(levelname)s: %(message)s'
 )
 
 def calculate_end_time(start_time, duration):

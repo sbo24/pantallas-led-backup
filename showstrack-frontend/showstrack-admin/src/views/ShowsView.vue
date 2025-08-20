@@ -6,6 +6,7 @@
 
 import { computed, ref, onMounted } from 'vue'
 import { useShows, useTable, useModal, useNotifications } from '@/composables'
+import { useEventsStore } from '@/stores/events'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
@@ -28,6 +29,9 @@ const {
   bulkToggleStatus,
   fetchShows
 } = useShows()
+
+// Events store for calculating today events
+const eventsStore = useEventsStore()
 
 // Table Management
 const { 
@@ -96,9 +100,23 @@ const { showSuccessToast, showErrorToast, showWarningToast } = useNotifications(
 // LIFECYCLE
 // ==========================================
 
+// Computed for today events count per show
+const showsWithTodayEvents = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  const todayEvents = (eventsStore.events || []).filter(event => 
+    event.event_date === today
+  )
+  
+  return shows.value.map(show => ({
+    ...show,
+    todayEventsCount: todayEvents.filter(event => event.show_id === show.id).length
+  }))
+})
+
 onMounted(async () => {
   console.log('ShowsView mounting...')
   await fetchShows()
+  await eventsStore.fetchEvents()
   console.log(`ShowsView mounted with ${shows.value.length} shows`)
 })
 
@@ -148,7 +166,7 @@ const tableColumns: TableColumn[] = [
     align: 'left'
   },
   {
-    key: 'current_events_count',
+    key: 'todayEventsCount',
     label: 'Eventos Hoy',
     sortable: true,
     width: '120px',
@@ -723,7 +741,7 @@ onMounted(() => {
     <!-- Main Table -->
     <div class="bg-white rounded-lg border overflow-hidden">
       <BaseTable
-        :data="filteredData"
+        :data="showsWithTodayEvents"
         :columns="tableColumns"
         :loading="showsLoading"
         :selectable="true"

@@ -270,7 +270,7 @@ export function useEventsView() {
     selectiveActionInProgress.value = true
     try {
       const result = await eventsService.applySelectedChanges(Array.from(selectedChanges.value))
-      const appliedCount = result.applied_count || 0
+      const appliedCount = result.affected_changes || result.applied_count || 0
       showSuccessToast(`${appliedCount} cambios aplicados exitosamente`)
       selectedChanges.value.clear()
       await Promise.all([loadPendingChanges(), loadImportHistory()])
@@ -290,7 +290,7 @@ export function useEventsView() {
     selectiveActionInProgress.value = true
     try {
       const result = await eventsService.discardSelectedChanges(Array.from(selectedChanges.value))
-      const discardedCount = result.discarded_count || 0
+      const discardedCount = result.affected_changes || result.discarded_count || 0
       showSuccessToast(`${discardedCount} cambios descartados exitosamente`)
       selectedChanges.value.clear()
       await loadPendingChanges()
