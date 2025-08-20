@@ -18,7 +18,7 @@ from app.schemas.auth import TokenData
 # Configuracion JWT
 SECRET_KEY = "showstrack_secret_key_2025_change_in_production"  # TODO: Cambiar en produccion
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
 # Configuracion de password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
