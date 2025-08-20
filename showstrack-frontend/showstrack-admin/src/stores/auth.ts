@@ -66,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
         tokens.value = {
           accessToken: data.access_token,
-          refreshToken: '', // Backend doesn't provide refresh token yet
+          refreshToken: data.access_token, // Use access token as refresh token
           expiresIn: data.expires_in,
           tokenType: data.token_type
         }
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Persist tokens
         tokenStorage.setTokens(
           data.access_token,
-          '' // No refresh token from backend yet
+          data.access_token // Store access token as refresh token
         )
         
         return true
@@ -156,28 +156,105 @@ export const useAuthStore = defineStore('auth', () => {
       const storedAccessToken = tokenStorage.getAccessToken()
       const storedRefreshToken = tokenStorage.getRefreshToken()
       
-      if (!storedAccessToken || !storedRefreshToken) {
+      if (!storedAccessToken) {
         return false
       }
       
-      // Try to fetch user data with stored token
-      const success = await refreshUserData()
-      
-      if (success && storedAccessToken && storedRefreshToken) {
-        tokens.value = {
-          accessToken: storedAccessToken,
-          refreshToken: storedRefreshToken,
-          expiresIn: 0, // Will be updated on next refresh
-          tokenType: 'Bearer'
-        }
-        
-        return true
+      // Set tokens from storage
+      tokens.value = {
+        accessToken: storedAccessToken,
+        refreshToken: storedRefreshToken || storedAccessToken,
+        expiresIn: 0,
+        tokenType: 'Bearer'
       }
       
-      return false
+      // Try to fetch user data with stored token
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${storedAccessToken}`
+          }
+        })
+        
+        if (response.ok) {
+          const userData = await response.json()
+          user.value = {
+            ...userData,
+            roles: [userData.role] // Convert single role to array
+          }
+          return true
+        } else if (response.status === 401 && storedRefreshToken) {
+          // Token expired, try to refresh
+          console.log('[Auth Store] Token expired, trying to refresh...')
+          return await refreshToken()
+        } else {
+          // Token invalid, clear storage
+          tokenStorage.clearTokens()
+          return false
+        }
+      } catch (error) {
+        console.error('[Auth Store] User data fetch error:', error)
+        // Try refresh if we have a refresh token
+        if (storedRefreshToken) {
+          return await refreshToken()
+        }
+        tokenStorage.clearTokens()
+        return false
+      }
     } catch (error) {
       console.error('[Auth Store] Auth status check error:', error)
       await logout()
+      return false
+    }
+  }
+  
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const storedRefreshToken = tokenStorage.getRefreshToken()
+      
+      if (!storedRefreshToken) {
+        return false
+      }
+      
+      console.log('[Auth Store] Refreshing token...')
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${storedRefreshToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Update tokens
+        tokens.value = {
+          accessToken: data.access_token,
+          refreshToken: data.access_token, // Use new access token as refresh token
+          expiresIn: data.expires_in,
+          tokenType: data.token_type
+        }
+        
+        // Persist new tokens
+        tokenStorage.setTokens(
+          data.access_token,
+          data.access_token
+        )
+        
+        console.log('[Auth Store] Token refreshed successfully')
+        
+        // Try to get user data with new token
+        return await checkAuthStatus()
+      } else {
+        console.log('[Auth Store] Token refresh failed')
+        tokenStorage.clearTokens()
+        return false
+      }
+    } catch (error) {
+      console.error('[Auth Store] Token refresh error:', error)
+      tokenStorage.clearTokens()
       return false
     }
   }
@@ -251,6 +328,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     refreshUserData,
     checkAuthStatus,
+    refreshToken,
     changePassword,
     updateProfile,
     clearError,
