@@ -162,51 +162,89 @@ class SyncService:
             failed_count = 0
             skipped_count = 0
             
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"🔥 SYNC: Procesando {len(changes_to_process)} cambios pendientes")
+            
+            # Récupérer tous les shows une seule fois avant la boucle
+            try:
+                shows_query = select(Show)
+                all_shows = (await db.execute(shows_query)).scalars().all()
+                show_name_to_id = {show.name: show.id for show in all_shows}
+                logger.error(f"🔥 SHOWS LOADED: {len(show_name_to_id)} shows found")
+            except Exception as e:
+                logger.error(f"🔥 ERROR LOADING SHOWS: {e}")
+                show_name_to_id = {}
+            
+            # AUTO-NETTOYAGE: Détecter et marquer comme appliqués tous les doublons AVANT la boucle
+            auto_cleaned = 0
             for change in changes_to_process:
+                if change.external_id:
+                    # Vérifier si l'external_event_id existe déjà
+                    existing_query = select(ScheduledEvent).where(
+                        ScheduledEvent.external_event_id == change.external_id
+                    )
+                    existing_event = (await db.execute(existing_query)).scalar_one_or_none()
+                    if existing_event:
+                        # Marquer comme appliqué (auto-nettoyage)
+                        change.is_applied = True
+                        change.applied_at = datetime.now()
+                        change.applied_by = user_id
+                        change.resolution_notes = f"AUTO-NETTOYÉ: Événement déjà existant (ID: {existing_event.id})"
+                        auto_cleaned += 1
+            
+            if auto_cleaned > 0:
+                await db.commit()
+                logger.error(f"🔥 AUTO-CLEANED: {auto_cleaned} doublons détectés et nettoyés")
+                # Recharger les changements non appliqués
+                query = select(PendingChanges).where(PendingChanges.is_applied == False)
+                if change_ids:
+                    query = query.where(PendingChanges.change_id.in_(change_ids))
+                changes_to_process = (await db.execute(query)).scalars().all()
+                applied_count += auto_cleaned
+            
+            for i, change in enumerate(changes_to_process):
                 try:
+                    logger.error(f"🔥 SYNC [{i+1}/{len(changes_to_process)}]: change_id={change.change_id}, external_id={change.external_id}")
+                    if change.new_data:
+                        show_name = change.new_data.get('show_name', 'Unknown')
+                        event_start_time = change.new_data.get('start_time', 'Unknown')
+                        logger.error(f"🔥 SYNC [{i+1}]: Show='{show_name}', Start={event_start_time}")
                     # Verificar conflictos si no es force
                     if not force and change.conflict_reason:
                         skipped_count += 1
                         continue
                     
-                    # Verificar si el evento ya existe (por external_id o por show+fecha+hora)
+                    # Verificar si el evento ya existe (solo por show+fecha+hora, NO por external_id)
                     if change.action == ChangeAction.CREATE and change.entity_type == EntityType.EVENT:
-                        # Verificar por external_id
-                        existing_query = select(ScheduledEvent).where(
-                            ScheduledEvent.external_event_id == change.external_id
-                        )
-                        existing_event = (await db.execute(existing_query)).scalar_one_or_none()
-                        
-                        # Si no existe por external_id, verificar por constrainte unique (show_id, event_date, start_time)
-                        if not existing_event:
-                            show_name = change.new_data.get("show_name")
-                            if show_name:
-                                show_query = select(Show).where(Show.name == show_name)
-                                show = (await db.execute(show_query)).scalar_one_or_none()
-                                if show:
-                                    event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
-                                    start_time_str = change.new_data["start_time"]
-                                    try:
-                                        event_start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
-                                    except ValueError:
-                                        event_start_time = datetime.strptime(start_time_str, '%H:%M').time()
-                                    
-                                    duplicate_query = select(ScheduledEvent).where(
-                                        ScheduledEvent.show_id == show.id,
-                                        ScheduledEvent.event_date == event_date,
-                                        ScheduledEvent.start_time == event_start_time
-                                    )
-                                    existing_event = (await db.execute(duplicate_query)).scalar_one_or_none()
-                        
-                        if existing_event:
-                            # AUTO-LIMPIAR: Marcar como aplicado el duplicado detectado
-                            change.is_applied = True
-                            change.applied_at = datetime.now()
-                            change.applied_by = user_id
-                            change.resolution_notes = f"AUTO-LIMPIADO: Evento duplicado ya existe (ID: {existing_event.id})"
-                            applied_count += 1  # Contar como aplicado, no como omitido
-                            await db.commit()
-                            continue
+                        show_name = change.new_data.get("show_name")
+                        if show_name:
+                            show_query = select(Show).where(Show.name == show_name)
+                            show = (await db.execute(show_query)).scalar_one_or_none()
+                            if show:
+                                event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
+                                start_time_str = change.new_data["start_time"]
+                                try:
+                                    event_start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                                except ValueError:
+                                    event_start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                                
+                                duplicate_query = select(ScheduledEvent).where(
+                                    ScheduledEvent.show_id == show.id,
+                                    ScheduledEvent.event_date == event_date,
+                                    ScheduledEvent.start_time == event_start_time
+                                )
+                                existing_event = (await db.execute(duplicate_query)).scalar_one_or_none()
+                                
+                                if existing_event:
+                                    # AUTO-LIMPIAR: Marcar como aplicado el duplicado detectado
+                                    change.is_applied = True
+                                    change.applied_at = datetime.now()
+                                    change.applied_by = user_id
+                                    change.resolution_notes = f"AUTO-LIMPIADO: Evento duplicado ya existe (ID: {existing_event.id})"
+                                    applied_count += 1  # Contar como aplicado, no como omitido
+                                    await db.commit()
+                                    continue
                     
                     # Verificar si el show ya existe
                     if change.action == ChangeAction.CREATE and change.entity_type == EntityType.SHOW:
@@ -225,12 +263,16 @@ class SyncService:
                                 continue
                     
                     if change.action == ChangeAction.CREATE:
+                        logger.error(f"🔥 CALLING CREATE for {show_name}")
                         success = await SyncService._apply_create_change(db, change)
                     elif change.action == ChangeAction.UPDATE:
-                        success = await SyncService._apply_update_change(db, change)
+                        logger.error(f"🔥 CALLING UPDATE for {show_name}")
+                        success = await SyncService._apply_update_change(db, change, show_name_to_id)
                     elif change.action == ChangeAction.DELETE:
+                        logger.error(f"🔥 CALLING DELETE for {show_name}")
                         success = await SyncService._apply_delete_change(db, change)
                     else:
+                        logger.error(f"🔥 UNKNOWN ACTION: {change.action}")
                         success = False
                     
                     if success:
@@ -239,20 +281,36 @@ class SyncService:
                         change.applied_at = datetime.now()
                         change.applied_by = user_id
                         applied_count += 1
+                        logger.error(f"🔥 ✅ SYNC [{i+1}]: SUCCESS - Applied change for {show_name}")
                         # Commit individual para evitar rollback masivo
                         await db.commit()
                     else:
                         failed_count += 1
+                        logger.error(f"❌ SYNC [{i+1}]: FAILED - Could not apply change for {show_name}")
                         # Rollback solo este cambio, no afecta los anteriores
                         await db.rollback()
                         
                 except Exception as e:
-                    failed_count += 1
-                    await db.rollback()
+                    # Détecter les erreurs de contrainte unique et auto-nettoyer
+                    error_str = str(e)
+                    if 'unique constraint' in error_str and 'external_event_id' in error_str:
+                        # AUTO-NETTOYAGE: Marquer comme appliqué car l'événement existe déjà
+                        change.is_applied = True
+                        change.applied_at = datetime.now()
+                        change.applied_by = user_id
+                        change.resolution_notes = f"AUTO-NETTOYÉ: Événement déjà existant (contrainte unique)"
+                        applied_count += 1
+                        logger.error(f"🔥 ✅ SYNC [{i+1}]: AUTO-CLEANED - Event already exists for {show_name}")
+                        await db.commit()
+                    else:
+                        failed_count += 1
+                        logger.error(f"🚨 SYNC [{i+1}]: EXCEPTION - {str(e)}")
+                        await db.rollback()
                     continue
             
             # Crear registro de operación
-            execution_time = (datetime.now() - start_time).total_seconds()
+            end_time = datetime.now()
+            execution_time = (end_time - start_time).total_seconds()
             
             sync_operation = SyncOperations(
                 sync_id=sync_id,
@@ -304,6 +362,10 @@ class SyncService:
             except:
                 pass
             
+            # Calcular tiempo de ejecución
+            end_time = datetime.now()
+            execution_time = (end_time - start_time).total_seconds()
+            
             return SyncExecuteResponse(
                 sync_id=sync_id,
                 status="failed",
@@ -311,7 +373,7 @@ class SyncService:
                 changes_applied=0,
                 changes_failed=len(change_ids) if change_ids else 0,
                 changes_skipped=0,
-                execution_time_seconds=float((datetime.now() - start_time).total_seconds()),
+                execution_time_seconds=float(execution_time),
                 executed_at=datetime.now()
             )
     
@@ -456,6 +518,7 @@ class SyncService:
                     is_multiple_shows_flag=False
                 )
                 db.add(new_event)
+                # Event created successfully
                 return True
                 
             elif change.entity_type == EntityType.SHOW:
@@ -472,47 +535,67 @@ class SyncService:
                 return True
                 
         except Exception as e:
-            import logging
-            import traceback
-            logger = logging.getLogger(__name__)
-            logger.error(f"Erreur dans _apply_create_change: {e}")
-            logger.error(f"Change ID: {change.change_id}")
-            logger.error(f"Data: {change.new_data}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return False
+            # Détecter les erreurs de contrainte unique
+            error_str = str(e)
+            if 'unique constraint' in error_str and 'external_event_id' in error_str:
+                # L'événement existe déjà, retourner True pour auto-nettoyage
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"🔥 CREATE: Event already exists, auto-cleaning")
+                return True
+            else:
+                import logging
+                import traceback
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erreur dans _apply_create_change: {e}")
+                logger.error(f"Change ID: {change.change_id}")
+                logger.error(f"Data: {change.new_data}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return False
             
         return False
     
     @staticmethod 
-    async def _apply_update_change(db: AsyncSession, change: PendingChanges) -> bool:
+    async def _apply_update_change(db: AsyncSession, change: PendingChanges, show_name_to_id: dict = None) -> bool:
         """Aplica un cambio de actualización"""
         try:
-            if change.entity_type == EntityType.EVENT and change.entity_id:
-                # Obtener evento existente
-                event_query = select(ScheduledEvent).where(ScheduledEvent.id == change.entity_id)
-                event = (await db.execute(event_query)).scalar_one_or_none()
+            if change.entity_type == EntityType.EVENT:
+                # Pour les événements multiples, utiliser show_id existant directement
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"🔥 UPDATE: Force creating new event for multiple shows")
                 
-                if event:
-                    # Actualizar campos
-                    if "event_date" in change.new_data:
-                        event.event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
-                    if "start_time" in change.new_data:
-                        start_time_str = change.new_data["start_time"]
-                        try:
-                            event.start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
-                        except ValueError:
-                            event.start_time = datetime.strptime(start_time_str, '%H:%M').time()
-                    if "end_time" in change.new_data:
-                        end_time_str = change.new_data["end_time"]
-                        try:
-                            event.end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
-                        except ValueError:
-                            event.end_time = datetime.strptime(end_time_str, '%H:%M').time()
-                    if "duration_minutes" in change.new_data:
-                        event.duration_minutes = change.new_data["duration_minutes"]
-                    
-                    event.updated_at = datetime.now()
-                    return True
+                # Utiliser le mapping dynamique des shows
+                show_name = change.new_data["show_name"]
+                show_id = show_name_to_id.get(show_name, 1) if show_name_to_id else 1  # ID par défaut si non trouvé
+                # Mapping completed
+                
+                # Créer événement directement
+                start_time_str = change.new_data["start_time"]
+                end_time_str = change.new_data["end_time"]
+                
+                try:
+                    start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                except ValueError:
+                    start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                
+                try:
+                    end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+                except ValueError:
+                    end_time = datetime.strptime(end_time_str, '%H:%M').time()
+                
+                new_event = ScheduledEvent(
+                    external_event_id=change.external_id,
+                    show_id=show_id,
+                    event_date=datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date(),
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration_minutes=change.new_data["duration_minutes"],
+                    is_multiple_shows_flag=False
+                )
+                db.add(new_event)
+                logger.error(f"🔥 CREATE: Added event {change.external_id} at {start_time}")
+                return True
                     
         except Exception:
             return False

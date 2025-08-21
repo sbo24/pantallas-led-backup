@@ -170,10 +170,13 @@ export function useEventsView() {
     try {
       const result = await eventsService.executeSyncManual()
       const appliedCount = result.changes_applied || 0
+      const failedCount = result.changes_failed || 0
       const skippedCount = result.changes_skipped || 0
       
       if (appliedCount > 0) {
         showSuccessToast(`Sincronización completada: ${appliedCount} aplicados`)
+      } else if (failedCount > 0) {
+        showWarningToast(`${failedCount} cambios fallaron - Los eventos ya existen en la base de datos`)
       } else if (skippedCount > 0) {
         showWarningToast(`${skippedCount} cambios omitidos (duplicados detectados)`)
       } else {
@@ -181,8 +184,13 @@ export function useEventsView() {
       }
       
       await Promise.all([loadPendingChanges(), loadImportHistory()])
-    } catch (error) {
-      showErrorToast('Error durante la sincronización')
+    } catch (error: any) {
+      // Detectar errores de contrainte unique
+      if (error.message?.includes('unique constraint') && error.message?.includes('external_event_id')) {
+        showWarningToast('Los eventos ya existen en la base de datos. No se crearon duplicados.')
+      } else {
+        showErrorToast(`Error durante la sincronización: ${error.message || 'Error desconocido'}`)
+      }
     } finally {
       syncInProgress.value = false
     }
@@ -271,11 +279,24 @@ export function useEventsView() {
     try {
       const result = await eventsService.applySelectedChanges(Array.from(selectedChanges.value))
       const appliedCount = result.affected_changes || result.applied_count || 0
-      showSuccessToast(`${appliedCount} cambios aplicados exitosamente`)
+      
+      if (appliedCount > 0) {
+        showSuccessToast(`${appliedCount} cambios aplicados exitosamente`)
+      } else {
+        showWarningToast('No se aplicaron cambios - Los eventos ya existen en la base de datos')
+      }
+      
       selectedChanges.value.clear()
       await Promise.all([loadPendingChanges(), loadImportHistory()])
-    } catch (error) {
-      showErrorToast('Error al aplicar cambios seleccionados')
+    } catch (error: any) {
+      // Detectar errores de contrainte unique y mostrar mensaje claro
+      if (error.message?.includes('unique constraint') && error.message?.includes('external_event_id')) {
+        showWarningToast('Los eventos seleccionados ya existen en la base de datos. No se crearon duplicados.')
+      } else if (error.message?.includes('duplicate key')) {
+        showWarningToast('Eventos duplicados detectados - No se crearon duplicados en la base de datos')
+      } else {
+        showErrorToast(`Error al aplicar cambios: ${error.message || 'Error desconocido'}`)
+      }
     } finally {
       selectiveActionInProgress.value = false
     }

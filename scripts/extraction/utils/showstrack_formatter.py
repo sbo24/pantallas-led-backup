@@ -37,11 +37,16 @@ def format_for_showstrack_api(data: List[Dict]) -> Dict[str, Any]:
     
     for event in data:
         # Mapear campos según especificación ShowsTrack
+        # Crear external_event_id único con sufijo de horario
+        base_id = event.get('EventoID', '')
+        start_time = event.get('Hora Inicio', '')
+        unique_id = f"{base_id}_{start_time.replace(':', '')}" if start_time else base_id
+        
         formatted_event = {
-            "external_event_id": event.get('EventoID', ''),
+            "external_event_id": unique_id,
             "show_name": event.get('Evento', ''),
             "event_date": event.get('Fecha', ''),
-            "start_time": event.get('Hora Inicio', ''),
+            "start_time": start_time,
             "end_time": event.get('Hora Fin', ''),
             "duration_minutes": parse_duration(event.get('Duración', '0')),
             "event_type": map_event_type(event.get('Tipo', 'Show'))

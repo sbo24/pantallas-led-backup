@@ -29,11 +29,17 @@ def convert_to_showstrack_format(processed_data):
     # Usar el formato que ya funciona del test anterior
     events = []
     for event in processed_data:
+        # Créer external_event_id unique avec date et horaire
+        base_id = event.get('EventoID', '')
+        start_time = event.get('Hora Inicio', '')
+        event_date = event.get('Fecha', '').replace('-', '')
+        unique_id = f"{base_id}_{event_date}_{start_time.replace(':', '')}" if start_time and event_date else base_id
+        
         events.append({
-            "external_event_id": event.get('EventoID', ''),
+            "external_event_id": unique_id,
             "show_name": event.get('Evento', ''),
             "event_date": event.get('Fecha', ''),
-            "start_time": event.get('Hora Inicio', ''),
+            "start_time": start_time,
             "end_time": event.get('Hora Fin', ''),
             "duration_minutes": int(event.get('Duración', 0)),
             "event_type": "system" if "apertura" in event.get('Evento', '').lower() or "cierre" in event.get('Evento', '').lower() else "show"

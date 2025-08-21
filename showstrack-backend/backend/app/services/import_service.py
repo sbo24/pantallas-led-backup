@@ -228,10 +228,8 @@ class ImportService:
             shows_query = select(Show)
             existing_shows = {show.name: show for show in (await db.execute(shows_query)).scalars().all()}
             
-            # Obtener eventos existentes
-            external_ids = [event.external_event_id for event in import_data.events]
-            events_query = select(ScheduledEvent).where(ScheduledEvent.external_event_id.in_(external_ids))
-            existing_events = {event.external_event_id: event for event in (await db.execute(events_query)).scalars().all()}
+            # Obtener shows existentes para mapear nombres a IDs
+            show_name_to_id = {show.name: show.id for show in existing_shows.values()}
             
             # Procesar cada evento
             for event_data in import_data.events:
@@ -259,8 +257,13 @@ class ImportService:
                         await db.flush()  # Para obtener el ID
                         existing_shows[event_data.show_name] = show
                     
-                    # Crear o actualizar evento
-                    existing_event = existing_events.get(event_data.external_event_id) 
+                    # Buscar evento existente por show + fecha + hora
+                    existing_event_query = select(ScheduledEvent).where(
+                        ScheduledEvent.show_id == show.id,
+                        ScheduledEvent.event_date == event_date,
+                        ScheduledEvent.start_time == start_time
+                    )
+                    existing_event = (await db.execute(existing_event_query)).scalar_one_or_none()
                     
                     if existing_event:
                         # Verificar si tiene override activo y preserve_overrides está habilitado
@@ -278,9 +281,7 @@ class ImportService:
                                 continue
                         
                         # Actualizar evento existente
-                        existing_event.show_id = show.id
-                        existing_event.event_date = event_date
-                        existing_event.start_time = start_time
+                        existing_event.external_event_id = event_data.external_event_id
                         existing_event.end_time = end_time
                         existing_event.duration_minutes = event_data.duration_minutes
                         existing_event.updated_at = datetime.now()
