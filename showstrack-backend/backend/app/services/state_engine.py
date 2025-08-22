@@ -23,6 +23,7 @@ from sqlalchemy import select, and_
 from app.models.event import ScheduledEvent
 from app.models.show import Show
 from app.models.override import StatusOverride
+from app.models.settings import GlobalSettings
 
 
 class LeadTimeConfig(NamedTuple):
@@ -124,12 +125,23 @@ class StateEngine:
                 finalized_minutes=show.custom_lead_time_finalized_minutes
             )
         
-        # Usar configuración global por defecto
-        # TODO: En el futuro, obtener esto del ConfigService
-        # Por ahora usar valores por defecto del business-rules.md
+        # Usar configuración global si está disponible en GlobalSettings
+        try:
+            stmt = select(GlobalSettings).where(GlobalSettings.key == "lead_times")
+            result = await self.db.execute(stmt)
+            settings = result.scalar_one_or_none()
+            if settings and isinstance(settings.value, dict):
+                access = settings.value.get("default_lead_time_access_minutes", 30)
+                finalized = settings.value.get("default_lead_time_finalized_minutes", 0)
+                return LeadTimeConfig(access_minutes=int(access), finalized_minutes=int(finalized))
+        except Exception:
+            # Fallback silencioso a valores por defecto si no existe configuración
+            pass
+
+        # Fallback por defecto del business-rules.md
         return LeadTimeConfig(
-            access_minutes=30,  # PROGRAMADO → ABIERTO: 30 min antes
-            finalized_minutes=0  # ABIERTO → CERRADO: justo al inicio
+            access_minutes=30,
+            finalized_minutes=0
         )
     
     def _calculate_time_windows(
