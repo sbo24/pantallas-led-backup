@@ -281,7 +281,7 @@ class EventService:
             if event.status_override and event.status_override.is_active:
                 return event.status_override.override_status
             
-            now = datetime.now()
+            now = datetime.now(ZoneInfo("Europe/Madrid"))
             event_datetime = datetime.combine(event.event_date, event.start_time)
             
             # Implementar lead time básico (30 minutos por defecto)

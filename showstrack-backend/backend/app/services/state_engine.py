@@ -15,6 +15,7 @@ Estados posibles:
 - CANCELADO: Show cancelado (solo por override manual)
 """
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Optional, Dict, Any, NamedTuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -43,6 +44,16 @@ class StateEngine:
     
     def __init__(self, db: AsyncSession):
         self.db = db
+        # Zona horaria local del venue (Europe/Madrid). Se usa para obtener la hora actual
+        # y para interpretar las horas de la BDD (almacenadas sin zona horaria) como hora local.
+        self._venue_tz = ZoneInfo("Europe/Madrid")
+
+    def _now_local_naive(self) -> datetime:
+        """
+        Obtener la hora actual del venue como datetime NAIVE en hora local de Madrid.
+        Se retorna sin tzinfo para mantener compatibilidad con el resto del código y tests.
+        """
+        return datetime.now(self._venue_tz).replace(tzinfo=None)
     
     async def calculate_event_state(
         self, 
@@ -54,13 +65,18 @@ class StateEngine:
         
         Args:
             event: Evento programado
-            current_time: Hora actual (usar datetime.now() si None)
+            current_time: Hora actual (usar datetime.now(ZoneInfo("Europe/Madrid")) si None)
             
         Returns:
             Estado calculado: PROGRAMADO, ABIERTO, CERRADO, CANCELADO
         """
         if current_time is None:
-            current_time = datetime.now()
+            # Usar hora actual en Europa/Madrid como NAIVE
+            current_time = self._now_local_naive()
+        else:
+            # Si viene con tz, convertir a Europe/Madrid y volver a NAIVE para comparar con ventanas NAIVE
+            if current_time.tzinfo is not None:
+                current_time = current_time.astimezone(self._venue_tz).replace(tzinfo=None)
         
         # Paso 1: Verificar overrides activos (prioridad máxima)
         if override := await self._check_active_override(event.id):
@@ -125,6 +141,7 @@ class StateEngine:
         Paso 3: Calcula las ventanas temporales que definen los cambios de estado.
         """
         # Combinar fecha y hora del evento
+        # Las columnas Date/Time de la BDD se interpretan como hora local del venue (Europa/Madrid)
         event_datetime = datetime.combine(event.event_date, event.start_time)
         
         # Calcular puntos de transición
@@ -207,7 +224,10 @@ class StateEngine:
             Diccionario {event_id: estado}
         """
         if current_time is None:
-            current_time = datetime.now()
+            current_time = self._now_local_naive()
+        else:
+            if current_time.tzinfo is not None:
+                current_time = current_time.astimezone(self._venue_tz).replace(tzinfo=None)
         
         # Pre-cargar todos los overrides activos de una vez para eficiencia
         event_ids = [event.id for event in events]
@@ -256,7 +276,7 @@ class StateEngine:
         
         lead_times = await self._resolve_lead_times(event.show)
         windows = self._calculate_time_windows(event, lead_times)
-        current_time = datetime.now()
+        current_time = self._now_local_naive()
         
         # Determinar el próximo timestamp de cambio
         if current_time < windows.access_start:
