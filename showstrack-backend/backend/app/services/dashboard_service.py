@@ -82,7 +82,7 @@ class DashboardService:
         - Próximos cambios de estado
         """
         today = date.today()
-        now = datetime.now()
+        now = datetime.now(ZoneInfo("Europe/Madrid"))
         
         # Obtener todos los eventos de hoy con relaciones cargadas
         query = select(ScheduledEvent).options(
@@ -268,7 +268,7 @@ class DashboardService:
             "cancelado": 0
         }
         
-        now = datetime.now()
+        now = datetime.now(ZoneInfo("Europe/Madrid"))
         for event in events:
             status = await self.state_engine.calculate_event_state(event, now)
             status_lower = status.lower()
@@ -412,7 +412,7 @@ class DashboardService:
                 type="warning",
                 title="Overrides Activos",
                 message=f"{active_overrides} overrides manuales están activos",
-                created_at=datetime.now(),
+                created_at=datetime.now(ZoneInfo("Europe/Madrid")),
                 is_read=False,
                 action_required=False
             ))
@@ -430,7 +430,7 @@ class DashboardService:
                 type="info",
                 title="Cambios Pendientes",
                 message=f"{pending_changes} cambios pendientes de aplicar",
-                created_at=datetime.now(),
+                created_at=datetime.now(ZoneInfo("Europe/Madrid")),
                 is_read=False,
                 action_required=True
             ))
