@@ -3,6 +3,7 @@ Router de API pública para consultas sin autenticación
 """
 from typing import Optional
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,7 +40,8 @@ async def get_public_schedules(
     date_to = date_param
     
     if include_tomorrow:
-        date_to = date_param.replace(day=date_param.day + 1)
+        # Utiliser un décalage d'un jour robuste
+        date_to = date_param + timedelta(days=1)
     
     # Obtener shows visibles
     shows, _ = await ShowService.get_shows(
@@ -70,7 +72,11 @@ async def get_public_schedules(
         }
     
     # Procesar eventos
-    current_time = simulated_time if simulated_time else datetime.now()
+    if simulated_time:
+        current_time = simulated_time
+    else:
+        # Utiliser l'heure locale Europe/Madrid comme NAIVE pour les comparaisons
+        current_time = datetime.now(ZoneInfo("Europe/Madrid")).replace(tzinfo=None)
     
     for event in events:
         if event.show_id not in shows_with_events:
@@ -88,7 +94,7 @@ async def get_public_schedules(
         
         shows_with_events[event.show_id]["events"].append(event_info)
     
-    # Determinar current_pass y next_pass para cada show
+    # Determinar current_pass y next_pass para cada show (respetando estado del motor)
     for show_data in shows_with_events.values():
         events = show_data["events"]
         if not events:
@@ -107,12 +113,19 @@ async def get_public_schedules(
                 datetime.strptime(event["start_time"], "%H:%M").time()
             )
             
+            # Si el estado calculado es ABIERTO, priorizar SIEMPRE como pase actual
+            # (remplace un current_pass anterior si fuera necesario)
+            if event.get("status") == "ABIERTO":
+                current_pass = event
+                continue
+            
+            # Fallback por tiempo (compatibilidad): último <= ahora es el actual
             if event_datetime <= current_time:
                 current_pass = event
             else:
                 if next_pass is None:
                     next_pass = event
-                break
+                # No romper aquí, porque puede haber un evento ABIERTO más adelante en la lista
         
         show_data["current_pass"] = current_pass
         show_data["next_pass"] = next_pass
