@@ -3,12 +3,14 @@ Router de API pública para consultas sin autenticación
 """
 from typing import Optional
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
 from app.services.show_service import ShowService
 from app.services.event_service import EventService
+from sqlalchemy import select
 
 router = APIRouter(prefix="/api/public", tags=["Public"])
 
@@ -39,7 +41,8 @@ async def get_public_schedules(
     date_to = date_param
     
     if include_tomorrow:
-        date_to = date_param.replace(day=date_param.day + 1)
+        # Utiliser un décalage d'un jour robuste
+        date_to = date_param + timedelta(days=1)
     
     # Obtener shows visibles
     shows, _ = await ShowService.get_shows(
@@ -70,7 +73,11 @@ async def get_public_schedules(
         }
     
     # Procesar eventos
-    current_time = simulated_time if simulated_time else datetime.now()
+    if simulated_time:
+        current_time = simulated_time
+    else:
+        # Utiliser l'heure locale Europe/Madrid comme NAIVE pour les comparaisons
+        current_time = datetime.now(ZoneInfo("Europe/Madrid")).replace(tzinfo=None)
     
     for event in events:
         if event.show_id not in shows_with_events:
@@ -88,7 +95,7 @@ async def get_public_schedules(
         
         shows_with_events[event.show_id]["events"].append(event_info)
     
-    # Determinar current_pass y next_pass para cada show
+    # Determinar current_pass y next_pass para cada show (respetando estado del motor)
     for show_data in shows_with_events.values():
         events = show_data["events"]
         if not events:
@@ -107,12 +114,19 @@ async def get_public_schedules(
                 datetime.strptime(event["start_time"], "%H:%M").time()
             )
             
+            # Si el estado calculado es ABIERTO, priorizar SIEMPRE como pase actual
+            # (remplace un current_pass anterior si fuera necesario)
+            if event.get("status") == "ABIERTO":
+                current_pass = event
+                continue
+            
+            # Fallback por tiempo (compatibilidad): último <= ahora es el actual
             if event_datetime <= current_time:
                 current_pass = event
             else:
                 if next_pass is None:
                     next_pass = event
-                break
+                # No romper aquí, porque puede haber un evento ABIERTO más adelante en la lista
         
         show_data["current_pass"] = current_pass
         show_data["next_pass"] = next_pass
@@ -127,9 +141,40 @@ async def get_public_schedules(
     # Ordenar por display_order
     shows_with_events_list.sort(key=lambda x: x["display_order"])
     
+    # Verificar si hay alerta global activa de hoy
+    from app.models.alert import GlobalAlert
+    from sqlalchemy import and_, func
+    
+    today = datetime.now(ZoneInfo("Europe/Madrid")).date()
+    stmt = select(GlobalAlert).where(
+        and_(
+            GlobalAlert.is_active == True,
+            func.date(GlobalAlert.activated_at) == today
+        )
+    )
+    result = await db.execute(stmt)
+    active_alert = result.scalar_one_or_none()
+    
+    # Si hay alerta activa, cambiar modo de visualización
+    if active_alert:
+        return {
+            "current_time": current_time.isoformat(),
+            "display_mode": "alert",
+            "alert": {
+                "message": active_alert.message,
+                "type": active_alert.alert_type,
+                "activated_at": active_alert.activated_at.isoformat()
+            },
+            "shows": [],  # No mostrar shows cuando hay alerta
+            "metadata": {
+                "refresh_interval_seconds": 10  # Refresh más frecuente en modo alerta
+            }
+        }
+    
+    # Modo normal sin alerta
     return {
         "current_time": current_time.isoformat(),
-        "display_mode": "normal",  # TODO: Implementar lógica de alertas
+        "display_mode": "normal",
         "shows": shows_with_events_list,
         "metadata": {
             "total_shows": len(shows_with_events_list),
@@ -151,8 +196,28 @@ async def get_public_alert(
     - Información de alerta global si está activa
     - null si no hay alerta activa
     """
-    # TODO: Implementar lógica de alertas globales
-    # Por ahora retornamos que no hay alerta
+    from sqlalchemy import select, and_, func
+    from app.models.alert import GlobalAlert
+    
+    today = datetime.now(ZoneInfo("Europe/Madrid")).date()
+    stmt = select(GlobalAlert).where(
+        and_(
+            GlobalAlert.is_active == True,
+            func.date(GlobalAlert.activated_at) == today
+        )
+    )
+    result = await db.execute(stmt)
+    active_alert = result.scalar_one_or_none()
+    
+    if active_alert:
+        return {
+            "has_alert": True,
+            "alert": {
+                "message": active_alert.message,
+                "type": active_alert.alert_type,
+                "activated_at": active_alert.activated_at.isoformat()
+            }
+        }
     
     return {
         "has_alert": False,
