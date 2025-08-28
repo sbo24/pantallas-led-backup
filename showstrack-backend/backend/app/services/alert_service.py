@@ -41,7 +41,7 @@ class AlertService:
         
         return AlertStatus(
             has_active_alert=active_alert is not None,
-            active_alert=AlertResponse.from_orm(active_alert) if active_alert else None,
+            active_alert=AlertResponse.model_validate(active_alert) if active_alert else None,
             total_alerts_today=today_count
         )
     
@@ -62,8 +62,7 @@ class AlertService:
             message=alert_data.message,
             alert_type=alert_data.alert_type,
             is_active=True,
-            created_by=alert_data.created_by,
-            activated_at=datetime.utcnow()
+            created_by=alert_data.created_by
         )
         
         self.db.add(new_alert)
@@ -78,7 +77,7 @@ class AlertService:
             f"Created alert: {alert_data.alert_type} - {alert_data.message[:50]}..."
         )
         
-        return AlertResponse.from_orm(new_alert)
+        return AlertResponse.model_validate(new_alert)
     
     async def deactivate_current_alert(self, deactivated_by: str) -> Optional[AlertResponse]:
         """
@@ -110,7 +109,7 @@ class AlertService:
             f"Deactivated alert: {active_alert.alert_type} - {active_alert.message[:50]}..."
         )
         
-        return AlertResponse.from_orm(active_alert)
+        return AlertResponse.model_validate(active_alert)
     
     async def get_alert_history(
         self, 
@@ -147,7 +146,7 @@ class AlertService:
         total_count = count_result.scalar() or 0
         
         return AlertHistory(
-            alerts=[AlertResponse.from_orm(alert) for alert in alerts],
+            alerts=[AlertResponse.model_validate(alert) for alert in alerts],
             total_count=total_count,
             page=page,
             limit=limit

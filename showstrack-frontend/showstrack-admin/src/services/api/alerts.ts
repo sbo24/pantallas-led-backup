@@ -12,7 +12,7 @@ export class AlertsApiService {
 
   // Get active alerts only
   static async getActiveAlerts(): Promise<ApiResponse<GlobalAlert[]>> {
-    return apiGet<GlobalAlert[]>('/api/admin/alerts/active')
+    return apiGet<GlobalAlert[]>('/api/admin/alerts/global')
   }
 
   // Get single alert by ID
@@ -22,7 +22,7 @@ export class AlertsApiService {
 
   // Create new alert
   static async createAlert(alertData: CreateAlertData): Promise<ApiResponse<GlobalAlert>> {
-    return apiPost<GlobalAlert>('/api/admin/alerts', alertData)
+    return apiPost<GlobalAlert>('/api/admin/alerts/global', alertData)
   }
 
   // Update existing alert
@@ -42,7 +42,7 @@ export class AlertsApiService {
 
   // Deactivate alert
   static async deactivateAlert(alertId: string): Promise<ApiResponse<GlobalAlert>> {
-    return apiPost<GlobalAlert>(`/api/admin/alerts/${alertId}/deactivate`)
+    return apiDelete<GlobalAlert>('/api/admin/alerts/global')
   }
 
   // Get alerts for public display (no auth required)
