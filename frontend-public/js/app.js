@@ -168,23 +168,37 @@ class ShowsTrackClient {
           d.setHours(h, m, 0, 0);
           return d;
         };
+
+        const getStatusRank = (show) => {
+            const status = show?.current_pass?.status || show?.status || 'PROGRAMADO';
+            // Priority: ABIERTO (0) > CERRADO (1) > PROGRAMADO (2) > CANCELADO (3)
+            switch (status) {
+                case 'ABIERTO': return 0;
+                case 'CERRADO': return 1;
+                case 'PROGRAMADO': return 2;
+                case 'CANCELADO': return 3;
+                default: return 4;
+            }
+        };
       
         const sortKey = (show) => {
           const tNext = parseTimeToDate(show?.next_pass?.start_time);
           const tCurr = parseTimeToDate(show?.current_pass?.start_time);
           const candidate = tNext || tCurr; // on préfère un futur
-          if (!candidate) return { past: 1, delta: Number.POSITIVE_INFINITY };
+          const rank = getStatusRank(show);
+          if (!candidate) return { rank, past: 1, delta: Number.POSITIVE_INFINITY };
           const deltaMs = candidate - now;
-          return { past: deltaMs < 0 ? 1 : 0, delta: Math.abs(deltaMs) };
+          return { rank, past: deltaMs < 0 ? 1 : 0, delta: Math.abs(deltaMs) };
         };
       
         const sorted = [...shows].sort((a, b) => {
-          const ka = sortKey(a), kb = sortKey(b);
-          if (ka.past !== kb.past) return ka.past - kb.past;      // futurs d’abord
-          if (ka.delta !== kb.delta) return ka.delta - kb.delta;  // plus proche ensuite
-          const na = (a.show_name || a.name || ''), nb = (b.show_name || b.name || '');
-          return na.localeCompare(nb);
-        });
+            const ka = sortKey(a), kb = sortKey(b);
+            if (ka.rank !== kb.rank) return ka.rank - kb.rank;
+            if (ka.past !== kb.past) return ka.past - kb.past;
+            if (ka.delta !== kb.delta) return ka.delta - kb.delta;
+            const na = (a.show_name || a.name || ''), nb = (b.show_name || b.name || '');
+            return na.localeCompare(nb);
+          });
       
         const displayShows = sorted.slice(0, CONFIG.MAX_SHOWS_DISPLAYED);
       

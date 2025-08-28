@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
 from app.services.show_service import ShowService
 from app.services.event_service import EventService
+from sqlalchemy import select
 
 router = APIRouter(prefix="/api/public", tags=["Public"])
 
@@ -140,9 +141,40 @@ async def get_public_schedules(
     # Ordenar por display_order
     shows_with_events_list.sort(key=lambda x: x["display_order"])
     
+    # Verificar si hay alerta global activa de hoy
+    from app.models.alert import GlobalAlert
+    from sqlalchemy import and_, func
+    
+    today = datetime.now(ZoneInfo("Europe/Madrid")).date()
+    stmt = select(GlobalAlert).where(
+        and_(
+            GlobalAlert.is_active == True,
+            func.date(GlobalAlert.activated_at) == today
+        )
+    )
+    result = await db.execute(stmt)
+    active_alert = result.scalar_one_or_none()
+    
+    # Si hay alerta activa, cambiar modo de visualización
+    if active_alert:
+        return {
+            "current_time": current_time.isoformat(),
+            "display_mode": "alert",
+            "alert": {
+                "message": active_alert.message,
+                "type": active_alert.alert_type,
+                "activated_at": active_alert.activated_at.isoformat()
+            },
+            "shows": [],  # No mostrar shows cuando hay alerta
+            "metadata": {
+                "refresh_interval_seconds": 10  # Refresh más frecuente en modo alerta
+            }
+        }
+    
+    # Modo normal sin alerta
     return {
         "current_time": current_time.isoformat(),
-        "display_mode": "normal",  # TODO: Implementar lógica de alertas
+        "display_mode": "normal",
         "shows": shows_with_events_list,
         "metadata": {
             "total_shows": len(shows_with_events_list),
@@ -164,8 +196,28 @@ async def get_public_alert(
     - Información de alerta global si está activa
     - null si no hay alerta activa
     """
-    # TODO: Implementar lógica de alertas globales
-    # Por ahora retornamos que no hay alerta
+    from sqlalchemy import select, and_, func
+    from app.models.alert import GlobalAlert
+    
+    today = datetime.now(ZoneInfo("Europe/Madrid")).date()
+    stmt = select(GlobalAlert).where(
+        and_(
+            GlobalAlert.is_active == True,
+            func.date(GlobalAlert.activated_at) == today
+        )
+    )
+    result = await db.execute(stmt)
+    active_alert = result.scalar_one_or_none()
+    
+    if active_alert:
+        return {
+            "has_alert": True,
+            "alert": {
+                "message": active_alert.message,
+                "type": active_alert.alert_type,
+                "activated_at": active_alert.activated_at.isoformat()
+            }
+        }
     
     return {
         "has_alert": False,
