@@ -24,7 +24,7 @@ class GlobalAlert(Base, BaseModel):
     deactivated_at = Column(DateTime(timezone=True))
     
     # Auditoría
-    created_by = Column(String(100), nullable=False)
+    created_by = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Constraints

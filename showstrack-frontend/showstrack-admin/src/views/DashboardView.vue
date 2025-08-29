@@ -1,12 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { 
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  PlusIcon
-} from '@heroicons/vue/24/outline'
-import BaseButton from '@/components/BaseButton.vue'
-import BaseModal from '@/components/BaseModal.vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useAuthStore } from '@/stores/auth'
@@ -20,40 +13,6 @@ const authStore = useAuthStore()
 const showsStore = useShowsStore()
 const eventsStore = useEventsStore()
 
-// Modal state
-const isModalOpen = ref(false)
-const isConfirmModalOpen = ref(false)
-const isLoading = ref(false)
-
-// Demo functions
-const openModal = () => {
-  isModalOpen.value = true
-}
-
-const openConfirmModal = () => {
-  isConfirmModalOpen.value = true
-}
-
-const handleConfirm = async () => {
-  isLoading.value = true
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  isLoading.value = false
-  isConfirmModalOpen.value = false
-  
-  // Show toast notification
-  // @ts-ignore
-  window.showToast?.success('Operación completada', 'La acción se realizó correctamente')
-}
-
-const handleCancel = () => {
-  isConfirmModalOpen.value = false
-}
-
-const closeModal = () => {
-  isModalOpen.value = false
-}
-
 // Computed properties
 const activeShowsCount = computed(() => 
   (showsStore.shows || []).filter(show => show.is_visible).length
@@ -64,6 +23,10 @@ const todayEventsCount = computed(() => {
   return (eventsStore.events || []).filter(event => 
     event.event_date === today
   ).length
+})
+
+const activeAlertsCount = computed(() => {
+  return alertsStore.activeAlert ? 1 : 0
 })
 
 const activeOverridesCount = computed(() => {
@@ -89,6 +52,9 @@ onMounted(async () => {
   
   // Cargar eventos para calcular eventos de hoy
   await eventsStore.fetchEvents()
+  
+  // Cargar alertas para calcular alertas activas
+  await alertsStore.fetchActiveAlerts()
   
   // Cargar estado del sistema
   await fetchSystemHealth()
@@ -172,7 +138,7 @@ const fetchSystemHealth = async () => {
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Alertas</dt>
                 <dd class="text-xl font-semibold text-gray-900">
-                  0
+                  {{ activeAlertsCount }}
                 </dd>
               </dl>
             </div>

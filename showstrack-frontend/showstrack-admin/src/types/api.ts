@@ -120,28 +120,19 @@ export interface EventOverrideData {
 // ==========================================
 
 export interface GlobalAlert {
-  id: string
-  title: string
+  id: number
   message: string
-  type: 'info' | 'warning' | 'error' | 'success'
-  priority: 'low' | 'medium' | 'high' | 'critical'
-  isActive: boolean
-  startTime?: string
-  endTime?: string
-  displayScreens: string[]
-  createdBy: string
-  createdAt: string
-  updatedAt: string
+  alert_type: 'emergency' | 'warning' | 'info'
+  is_active: boolean
+  activated_at: string
+  deactivated_at?: string
+  created_by: string
+  created_at: string
 }
 
 export interface CreateAlertData {
-  title: string
   message: string
-  type: 'info' | 'warning' | 'error' | 'success'
-  priority?: 'low' | 'medium' | 'high' | 'critical'
-  startTime?: string
-  endTime?: string
-  displayScreens?: string[]
+  alert_type?: 'emergency' | 'warning' | 'info'
 }
 
 // ==========================================
