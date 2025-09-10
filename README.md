@@ -122,11 +122,49 @@ showstrack-app/
 - **✅ PostgreSQL 15**: 9 tablas + migraciones configuradas
 - **✅ Docker Environment**: Contenedor desarrollo Ubuntu 22.04
 
-### Configuración de Desarrollo
+### **🔥 Iniciar Servicios (Desarrollo)**
 
+#### **Paso 1: Backend API** (Puerto 8000)
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/your-org/showstrack-app.git
+# Terminal 1: Activar entorno e iniciar FastAPI
+cd /workspace && source venv/bin/activate
+cd showstrack-backend/backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# ✅ Backend disponible en: http://localhost:8000
+# ✅ API Docs: http://localhost:8000/docs
+# ✅ Health Check: http://localhost:8000/health
+```
+
+#### **Paso 2: Frontend Admin Panel** (Puerto 3000)
+```bash
+# Terminal 2: Iniciar Vue.js Admin
+cd /workspace/showstrack-frontend/showstrack-admin
+npm run dev
+
+# ✅ Admin Panel: http://localhost:3000
+# ✅ Funcionalidades: Dashboard, Shows Management, etc.
+```
+
+#### **Paso 3: Frontend Pantallas Públicas** (Puerto 8080)
+```bash
+# Terminal 3: Iniciar servidor pantallas públicas
+cd /workspace/frontend-public
+python3 -m http.server 8080
+
+# ✅ Pantallas Públicas: http://localhost:8080
+# ⚠️ CRÍTICO: Configurar API_URL en js/config.js antes de usar
+```
+
+#### **🌐 URLs de Acceso Confirmadas**
+| Servicio | URL Interna | Puerto | Estado |
+|----------|-------------|--------|--------|
+| **Backend API** | http://localhost:8000 | 8000 | ✅ Funcionando |
+| **Frontend Admin** | http://localhost:3000 | 3000 | ✅ Funcionando |
+| **Frontend Público** | http://localhost:8080 | 8080 | ✅ Funcionando |
+| **API Documentation** | http://localhost:8000/docs | 8000 | ✅ Disponible |
+
+### Configuración de Desarrollo
 cd showstrack-app
 
 # 2. Configurar backend
@@ -147,18 +185,20 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 6. Configurar frontend admin (nueva terminal)
-cd frontend-admin
-npm install
+cd /workspace/showstrack-frontend/showstrack-admin
+npm install  # Solo si es primera vez
 npm run dev
 
-# 7. Configurar pantallas públicas
-# Ver docs/pantallas-deployment.md para configuración detallada
+# 7. Configurar pantallas públicas (nueva terminal)
+cd /workspace/frontend-public
+# ⚠️ CRÍTICO: Editar js/config.js y configurar API_URL antes de usar
+python3 -m http.server 8080
 
-# 8. Acceder a la aplicación
-# - API: http://localhost:8000
-# - Docs: http://localhost:8000/docs
-# - Admin: http://localhost:3000
-# - Pantallas: Abrir frontend-public/index.html
+# 8. Acceder a la aplicación ✅ VERIFICADO
+# - Backend API: http://localhost:8000 ✅
+# - API Docs: http://localhost:8000/docs ✅  
+# - Frontend Admin: http://localhost:3000 ✅
+# - Pantallas Públicas: http://localhost:8080 ✅
 ```
 
 ### Con Docker (Recomendado)

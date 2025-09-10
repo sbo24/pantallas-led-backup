@@ -8,6 +8,7 @@ pydantic-settings==2.0.3
 psutil==5.9.6
 alembic==1.12.1
 psycopg2-binary==2.9.9
+tzdata==2025.2
 
 # JWT Authentication dependencies
 python-jose[cryptography]==3.3.0

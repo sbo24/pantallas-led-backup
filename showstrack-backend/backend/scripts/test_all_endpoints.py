@@ -419,9 +419,9 @@ class EndpointTester:
                     json={
                         "external_event_id": unique_event_id,
                         "show_id": first_show_id,
-                        "event_date": "2024-12-31",
-                        "start_time": "20:00",
-                        "end_time": "21:00",
+                        "event_date": "2025-12-31",
+                        "start_time": "19:00",
+                        "end_time": "20:00",
                         "duration_minutes": 60,
                         "is_multiple_shows_flag": False
                     }

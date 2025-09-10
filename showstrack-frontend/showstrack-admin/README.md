@@ -305,16 +305,38 @@ ShowsTrack Admin es el panel de control para operadores de parques de atraccione
 
 ## 🎯 Próximos Pasos (Basado en PROCESO_DESARROLLO_FASE4.md)
 
-### **Inmediatos (1-2 días)**:
-- **SettingsView Implementation** (3-4 horas) - Puede usar useSettings existente
-- **EventsView & AlertsView** - Implementación con useTable y useModal patterns
+### **Inmediatos (3-5 días) - Completar FASE 4 Frontend Admin**:
+1. **SettingsView Implementation** (4-6 horas):
+   - Puede usar useSettings composable existente (570+ líneas, 23 tests)
+   - Configuración global, lead times, modos operación
+   - Import/export functionality
 
-### **Siguientes Features**:
-- **Advanced Table Features**: Query builder, real-time updates
+2. **EventsView Implementation** (1-2 días):
+   - CRUD eventos usando useTable y useModal patterns
+   - Sistema de overrides manuales (CERRADO/CANCELADO)
+   - Vista calendar/agenda de eventos
+
+3. **AlertsView Implementation** (6-8 horas):
+   - Sistema alertas globales para emergencias
+   - UI para activar/desactivar alertas
+   - Historial y logs de alertas
+
+### **FASE 5 - ETL Integration (1-2 días)**:
+- **Import API Endpoints**: Exponer ImportService via REST (6-8 horas)
+- **Frontend Integration**: Conectar EventsView con import endpoints
+- **ETL Testing**: Scripts → API → Frontend workflow completo
+
+### **FASE 6 - Frontend Pantallas Públicas (1-2 semanas)**:
+- **HTML/CSS/JS Vanilla**: Sistema de visualización para visitantes
+- **Auto-refresh System**: Actualización automática cada 30 segundos
+- **Estados Visuales**: PROGRAMADO/ABIERTO/CERRADO/CANCELADO
+
+### **FASE 7 - Testing & Production (1-2 semanas)**:
 - **E2E Testing**: Workflow completo con backend integration
 - **Performance Optimization**: Bundle splitting, lazy loading
+- **Production Deploy**: CI/CD pipeline y monitoreo
 
 ### **Testing Status**:
 - ✅ **Composables**: 94/94 tests passing (100%)
-- ⏳ **Views**: E2E testing pendiente
+- ⏳ **Views**: E2E testing pendiente post-FASE 4
 - ⏳ **Integration**: Backend connection testing
