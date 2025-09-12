@@ -58,7 +58,9 @@ from app.schemas.import_sync import (
     SyncExecuteResponse,
     SyncApplyRequest,
     SyncDiscardRequest,
-    SyncActionResponse
+    SyncActionResponse,
+    FileStoreRequest,
+    FileStoreResponse
 )
 # Dashboard imports temporarily removed to fix circular imports
 # from app.schemas.dashboard import (
@@ -887,6 +889,57 @@ async def get_import_history(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting import history: {str(e)}"
+        )
+
+
+@router.post("/import/store-file", response_model=FileStoreResponse)
+async def store_import_file(
+    file_request: FileStoreRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Guardar archivo de importación en servidor para auditoría y logs.
+    
+    **Auditoría de Archivos**: Guarda físicamente el archivo JSON en el servidor cuando:
+    - El archivo es válido (se guardará antes de auto-importar)
+    - El archivo tiene warnings (se guardará antes de pedir confirmación)
+    - El archivo tiene errores graves NO se guarda (se desecha)
+    
+    **Casos de uso:**
+    - Archivo válido → Se guarda automáticamente → Se importa → Usuario ve resumen
+    - Archivo con warnings → Se guarda → Usuario confirma → Se importa o cancela
+    - Archivo con errores → NO se guarda → Usuario ve errores → Solo puede cancelar
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        # Solo guardamos archivos válidos o con warnings, NO los que tienen errores graves
+        if file_request.validation_status == "errors":
+            return FileStoreResponse(
+                success=False,
+                message="Archivo con errores no se guarda en servidor - se descarta automáticamente",
+                file_path=None,
+                file_size=None,
+                stored_at=None,
+                validation_result=None
+            )
+        
+        # Guardar archivo físicamente
+        store_result = await ImportService.store_file_for_audit(
+            db=db,
+            import_data=file_request.data,
+            original_filename=file_request.filename,
+            validation_status=file_request.validation_status,
+            user_id=current_user.username
+        )
+        
+        return store_result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error storing import file: {str(e)}"
         )
 
 

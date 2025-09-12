@@ -279,8 +279,12 @@ export function useEventsView() {
     try {
       const result = await eventsService.applySelectedChanges(Array.from(selectedChanges.value))
       const appliedCount = result.affected_changes || result.applied_count || 0
+      const autoCleaned = result.details?.auto_cleaned || 0
       
-      if (appliedCount > 0) {
+      // Check if changes were auto-cleaned (duplicates detected)
+      if (autoCleaned > 0) {
+        showWarningToast(`No se aplicaron cambios - ${autoCleaned} eventos ya existen en la base de datos`)
+      } else if (appliedCount > 0) {
         showSuccessToast(`${appliedCount} cambios aplicados exitosamente`)
       } else {
         showWarningToast('No se aplicaron cambios - Los eventos ya existen en la base de datos')

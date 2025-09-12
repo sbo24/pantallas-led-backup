@@ -3,6 +3,9 @@ Servicio para importación y sincronización de datos externos.
 Compatible con el formato JSON generado por scripts/extraction/
 """
 import uuid
+import json
+import os
+from pathlib import Path
 from datetime import datetime, time, date
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +21,7 @@ from ..models.audit import AuditLog
 from ..schemas.import_sync import (
     PuyDuFouImportData, ImportValidationResult, ImportResponse, 
     ImportHistoryResponse, ImportHistoryItem, SyncStatus, SyncPendingResponse,
-    PendingChange, SyncExecuteResponse, SyncActionResponse
+    PendingChange, SyncExecuteResponse, SyncActionResponse, FileStoreResponse
 )
 from ..services.config_service import ConfigService
 
@@ -71,17 +74,25 @@ class ImportService:
         # 2. Determinar modo de operación
         config_service = ConfigService(db)
         operation_mode = await config_service.get_operation_mode()
-        should_apply_immediately = (operation_mode.current_mode == "automatic" and not dry_run)
         
-        # 3. Procesar eventos
-        if should_apply_immediately:
+        # 3. Procesar eventos según el modo
+        if dry_run:
+            # DRY RUN: Solo validar, NO crear pending changes ni aplicar cambios
+            applied_result = {
+                "success": True,
+                "message": "Dry run completed - validation only, no changes made",
+                "applied_count": 0,
+                "created_count": 0
+            }
+            final_status = "success"
+        elif operation_mode.current_mode == "automatic":
             # Modo automático: aplicar cambios inmediatamente
             applied_result = await ImportService._apply_changes_immediate(
                 db, import_data, validation_result, preserve_overrides, user_id
             )
             final_status = "success" if applied_result["success"] else "partial"
         else:
-            # Modo manual o dry_run: crear cambios pendientes
+            # Modo manual: crear cambios pendientes para revisión
             pending_result = await ImportService._create_pending_changes(
                 db, import_data, validation_result, user_id
             )
@@ -90,9 +101,13 @@ class ImportService:
         
         # 4. Crear registro de importación
         import_status = ImportStatus.SUCCESS if final_status == "success" else ImportStatus.PARTIAL
+        
+        # Determinar si los cambios fueron aplicados (solo si no es dry_run)
+        was_applied = not dry_run and (operation_mode.current_mode == "automatic")
+        
         import_history = await ImportService._create_import_history(
             db, import_data, import_status, validation_result, 
-            user_id, applied=should_apply_immediately
+            user_id, applied=was_applied
         )
         
         execution_time = (datetime.now() - start_time).total_seconds()
@@ -103,7 +118,7 @@ class ImportService:
             message=applied_result["message"],
             validation_result=validation_result,
             processed_at=datetime.now(),
-            applied=should_apply_immediately,
+            applied=was_applied,
             execution_time_seconds=execution_time
         )
     
@@ -492,3 +507,105 @@ class ImportService:
             size=size,
             pages=pages
         )
+    
+    @staticmethod
+    async def store_file_for_audit(
+        db: AsyncSession,
+        import_data: PuyDuFouImportData,
+        original_filename: str,
+        validation_status: str,
+        user_id: str
+    ) -> FileStoreResponse:
+        """
+        Guarda archivo de importación físicamente para auditoría y logs.
+        Solo se guarda si validation_status es 'valid' o 'warnings'.
+        Los archivos con errores graves NO se guardan (se descartan).
+        
+        Args:
+            db: Sesión de base de datos
+            import_data: Datos del archivo JSON a guardar
+            original_filename: Nombre original del archivo
+            validation_status: Estado de validación ('valid', 'warnings', 'errors')
+            user_id: Usuario que realiza la operación
+            
+        Returns:
+            FileStoreResponse: Resultado del guardado con metadata del archivo
+        """
+        
+        try:
+            # 1. Configurar directorio base para uploads
+            uploads_dir = Path("/workspace/uploads/import")
+            uploads_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 2. Generar nombre único con timestamp y metadata
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            
+            # Sanitizar nombre de fuente
+            source = import_data.metadata.source.replace(" ", "_").replace("/", "_").replace("\\", "_")
+            source = "".join(c for c in source if c.isalnum() or c in "_-")
+            
+            # Sanitizar nombre original
+            original_clean = Path(original_filename).stem
+            original_clean = original_clean.replace(" ", "_").replace("/", "_").replace("\\", "_")
+            original_clean = "".join(c for c in original_clean if c.isalnum() or c in "_-")
+            
+            # Nombre final: YYYY-MM-DD_HH-MM-SS_[source]_[original].json
+            filename = f"{timestamp}_{source}_{original_clean}.json"
+            file_path = uploads_dir / filename
+            
+            # 3. Serializar datos a JSON con formato legible
+            json_content = import_data.dict()
+            file_content = json.dumps(json_content, indent=2, ensure_ascii=False)
+            
+            # 4. Guardar archivo físicamente
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(file_content)
+            
+            # 5. Verificar que se guardó correctamente y obtener metadata
+            if not file_path.exists():
+                raise Exception("File was not created successfully")
+            
+            file_size = file_path.stat().st_size
+            stored_at = datetime.now()
+            
+            return FileStoreResponse(
+                success=True,
+                message=f"Archivo guardado correctamente para auditoría: {filename}",
+                file_path=str(file_path),
+                file_size=file_size,
+                stored_at=stored_at,
+                validation_result=None
+            )
+            
+        except OSError as e:
+            # Error de sistema de archivos (permisos, disco lleno, etc.)
+            return FileStoreResponse(
+                success=False,
+                message=f"Error de sistema de archivos: {str(e)}",
+                file_path=None,
+                file_size=None,
+                stored_at=None,
+                validation_result=None
+            )
+            
+        except json.JSONEncodeError as e:
+            # Error de serialización JSON
+            return FileStoreResponse(
+                success=False,
+                message=f"Error serializando datos a JSON: {str(e)}",
+                file_path=None,
+                file_size=None,
+                stored_at=None,
+                validation_result=None
+            )
+            
+        except Exception as e:
+            # Error genérico
+            return FileStoreResponse(
+                success=False,
+                message=f"Error inesperado guardando archivo: {str(e)}",
+                file_path=None,
+                file_size=None,
+                stored_at=None,
+                validation_result=None
+            )

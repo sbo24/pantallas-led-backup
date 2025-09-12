@@ -225,3 +225,96 @@ export interface ApiRequestConfig {
   params?: Record<string, unknown>
   headers?: Record<string, string>
 }
+
+// ==========================================
+// IMPORT/ETL TYPES
+// ==========================================
+
+export interface ImportEvent {
+  external_event_id: string
+  show_name: string
+  event_date: string
+  start_time: string
+  end_time: string
+  duration_minutes: number
+  event_type: 'show' | 'system'
+}
+
+export interface ImportMetadata {
+  extraction_time: string
+  total_events: number
+  source: 'manual_upload' | 'puy_du_fou_api' | 'external'
+  extraction_summary: {
+    events_by_show: Record<string, number>
+    events_by_type: Record<string, number>
+    unique_shows: number
+  }
+}
+
+export interface ImportData {
+  metadata: ImportMetadata
+  events: ImportEvent[]
+}
+
+export interface ImportResponse {
+  import_id: string
+  status: 'success' | 'partial' | 'failed'
+  imported: number
+  updated: number
+  errors: string[]
+  warnings: string[]
+  processing_time_ms: number
+}
+
+export interface ImportPreview {
+  validation_result: {
+    is_valid: boolean
+    total_events: number
+    new_events: number
+    updated_events: number
+    conflicted_events: number
+    skipped_events: number
+    conflicts: ImportConflict[]
+    warnings: string[]
+    errors: string[]
+  }
+  preview_summary: {
+    total_events: number
+    new_events: number
+    updated_events: number
+    conflicted_events: number
+    operation_mode: 'automatic' | 'manual'
+  }
+  would_be_applied: boolean
+  estimated_execution_time: number
+}
+
+export interface ImportConflict {
+  external_event_id: string
+  type: string
+  message: string
+  current_status?: string
+  show_name: string
+}
+
+export interface ImportHistory {
+  id: string
+  import_date: string
+  source: string
+  status: 'success' | 'partial' | 'failed'
+  imported_count: number
+  updated_count: number
+  error_count: number
+  filename?: string
+  user_id: string
+  processing_time_ms: number
+}
+
+export interface FileUploadState {
+  isDragOver: boolean
+  isUploading: boolean
+  uploadProgress: number
+  selectedFile: File | null
+  validationResults: ImportPreview | null
+  error: string | null
+}

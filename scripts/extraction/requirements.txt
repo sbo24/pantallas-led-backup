@@ -1,0 +1,32 @@
+# ETL Puy du Fou España - ShowsTrack Requirements
+# Core dependencies for data extraction and API integration
+
+# HTTP requests for API calls
+requests>=2.31.0
+
+# Data processing and analysis  
+pandas>=2.0.0
+
+# Excel export functionality
+openpyxl>=3.1.0
+
+# Environment variable management (custom implementation in config.py, but keeping as reference)
+# python-dotenv>=1.0.0  # Not needed as we have custom implementation
+
+# Date and time utilities (built into Python)
+# python-dateutil>=2.8.0  # Using built-in datetime
+
+# Logging (built into Python)
+# Standard library logging is sufficient
+
+# JSON processing (built into Python)
+# Standard library json is sufficient
+
+# Regular expressions (built into Python) 
+# Standard library re is sufficient
+
+# File operations (built into Python)
+# Standard library os, pathlib are sufficient
+
+# Type hints (built into Python 3.5+)
+# typing is part of standard library

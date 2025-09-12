@@ -398,10 +398,84 @@ class SyncService:
             )
             changes_to_apply = (await db.execute(query)).scalars().all()
             
-            applied_count = 0
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"🔥 APPLY_CHANGES: Processing {len(changes_to_apply)} selected changes")
             
+            applied_count = 0
+            auto_cleaned = 0
+            
+            # AUTO-CLEANUP: Detect and mark duplicates as applied BEFORE processing
+            # IMPORTANT: Only auto-clean the SELECTED changes, not all duplicates in database
             for change in changes_to_apply:
                 try:
+                    # Check if event already exists by external_event_id
+                    if change.external_id and change.entity_type == EntityType.EVENT:
+                        existing_query = select(ScheduledEvent).where(
+                            ScheduledEvent.external_event_id == change.external_id
+                        )
+                        existing_event = (await db.execute(existing_query)).scalar_one_or_none()
+                        if existing_event:
+                            # Mark THIS SPECIFIC CHANGE as applied (auto-cleanup)
+                            change.is_applied = True
+                            change.applied_at = datetime.now()
+                            change.applied_by = user_id
+                            change.resolution_notes = f"AUTO-CLEANED: Event already exists (ID: {existing_event.id})"
+                            applied_count += 1
+                            auto_cleaned += 1
+                            logger.error(f"🔥 APPLY_CHANGES: Auto-cleaned duplicate event {change.external_id}")
+                            continue
+                    
+                    # Check for duplicate events by show+date+time (CREATE only)
+                    if change.action == ChangeAction.CREATE and change.entity_type == EntityType.EVENT:
+                        show_name = change.new_data.get("show_name")
+                        if show_name:
+                            show_query = select(Show).where(Show.name == show_name)
+                            show = (await db.execute(show_query)).scalar_one_or_none()
+                            if show:
+                                event_date = datetime.strptime(change.new_data["event_date"], '%Y-%m-%d').date()
+                                start_time_str = change.new_data["start_time"]
+                                try:
+                                    event_start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                                except ValueError:
+                                    event_start_time = datetime.strptime(start_time_str, '%H:%M').time()
+                                
+                                duplicate_query = select(ScheduledEvent).where(
+                                    ScheduledEvent.show_id == show.id,
+                                    ScheduledEvent.event_date == event_date,
+                                    ScheduledEvent.start_time == event_start_time
+                                )
+                                existing_event = (await db.execute(duplicate_query)).scalar_one_or_none()
+                                
+                                if existing_event:
+                                    # Mark as applied (auto-cleanup)
+                                    change.is_applied = True
+                                    change.applied_at = datetime.now()
+                                    change.applied_by = user_id
+                                    change.resolution_notes = f"AUTO-CLEANED: Duplicate event already exists (ID: {existing_event.id})"
+                                    applied_count += 1
+                                    auto_cleaned += 1
+                                    logger.error(f"🔥 APPLY_CHANGES: Auto-cleaned duplicate by show+date+time {show_name}")
+                                    continue
+                    
+                    # Check for duplicate shows (CREATE only)
+                    if change.action == ChangeAction.CREATE and change.entity_type == EntityType.SHOW:
+                        show_name = change.new_data.get("show_name") or change.new_data.get("name")
+                        if show_name:
+                            existing_show_query = select(Show).where(Show.name == show_name)
+                            existing_show = (await db.execute(existing_show_query)).scalar_one_or_none()
+                            if existing_show:
+                                # Mark as applied (auto-cleanup)
+                                change.is_applied = True
+                                change.applied_at = datetime.now()
+                                change.applied_by = user_id
+                                change.resolution_notes = f"AUTO-CLEANED: Duplicate show already exists (ID: {existing_show.id})"
+                                applied_count += 1
+                                auto_cleaned += 1
+                                logger.error(f"🔥 APPLY_CHANGES: Auto-cleaned duplicate show {show_name}")
+                                continue
+                    
+                    # Try to apply the change if not auto-cleaned
                     if change.action == ChangeAction.CREATE:
                         success = await SyncService._apply_create_change(db, change)
                     elif change.action == ChangeAction.UPDATE:
@@ -417,17 +491,38 @@ class SyncService:
                         change.applied_by = user_id
                         change.resolution_notes = reason
                         applied_count += 1
+                        logger.error(f"🔥 APPLY_CHANGES: Successfully applied change {change.change_id}")
                         
-                except Exception:
+                except Exception as e:
+                    # Handle unique constraint errors like execute_sync does
+                    error_str = str(e)
+                    if 'unique constraint' in error_str and 'external_event_id' in error_str:
+                        # Auto-cleanup: mark as applied since event already exists
+                        change.is_applied = True
+                        change.applied_at = datetime.now()
+                        change.applied_by = user_id
+                        change.resolution_notes = f"AUTO-CLEANED: Event already exists (unique constraint)"
+                        applied_count += 1
+                        auto_cleaned += 1
+                        logger.error(f"🔥 APPLY_CHANGES: Auto-cleaned unique constraint violation")
+                    else:
+                        logger.error(f"🚨 APPLY_CHANGES: Error processing change {change.change_id}: {str(e)}")
                     continue
             
             await db.commit()
             
+            if auto_cleaned > 0:
+                message = f"No se aplicaron cambios - {auto_cleaned} eventos ya existen en la base de datos"
+                logger.error(f"🔥 APPLY_CHANGES: {message}")
+            else:
+                message = f"Aplicados {applied_count} de {len(change_ids)} cambios"
+            
             return SyncActionResponse(
                 success=applied_count > 0,
-                message=f"Aplicados {applied_count} de {len(change_ids)} cambios",
+                message=message,
                 affected_changes=applied_count,
-                executed_at=datetime.now()
+                executed_at=datetime.now(),
+                details={"auto_cleaned": auto_cleaned} if auto_cleaned > 0 else None
             )
             
         except Exception as e:

@@ -7,6 +7,7 @@ export { default as EventsApiService } from './events'
 export { default as AlertsApiService } from './alerts'
 export { default as ConfigApiService } from './config'
 export { default as DashboardApiService } from './dashboard'
+export { default as ImportApiService } from './import'
 
 // Re-export client utilities
 export { 

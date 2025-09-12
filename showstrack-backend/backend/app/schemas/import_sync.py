@@ -200,3 +200,24 @@ class ImportPreviewResponse(BaseModel):
     preview_summary: Dict[str, Any] = Field(description="Resumen de cambios previstos")
     would_be_applied: bool = Field(description="Si los cambios se aplicarían en modo automático")
     estimated_execution_time: float = Field(description="Tiempo estimado de ejecución")
+
+
+# ================================
+# SCHEMAS PARA GUARDADO DE ARCHIVOS
+# ================================
+
+class FileStoreRequest(BaseModel):
+    """Request para guardar archivo de importación en servidor"""
+    data: PuyDuFouImportData = Field(..., description="Datos del archivo JSON")
+    filename: str = Field(..., description="Nombre original del archivo")
+    validation_status: Literal["valid", "warnings", "errors"] = Field(..., description="Estado de validación")
+
+
+class FileStoreResponse(BaseModel):
+    """Respuesta de guardado de archivo"""
+    success: bool
+    message: str
+    file_path: Optional[str] = Field(None, description="Ruta donde se guardó el archivo")
+    file_size: Optional[int] = Field(None, description="Tamaño del archivo en bytes")
+    stored_at: Optional[datetime] = Field(None, description="Timestamp del guardado")
+    validation_result: Optional[ImportValidationResult] = Field(None, description="Resultado de validación")
