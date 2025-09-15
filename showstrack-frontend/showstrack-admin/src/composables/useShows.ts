@@ -207,7 +207,6 @@ const adaptShowToApiFormat = (show: CreateShowRequest | Partial<CreateShowReques
       const result = await store.deleteShow(id)
       
       if (result) {
-        showSuccessToast('Espectáculo eliminado exitosamente')
         return true
       } else {
         showErrorToast(`Error al eliminar espectáculo: ${store.error}`)

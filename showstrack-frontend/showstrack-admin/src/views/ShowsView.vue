@@ -12,6 +12,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import type { Show } from '@/types'
 import type { TableColumn } from '@/components/BaseTable.vue'
+import { apiPost, apiPut } from '@/services/api/client'
 
 // ==========================================
 // COMPOSABLES & STATE INITIALIZATION
@@ -22,8 +23,6 @@ const {
   shows, 
   loading: showsLoading, 
   error: showsError,
-  createShow, 
-  updateShow, 
   deleteShow,
   bulkDelete,
   bulkToggleStatus,
@@ -74,7 +73,7 @@ const {
   resetTable
 } = useTable<Show>({
   data: shows,
-  defaultSort: { key: 'createdAt', direction: 'desc' },
+  defaultSort: { key: 'created_at', direction: 'desc' },
   defaultPageSize: 25,
   persistState: 'shows-table',
   searchable: true,
@@ -104,12 +103,12 @@ const { showSuccessToast, showErrorToast, showWarningToast } = useNotifications(
 const showsWithTodayEvents = computed(() => {
   const today = new Date().toISOString().split('T')[0]
   const todayEvents = (eventsStore.events || []).filter(event => 
-    event.event_date === today
+    event.date === today
   )
   
   return shows.value.map(show => ({
     ...show,
-    todayEventsCount: todayEvents.filter(event => event.show_id === show.id).length
+    todayEventsCount: todayEvents.filter(event => event.showId === show.id.toString()).length
   }))
 })
 
@@ -169,7 +168,15 @@ const tableColumns: TableColumn[] = [
     key: 'todayEventsCount',
     label: 'Eventos Hoy',
     sortable: true,
-    width: '120px',
+    width: '100px',
+    align: 'center',
+    formatter: (value: number) => value?.toString() || '0'
+  },
+  {
+    key: 'current_events_count',
+    label: 'Total Eventos',
+    sortable: true,
+    width: '100px',
     align: 'center',
     formatter: (value: number) => value?.toString() || '0'
   },
@@ -345,10 +352,10 @@ const handleBulkToggleStatus = async () => {
   
   bulkActionInProgress.value = true
   try {
-    const selectedIds = selectedRows.value.map(show => show.id)
-    const isCurrentlyActive = selectedRows.value[0].status === 'ABIERTO'
+    const selectedIds = selectedRows.value.map(show => show.id.toString())
+    const isCurrentlyVisible = selectedRows.value[0].is_visible
     
-    await bulkToggleStatus(selectedIds, !isCurrentlyActive)
+    await bulkToggleStatus(selectedIds, !isCurrentlyVisible)
     showSuccessToast(`${selectedCount.value} shows actualizados correctamente`)
     clearSelection()
   } catch (error) {
@@ -387,7 +394,7 @@ const handleExportSelection = async () => {
   try {
     await exportSelection('csv', {
       filename: `shows-selection-${Date.now()}`,
-      columns: ['name', 'status', 'venue', 'capacity', 'createdAt']
+      columns: ['name', 'is_visible', 'custom_lead_time_access_minutes', 'created_at']
     })
   } catch (error) {
     console.error('Export selection error:', error)
@@ -403,7 +410,7 @@ const handleExportAll = async (format: 'csv' | 'json' | 'xlsx' = 'csv') => {
   try {
     await exportData(format, {
       filename: `shows-export-${Date.now()}`,
-      columns: ['name', 'status', 'venue', 'capacity', 'leadTimeMinutes', 'createdAt']
+      columns: ['name', 'is_visible', 'custom_lead_time_access_minutes', 'created_at']
     })
   } catch (error) {
     console.error('Export error:', error)
@@ -467,16 +474,23 @@ const handlePageSizeChange = (size: number) => {
 const handleCreateSubmit = async (event: Event) => {
   event.preventDefault()
   const formData = new FormData(event.target as HTMLFormElement)
+  
+  // Usar solo campos que existen en el backend
   const showData = {
     name: formData.get('name') as string,
-    venue: formData.get('venue') as string,
-    capacity: parseInt(formData.get('capacity') as string),
-    leadTimeMinutes: parseInt(formData.get('leadTimeMinutes') as string),
-    description: formData.get('description') as string
+    description: formData.get('description') as string || '',
+    is_visible: formData.get('is_visible') === 'on',
+    display_order: 1,
+    custom_lead_time_access_minutes: parseInt(formData.get('leadTime') as string) || null,
+    custom_lead_time_finalized_minutes: null
   }
   
   try {
-    await createShow(showData as Show)
+    // Use API client for proper authentication and URL handling
+    await apiPost('/api/admin/shows', showData)
+    
+    // Refresh shows list
+    await fetchShows()
     modals.value.create = false
     showSuccessToast('Show creado correctamente')
   } catch (error) {
@@ -490,16 +504,23 @@ const handleEditSubmit = async (event: Event) => {
   if (!selectedShow.value) return
   
   const formData = new FormData(event.target as HTMLFormElement)
+  
+  // Usar solo campos que existen en el backend
   const updateData = {
     name: formData.get('name') as string,
-    venue: formData.get('venue') as string,
-    capacity: parseInt(formData.get('capacity') as string),
-    leadTimeMinutes: parseInt(formData.get('leadTimeMinutes') as string),
-    description: formData.get('description') as string
+    description: formData.get('description') as string || '',
+    is_visible: formData.get('is_visible') === 'on',
+    custom_lead_time_access_minutes: parseInt(formData.get('leadTime') as string) || null
   }
   
+  console.log('Update data being sent:', updateData)
+  
   try {
-    await updateShow(selectedShow.value.id, updateData)
+    // Use API client for proper authentication and URL handling
+    await apiPut(`/api/admin/shows/${selectedShow.value.id}`, updateData)
+    
+    // Refresh shows list
+    await fetchShows()
     modals.value.edit = false
     selectedShow.value = null
     showSuccessToast('Show actualizado correctamente')
@@ -512,14 +533,46 @@ const handleEditSubmit = async (event: Event) => {
 const handleDeleteConfirm = async () => {
   if (!selectedShow.value) return
   
+  console.log('=== DELETE FLOW ANALYSIS ===')
+  console.log('1. Attempting to delete show:', selectedShow.value.id, selectedShow.value.name)
+  console.log('2. Shows count before deletion:', shows.value.length)
+  console.log('3. Current events count:', selectedShow.value.current_events_count)
+  
+  // Prevent deletion if show has events
+  if (selectedShow.value.current_events_count > 0) {
+    const showName = selectedShow.value.name
+    const eventCount = selectedShow.value.current_events_count
+    modals.value.delete = false
+    selectedShow.value = null
+    showErrorToast(`No se puede eliminar "${showName}": tiene ${eventCount} eventos asociados`)
+    console.log('4. Deletion prevented - show has events')
+    return
+  }
+  
   try {
-    await deleteShow(selectedShow.value.id)
+    const result = await deleteShow(selectedShow.value.id.toString())
+    console.log('4. Delete result:', result)
+    console.log('5. Shows count after deletion:', shows.value.length)
+    
+    // Force refresh since deleteShow doesn't update local list
+    if (result === true) {
+      console.log('6. Forcing fetchShows() to refresh list...')
+      await fetchShows()
+      console.log('7. Shows count after fetchShows():', shows.value.length)
+    }
+    
     modals.value.delete = false
     selectedShow.value = null
     showSuccessToast('Show eliminado correctamente')
-  } catch (error) {
-    console.error('Delete show error:', error)
-    showErrorToast('Error al eliminar el show')
+    
+    console.log('8. Final shows count:', shows.value.length)
+    console.log('=== END DELETE FLOW ANALYSIS ===')
+  } catch (error: any) {
+    console.error('DELETE ERROR:', error?.details?.detail || error?.message)
+    modals.value.delete = false
+    selectedShow.value = null
+    showErrorToast('Error: ' + (error?.details?.detail || 'No se pudo eliminar el show'))
+    console.log('=== END DELETE FLOW ANALYSIS ===')
   }
 }
 
@@ -528,7 +581,7 @@ const handleBulkDeleteConfirm = async () => {
   
   bulkActionInProgress.value = true
   try {
-    const selectedIds = selectedRows.value.map(show => show.id)
+    const selectedIds = selectedRows.value.map(show => show.id.toString())
     await bulkDelete(selectedIds)
     modals.value.bulkDelete = false
     clearSelection()
@@ -671,7 +724,7 @@ onMounted(() => {
               class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value="">Todos</option>
-              <option v-for="option in filterOptions.is_visible" :key="option.value" :value="option.value">
+              <option v-for="option in filterOptions.is_visible" :key="String(option.value)" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
@@ -691,17 +744,6 @@ onMounted(() => {
             </select>
           </div>
 
-          <!-- Duration Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Duración mínima (min)</label>
-            <input
-              type="number"
-              :value="filters.duration_estimated || ''"
-              @input="handleFilterChange('duration_estimated', parseInt(($event.target as HTMLInputElement).value) || null)"
-              placeholder="0"
-              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-          </div>
         </div>
       </div>
     </div>
@@ -821,20 +863,20 @@ onMounted(() => {
               <input name="name" type="text" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Venue</label>
-              <input name="venue" type="text" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Capacidad</label>
-              <input name="capacity" type="number" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Lead Time (minutos)</label>
-              <input name="leadTimeMinutes" type="number" required value="30" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
               <label class="block text-sm font-medium text-gray-700">Descripción</label>
               <textarea name="description" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" rows="3"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Lead Time Acceso (minutos)</label>
+              <input name="leadTime" type="number" value="30" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <p class="mt-1 text-xs text-gray-500">Minutos antes del show para abrir acceso (vacío = usar configuración global)</p>
+            </div>
+            <div>
+              <label class="flex items-center">
+                <input name="is_visible" type="checkbox" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <span class="ml-2 text-sm font-medium text-gray-700">Visible al público</span>
+              </label>
+              <p class="mt-1 text-sm text-gray-500">Si está desmarcado, el show estará oculto en las pantallas públicas</p>
             </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">
@@ -864,20 +906,20 @@ onMounted(() => {
               <input name="name" type="text" required :value="selectedShow.name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Venue</label>
-              <input name="venue" type="text" required :value="selectedShow.venue" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Capacidad</label>
-              <input name="capacity" type="number" required :value="selectedShow.capacity" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Lead Time (minutos)</label>
-              <input name="leadTimeMinutes" type="number" required :value="selectedShow.leadTimeMinutes" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
               <label class="block text-sm font-medium text-gray-700">Descripción</label>
               <textarea name="description" :value="selectedShow.description || ''" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" rows="3"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Lead Time Acceso (minutos)</label>
+              <input name="leadTime" type="number" :value="selectedShow.custom_lead_time_access_minutes || ''" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <p class="mt-1 text-xs text-gray-500">Minutos antes del show para abrir acceso (vacío = usar configuración global)</p>
+            </div>
+            <div>
+              <label class="flex items-center">
+                <input name="is_visible" type="checkbox" :checked="selectedShow.is_visible" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <span class="ml-2 text-sm font-medium text-gray-700">Visible al público</span>
+              </label>
+              <p class="mt-1 text-sm text-gray-500">Si está desmarcado, el show estará oculto en las pantallas públicas</p>
             </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">
