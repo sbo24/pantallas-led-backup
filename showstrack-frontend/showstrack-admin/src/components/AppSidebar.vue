@@ -64,6 +64,16 @@
         </span>
       </router-link>
 
+      <!-- Operator View -->
+      <router-link
+        to="/operator"
+        class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-md"
+        :class="isCurrentRoute('/operator') ? activeClasses : inactiveClasses"
+      >
+        <ComputerDesktopIcon class="mr-3 h-5 w-5 flex-shrink-0" />
+        Vista de Operador
+      </router-link>
+
       <!-- Settings -->
       <router-link
         to="/settings"
@@ -99,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+// import { computed } from 'vue' // No usado por ahora
 import { useRoute } from 'vue-router'
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import {
@@ -108,7 +118,8 @@ import {
   ExclamationTriangleIcon,
   Cog6ToothIcon,
   UserIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ComputerDesktopIcon
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import { useAlertsStore } from '@/stores/alerts'

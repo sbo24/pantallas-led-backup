@@ -60,10 +60,42 @@ export const useShowsStore = defineStore('shows', () => {
       error.value = null
       
       const mergedParams = { ...filters.value, ...params }
+      
+      // Usar el servicio oficial para obtener TODOS los shows (admin)
       const response = await ShowsApiService.getShows(mergedParams)
       
       if (response.data) {
-        shows.value = response.data.items || []
+        // Si obtenemos shows del admin, intentar enriquecer con datos de eventos
+        let enrichedShows = response.data.items || []
+        
+        try {
+          // Intentar obtener datos de eventos de la API pública para enriquecer
+          const publicResponse = await fetch('http://localhost:8000/api/public/schedules')
+          if (publicResponse.ok) {
+            const publicData = await publicResponse.json()
+            
+            // Crear un mapa de shows públicos para enriquecer
+            const publicShowsMap = new Map()
+            publicData.shows.forEach((publicShow: any) => {
+              publicShowsMap.set(publicShow.show_id, {
+                current_pass: publicShow.current_pass,
+                next_pass: publicShow.next_pass
+              })
+            })
+            
+            // Enriquecer shows admin con datos de eventos
+            enrichedShows = enrichedShows.map((show: any) => ({
+              ...show,
+              current_pass: publicShowsMap.get(show.id)?.current_pass || null,
+              next_pass: publicShowsMap.get(show.id)?.next_pass || null
+            }))
+          }
+        } catch (enrichError) {
+          console.warn('[Shows Store] Could not enrich with public data:', enrichError)
+          // No es crítico, continuamos con los datos admin básicos
+        }
+        
+        shows.value = enrichedShows
         pagination.value = {
           page: response.data.page || 1,
           limit: response.data.size || 20,

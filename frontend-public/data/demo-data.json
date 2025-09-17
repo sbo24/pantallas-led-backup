@@ -1,0 +1,71 @@
+{
+  "display_mode": "normal",
+  "current_time": null,
+  "shows": [
+    {
+      "show_id": 1,
+      "show_name": "El Último Cantar",
+      "selected_icon_filename": "show-01.png",
+      "is_visible": true,
+      "current_pass": { 
+        "start_time": "11:15",
+        "status": "ABIERTO" 
+      },
+      "next_pass": { 
+        "start_time": "16:15" 
+      }
+    },
+    {
+      "show_id": 2,
+      "show_name": "El tambor de la Libertad",
+      "selected_icon_filename": "show-06.png",
+      "is_visible": true,
+      "current_pass": { 
+        "start_time": "12:30",
+        "status": "PROGRAMADO" 
+      },
+      "next_pass": { 
+        "start_time": "17:30" 
+      }
+    },
+    {
+      "show_id": 3,
+      "show_name": "A Pluma y Espada",
+      "selected_icon_filename": "show-02.png",
+      "is_visible": true,
+      "current_pass": { 
+        "start_time": "14:15",
+        "status": "PROGRAMADO" 
+      },
+      "next_pass": { 
+        "start_time": "16:00" 
+      }
+    },
+    {
+      "show_id": 4,
+      "show_name": "Cetrería de Reyes",
+      "selected_icon_filename": "show-04.png",
+      "is_visible": true,
+      "current_pass": { 
+        "start_time": "13:45",
+        "status": "PROGRAMADO" 
+      },
+      "next_pass": { 
+        "start_time": "16:30" 
+      }
+    },
+    {
+      "show_id": 5,
+      "show_name": "El Misterio de Sorbaces",
+      "selected_icon_filename": "show-05.png",
+      "is_visible": true,
+      "current_pass": { 
+        "start_time": "10:30",
+        "status": "CERRADO" 
+      },
+      "next_pass": { 
+        "start_time": "18:15" 
+      }
+    }
+  ]
+}

@@ -2,6 +2,39 @@
 console.log('🔍 CONFIG loaded:', CONFIG);
 console.log('🔍 SHOW_STATES loaded:', SHOW_STATES);
 
+// DETECCIÓN MODO DEMO via URL parameter (?demo=true)
+const urlParams = new URLSearchParams(window.location.search);
+const DEMO_MODE = urlParams.get('demo') === 'true';
+
+if (DEMO_MODE) {
+    console.log('📺 DEMO MODE: Activated via URL parameter (?demo=true)');
+} else {
+    console.log('🔄 NORMAL MODE: Using real API data');
+}
+
+// DATOS DEMO - Se cargan desde archivo JSON centralizado
+let DEMO_DATA = null;
+
+// Función para cargar datos demo desde JSON centralizado
+async function loadDemoData() {
+    try {
+        const response = await fetch('./data/demo-data.json');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        DEMO_DATA = await response.json();
+        console.log('📺 DEMO DATA: Cargados desde JSON centralizado:', DEMO_DATA);
+    } catch (error) {
+        console.error('❌ Error cargando datos demo centralizados:', error);
+        // Fallback: datos mínimos en caso de error
+        DEMO_DATA = {
+            display_mode: "normal",
+            current_time: null,
+            shows: []
+        };
+    }
+}
+
 // Principal client for Pantallas LED
 class ShowsTrackClient {
     constructor() {
@@ -75,8 +108,21 @@ class ShowsTrackClient {
     }
 
     async fetchAndRender() {
+        // MODO DEMO MANUAL - Solo si URL contiene ?demo=true
+        if (DEMO_MODE) {
+            // Cargar datos demo desde JSON centralizado si no están cargados
+            if (!DEMO_DATA) {
+                await loadDemoData();
+            }
+            console.log('📺 DEMO MODE: Using centralized demo data');
+            this.currentData = DEMO_DATA;
+            this.lastValidData = DEMO_DATA;
+            this.render(DEMO_DATA);
+            return;
+        }
+
         try {
-            console.log('🔄 Fetching new data...');
+            console.log('🔄 Fetching new data from API...');
 
             const response = await fetch(`${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
             if (!response.ok) {
@@ -97,9 +143,9 @@ class ShowsTrackClient {
 
             this.render(data);
 
-            console.log('✅ Données mises à jour avec succès');
+            console.log('✅ Real data updated successfully');
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération:', error);
+            console.error('❌ Error fetching real data:', error);
             this.handleError(error);
         }
     }
@@ -212,7 +258,12 @@ class ShowsTrackClient {
       
           return `
             <tr data-show-id="${show.show_id || show.id}" data-status="${status}">
-              <td class="show-number">${index + 1}</td>
+              <td class="show-number">
+                ${show.selected_icon_filename ? 
+                  `<img src="./assets/images/show-icons/${show.selected_icon_filename}" class="show-icon" alt="${showName}">` 
+                  : `${index + 1}`
+                }
+              </td>
               <td class="show-name">${this.escapeHtml(showName)}</td>
               <td class="show-time">${startTime}</td>
               <td class="show-status">
@@ -310,6 +361,38 @@ class ShowsTrackClient {
 document.addEventListener('DOMContentLoaded', () => {
     const client = new ShowsTrackClient();
     client.start();
+
+    // COMUNICACIÓN CON VISTA DE OPERADOR
+    // Escuchar mensajes desde la Vista de Operador para refresh forzado
+    window.addEventListener('message', (event) => {
+        // Verificar origen por seguridad (solo localhost en desarrollo)
+        if (event.origin !== 'http://localhost:3000' && event.origin !== window.location.origin) {
+            return;
+        }
+        
+        // Manejar diferentes tipos de mensajes
+        switch (event.data?.type) {
+            case 'OPERATOR_REFRESH':
+                console.log('🔄 Operator triggered refresh - updating display immediately');
+                client.fetchAndRender();
+                break;
+            case 'OPERATOR_PING':
+                // Responder que estamos listos para comunicación
+                event.source?.postMessage({
+                    type: 'FRONTEND_PUBLIC_READY',
+                    timestamp: new Date().toISOString()
+                }, event.origin);
+                break;
+        }
+    });
+
+    // Notificar que estamos listos (si estamos en un iframe)
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            type: 'FRONTEND_PUBLIC_READY',
+            timestamp: new Date().toISOString()
+        }, '*');
+    }
 
     // clean up
     window.addEventListener('beforeunload', () => {

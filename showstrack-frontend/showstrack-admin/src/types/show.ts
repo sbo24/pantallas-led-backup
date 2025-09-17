@@ -5,18 +5,34 @@
 
 export type ShowStatus = 'PROGRAMADO' | 'ABIERTO' | 'CERRADO' | 'CANCELADO'
 
+export interface EventPass {
+  start_time: string
+  status: ShowStatus
+  status_color: string
+  event_date: string
+}
+
 export interface Show {
   id: number
   name: string
-  description: string | null
-  duration_estimated: number | null
+  description?: string | null
+  duration_estimated?: number | null
   is_visible: boolean
   display_order: number
-  custom_lead_time_access_minutes: number | null
-  custom_lead_time_finalized_minutes: number | null
-  created_at: string
-  updated_at: string
-  current_events_count: number
+  custom_lead_time_access_minutes?: number | null
+  custom_lead_time_finalized_minutes?: number | null
+  selected_icon_filename?: string | null
+  created_at?: string
+  updated_at?: string
+  current_events_count?: number
+  // Campos adicionales para compatibilidad con API pública
+  current_pass?: EventPass | null
+  next_pass?: EventPass | null
+  venue?: string
+  capacity?: number
+  leadTimeMinutes?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Event {

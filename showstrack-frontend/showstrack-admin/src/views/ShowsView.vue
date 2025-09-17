@@ -6,7 +6,6 @@
 
 import { computed, ref, onMounted } from 'vue'
 import { useShows, useTable, useModal, useNotifications } from '@/composables'
-import { useEventsStore } from '@/stores/events'
 import BaseTable from '@/components/BaseTable.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
@@ -28,9 +27,6 @@ const {
   bulkToggleStatus,
   fetchShows
 } = useShows()
-
-// Events store for calculating today events
-const eventsStore = useEventsStore()
 
 // Table Management
 const { 
@@ -102,20 +98,33 @@ const { showSuccessToast, showErrorToast, showWarningToast } = useNotifications(
 // Computed for today events count per show
 const showsWithTodayEvents = computed(() => {
   const today = new Date().toISOString().split('T')[0]
-  const todayEvents = (eventsStore.events || []).filter(event => 
-    event.date === today
-  )
   
-  return shows.value.map(show => ({
-    ...show,
-    todayEventsCount: todayEvents.filter(event => event.showId === show.id.toString()).length
-  }))
+  return shows.value.map(show => {
+    // Contar eventos basándose en current_pass y next_pass
+    let todayEventsCount = 0
+    
+    // Si hay un current_pass para hoy, contarlo
+    if (show.current_pass && show.current_pass.event_date === today) {
+      todayEventsCount++
+    }
+    
+    // Si hay un next_pass para hoy (y es diferente del current), contarlo
+    if (show.next_pass && 
+        show.next_pass.event_date === today && 
+        (!show.current_pass || show.next_pass.start_time !== show.current_pass.start_time)) {
+      todayEventsCount++
+    }
+    
+    return {
+      ...show,
+      todayEventsCount
+    }
+  })
 })
 
 onMounted(async () => {
   console.log('ShowsView mounting...')
   await fetchShows()
-  await eventsStore.fetchEvents()
   console.log(`ShowsView mounted with ${shows.value.length} shows`)
 })
 
@@ -482,7 +491,8 @@ const handleCreateSubmit = async (event: Event) => {
     is_visible: formData.get('is_visible') === 'on',
     display_order: 1,
     custom_lead_time_access_minutes: parseInt(formData.get('leadTime') as string) || null,
-    custom_lead_time_finalized_minutes: null
+    custom_lead_time_finalized_minutes: null,
+    selected_icon_filename: formData.get('selected_icon_filename') as string || null
   }
   
   try {
@@ -510,7 +520,8 @@ const handleEditSubmit = async (event: Event) => {
     name: formData.get('name') as string,
     description: formData.get('description') as string || '',
     is_visible: formData.get('is_visible') === 'on',
-    custom_lead_time_access_minutes: parseInt(formData.get('leadTime') as string) || null
+    custom_lead_time_access_minutes: parseInt(formData.get('leadTime') as string) || null,
+    selected_icon_filename: formData.get('selected_icon_filename') as string || null
   }
   
   console.log('Update data being sent:', updateData)
@@ -878,6 +889,20 @@ onMounted(() => {
               </label>
               <p class="mt-1 text-sm text-gray-500">Si está desmarcado, el show estará oculto en las pantallas públicas</p>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Icono del Show</label>
+              <select name="selected_icon_filename" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">Sin icono</option>
+                <option value="show-01.png">🏛️ El Último Cantar</option>
+                <option value="show-02.png">🏛️ A Pluma y Espada</option>
+                <option value="show-03.png">🏛️ Allende...</option>
+                <option value="show-04.png">🌳 Cetrería de Reyes</option>
+                <option value="show-05.png">🌳 El Misterio de Sorbaces</option>
+                <option value="show-06.png">🌳 El Tambor de la Libertad</option>
+                <option value="night-show.png">🌙 Night Show</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">Icono que aparecerá en las pantallas públicas</p>
+            </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">
             <BaseButton type="button" variant="secondary" @click="modals.create = false">
@@ -920,6 +945,20 @@ onMounted(() => {
                 <span class="ml-2 text-sm font-medium text-gray-700">Visible al público</span>
               </label>
               <p class="mt-1 text-sm text-gray-500">Si está desmarcado, el show estará oculto en las pantallas públicas</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Icono del Show</label>
+              <select name="selected_icon_filename" :value="selectedShow.selected_icon_filename || ''" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">Sin icono</option>
+                <option value="show-01.png">🏛️ El Último Cantar</option>
+                <option value="show-02.png">🏛️ A Pluma y Espada</option>
+                <option value="show-03.png">🏛️ Allende...</option>
+                <option value="show-04.png">🌳 Cetrería de Reyes</option>
+                <option value="show-05.png">🌳 El Misterio de Sorbaces</option>
+                <option value="show-06.png">🌳 El Tambor de la Libertad</option>
+                <option value="night-show.png">🌙 Night Show</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">Icono que aparecerá en las pantallas públicas</p>
             </div>
           </div>
           <div class="mt-6 flex justify-end gap-3">

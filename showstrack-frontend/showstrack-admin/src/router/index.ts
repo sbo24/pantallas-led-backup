@@ -56,6 +56,13 @@ const router = createRouter({
       beforeEnter: requiresAdmin,
       meta: { title: 'Configuración del Sistema', requiresAuth: true, requiresAdmin: true }
     },
+    {
+      path: '/operator',
+      name: 'operator',
+      component: () => import('../views/OperatorView.vue'),
+      beforeEnter: requiresAuth,
+      meta: { title: 'Vista de Operador', requiresAuth: true }
+    },
     
     // Utility routes
     {
