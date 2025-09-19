@@ -8,66 +8,52 @@
     <title>Horarios de Espectáculos - Puy du Fou España</title>
 </head>
 <body>
-    <!-- HEADER - 15% de la pantallas ( 162px ) -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo-section">
-                <img src="./assets/images/logo.png" alt="Logo de Puy du Fou España" class="logo">
+    <div class="public-display-preview">
+        <!-- MAIN CONTENT - 85% de la pantalla -->
+        <main class="main-content" id="main-content">
+            <!-- Contenido normal: tabla de espectáculos -->
+            <div class="shows-container" id="shows-container">
+                <table class="shows-table">
+                    <thead>
+                        <tr>
+                            <th class="col-show-combined" colspan="2">
+                                <div class="table-title-with-icon">
+                                    <img src="./assets/images/shows.png" alt="Shows" class="table-shows-icon">
+                                    <span>PRÓXIMOS ESPECTÁCULOS</span>
+                                </div>
+                            </th>
+                            <th class="col-time">Hora</th>
+                            <th class="col-status" id="clock-header">14:30</th>
+                            <th class="col-next">Próximo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shows-tbody">
+                        <!-- Los shows se cargarán dinámicamente aquí -->
+                    </tbody>
+                </table>
             </div>
-            <div class="title-section">
-                <h1 class="main-title">HORARIOS DE ESPECTÁCULOS</h1>
-            </div>
-            <div class="time-section">
-                <div class="current-time" id="current-time">14:30</div>
-            </div>
-        </div>
-    </header>
 
-    <!-- MAIN CONTENT - 70% de la pantalla ( 756px ) -->
-     <main class="main-content" id="main-content">
-        <!-- Contenido normal: tabla de espectáculos -->
-         <div class="shows-container" id="shows-container">
-             <table class="shows-table">
-                <thead>
-                    <tr>
-                        <th class="col-number">#</th>
-                        <th class="col-show">Espectáculo</th>
-                        <th class="col-time">Hora</th>
-                        <th class="col-status">Estado</th>
-                        <th class="col-next">Próximo</th>
-                    </tr>
-                </thead>
-                <tbody id="shows-tbody">
-                    <!-- Los shows se cargarán dinámicamente aquí -->
-                </tbody>
-             </table>
-         </div>
-
-         <!-- Modo alerta global (oculto por defecto) -->
-          <div class="alert-mode" id="alert-mode" style="display: none;">
-            <div class="alert-icon">⚠️</div>
-            <h1 class="alert-message" id="alert-message">Mensaje de alerta</h1>
-            <p class="alert-timestamp" id="alert-timestamp">Activada: 14:30</p>
-          </div>
-     </main>
-
-     <!-- FOOTER - 15% de la pantalla ( 162px ) -->
-     <footer class="footer">
-        <div class="footer-content">
-            <div class="info-section">
-                <p class="park-info">Puy du Fou España - Toledo</p>
-                <p class="additional-info">Información adicional en recepción</p>
+            <!-- Modo alerta global (oculto por defecto) -->
+            <div class="alert-mode" id="alert-mode" style="display: none;">
+                <div class="alert-icon">⚠️</div>
+                <h1 class="alert-message" id="alert-message">Mensaje de alerta</h1>
+                <p class="alert-timestamp" id="alert-timestamp">Activada: 14:30</p>
             </div>
-            <div class="update-section">
-                <p class="last-update">Última actualización: <span id="last-update-time">14:30</span></p>
-                <p class="next-update">Próxima actualización: <span id="next-update-time">30s</span></p>
-            </div>
-        </div>
-     </footer>
+        </main>
 
-     <!-- Scripts -->
-     <script src="./js/config.js"></script>
-     <script src="./js/app.js"></script>
+        <!-- FOOTER - 15% de la pantalla -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="custom-message">
+                    <p class="custom-text" id="custom-message-text">Disfruta de los espectáculos de Puy du Fou</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./js/config.js"></script>
+    <script src="./js/app.js"></script>
 
 </body>
 </html>

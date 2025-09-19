@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Migration Frontend-Public</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Test de Migración Frontend-Public</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        // Test 1: Verificar estructura HTML
+        addResult('info', 'Ejecutando tests de migración...');
+        
+        // Test: Verificar que no hay header
+        if (!document.querySelector('header')) {
+            addResult('success', '✅ Header eliminado correctamente');
+        } else {
+            addResult('error', '❌ Header aún presente');
+        }
+        
+        // Test: Verificar nueva estructura de tabla
+        const tableHeader = document.querySelector('.col-show-combined');
+        if (tableHeader) {
+            addResult('success', '✅ Nueva estructura de tabla implementada');
+        } else {
+            addResult('error', '❌ Estructura de tabla no migrada');
+        }
+        
+        // Test: Verificar reloj en header de tabla
+        const clockHeader = document.getElementById('clock-header');
+        if (clockHeader) {
+            addResult('success', '✅ Reloj movido al header de tabla');
+        } else {
+            addResult('error', '❌ Reloj no encontrado en header de tabla');
+        }
+        
+        // Test: Verificar footer con custom message
+        const customMessage = document.getElementById('custom-message-text');
+        if (customMessage) {
+            addResult('success', '✅ Custom message en footer implementado');
+        } else {
+            addResult('error', '❌ Custom message no encontrado');
+        }
+        
+        // Test: Verificar estilos CSS del admin
+        const body = document.body;
+        const styles = window.getComputedStyle(body);
+        if (styles.backgroundImage && styles.backgroundImage !== 'none') {
+            addResult('success', '✅ Background del admin aplicado');
+        } else {
+            addResult('error', '❌ Background del admin no aplicado');
+        }
+        
+        addResult('info', 'Tests completados. Abre el enlace principal para ver el resultado: http://localhost:8081');
+    </script>
+</body>
+</html>

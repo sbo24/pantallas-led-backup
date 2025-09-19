@@ -47,14 +47,13 @@ class ShowsTrackClient {
 
         // DOM elements
         this.elements = {
-            currentTime: document.getElementById('current-time'),
+            clockHeader: document.getElementById('clock-header'),
             showsTbody: document.getElementById('shows-tbody'),
             showsContainer: document.getElementById('shows-container'),
             alertMode: document.getElementById('alert-mode'),
             alertMessage: document.getElementById('alert-message'),
             alertTimestamp: document.getElementById('alert-timestamp'),
-            lastUpdateTime: document.getElementById('last-update-time'),
-            nextUpdateTime: document.getElementById('next-update-time')
+            customMessageText: document.getElementById('custom-message-text')
         };
     }
 
@@ -75,7 +74,7 @@ class ShowsTrackClient {
         const updateClock = () => {
             const now = new Date();
             const timeString = now.toLocaleTimeString('es-ES', CONFIG.TIME_FORMAT);
-            this.elements.currentTime.textContent = timeString;
+            this.elements.clockHeader.textContent = timeString;
         };
 
         updateClock();
@@ -86,25 +85,6 @@ class ShowsTrackClient {
         this.updateTimer = setInterval(() => {
             this.fetchAndRender();
         }, CONFIG.UPDATE_INTERVAL);
-
-        // start the next update timer
-        this.startNextUpdateCountdown();
-    }
-
-    startNextUpdateCountdown() {
-        let secondsLeft = CONFIG.UPDATE_INTERVAL / 1000;
-
-        const updateCountdown = () => {
-            this.elements.nextUpdateTime.textContent = `${secondsLeft}s`;
-            secondsLeft--;
-
-            if (secondsLeft < 0) {
-                secondsLeft = CONFIG.UPDATE_INTERVAL / 1000;
-            }
-        };
-
-        updateCountdown();
-        this.nextUpdateTimer = setInterval(updateCountdown, 1000);
     }
 
     async fetchAndRender() {
@@ -122,20 +102,25 @@ class ShowsTrackClient {
         }
 
         try {
-            console.log('🔄 Fetching new data from API...');
+            console.log('🔄 Obteniendo nuevos datos de la API...');
+            console.log('📡 URL de conexión:', `${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
 
             const response = await fetch(`${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
+            console.log('📡 Respuesta recibida, estado:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
+            console.log('📦 Datos recibidos:', data);
             
-            // verify the structure of data
+            // Verificar la estructura de los datos
             if(!this.validateData(data)) {
-                throw new Error('Invalid data structure');
+                console.error('❌ Estructura de datos inválida');
+                throw new Error('Estructura de datos inválida');
             }
 
-            // Update validated data
+            // Actualizar datos validados
             this.currentData = data;
             this.lastValidData = data;
             this.retryCount = 0;
@@ -143,9 +128,10 @@ class ShowsTrackClient {
 
             this.render(data);
 
-            console.log('✅ Real data updated successfully');
+            console.log('✅ Datos reales actualizados exitosamente');
+            console.log('🎭 Total de shows encontrados:', data.shows?.length || 0);
         } catch (error) {
-            console.error('❌ Error fetching real data:', error);
+            console.error('❌ Error obteniendo datos reales:', error);
             this.handleError(error);
         }
     }
@@ -155,7 +141,8 @@ class ShowsTrackClient {
             typeof data === 'object' &&
             Array.isArray(data.shows) &&
             data.current_time &&
-            data.display_mode;
+            data.display_mode &&
+            data.metadata;
     }
 
     handleError(error) {
@@ -184,9 +171,10 @@ class ShowsTrackClient {
     }
 
     render(data) {
-        // update timestamp
-        const localTime = new Date();
-        this.elements.lastUpdateTime.textContent = localTime.toLocaleTimeString('es-ES', CONFIG.TIME_FORMAT);
+        // Update custom message if present in metadata
+        if (data.metadata && data.metadata.custom_message) {
+            this.elements.customMessageText.textContent = data.metadata.custom_message;
+        }
 
         // Verify the display mode
         if(data.display_mode === 'alert' && data.alert) {
@@ -228,9 +216,9 @@ class ShowsTrackClient {
         };
       
         const sortKey = (show) => {
-          const tNext = parseTimeToDate(show?.next_pass?.start_time);
           const tCurr = parseTimeToDate(show?.current_pass?.start_time);
-          const candidate = tNext || tCurr; // on préfère un futur
+          // CORREGIDO: Solo usar current_pass para ordenación (consistente con backend)
+          const candidate = tCurr;
           const rank = getStatusRank(show);
           if (!candidate) return { rank, past: 1, delta: Number.POSITIVE_INFINITY };
           const deltaMs = candidate - now;
@@ -254,24 +242,28 @@ class ShowsTrackClient {
           const status = show.current_pass?.status || show.status || 'PROGRAMADO';
           const nextShow = show.next_pass?.start_time || show.next_show || '---';
       
-          const state = SHOW_STATES[status] || SHOW_STATES.PROGRAMADO;
-      
           return `
             <tr data-show-id="${show.show_id || show.id}" data-status="${status}">
-              <td class="show-number">
-                ${show.selected_icon_filename ? 
-                  `<img src="./assets/images/show-icons/${show.selected_icon_filename}" class="show-icon" alt="${showName}">` 
-                  : `${index + 1}`
-                }
+              <td class="col-show-combined" colspan="2">
+                <div class="show-content">
+                  ${show.selected_icon_filename ? 
+                    `<img src="./assets/images/show-icons/${show.selected_icon_filename}" class="show-icon" alt="${showName}">` 
+                    : `<span class="show-number">${index + 1}</span>`
+                  }
+                  <span class="show-name">${this.escapeHtml(showName)}</span>
+                </div>
               </td>
-              <td class="show-name">${this.escapeHtml(showName)}</td>
-              <td class="show-time">${startTime}</td>
-              <td class="show-status">
-                <span class="show-status ${state.class}">
-                  ${state.icon} ${state.label}
+              <td class="col-time">
+                <span class="show-time">${startTime}</span>
+              </td>
+              <td class="col-status">
+                <span class="show-status" data-status="${status}">
+                  ${status}
                 </span>
               </td>
-              <td class="show-next">${nextShow}</td>
+              <td class="col-next">
+                <span class="show-next">${nextShow}</span>
+              </td>
             </tr>
           `;
         }).join('');
@@ -300,7 +292,7 @@ class ShowsTrackClient {
         // Afficher message "pas de shows"
         this.elements.showsTbody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align: center; padding: 4rem;">
+                <td colspan="4" style="text-align: center; padding: 4rem;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">🎭</div>
                     <div style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem;">
                         No hay espectáculos programados en este momento
@@ -349,9 +341,6 @@ class ShowsTrackClient {
     destroy() {
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
-        }
-        if (this.nextUpdateTimer) {
-            clearInterval(this.nextUpdateTimer);
         }
         console.log('🛑 ShowsTrack Client arrêté');
     }
