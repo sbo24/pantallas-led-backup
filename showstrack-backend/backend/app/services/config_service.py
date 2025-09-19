@@ -27,7 +27,10 @@ class ConfigService:
         },
         "display": {
             "max_shows_display": 5,
-            "display_refresh_seconds": 30
+            "display_refresh_seconds": 30,
+            "display_post_start_minutes": 5,
+            "forced_closure_minutes": 5,
+            "custom_message": None
         },
         "venue": {
             "venue_name": "Puy du Fou España",
@@ -272,6 +275,62 @@ class ConfigService:
             updated_fields=["park_opening_time", "park_closing_time"],
             previous_values=previous_values,
             new_values=new_values,
+            updated_at=datetime.now(timezone.utc).isoformat(),
+            updated_by=updated_by
+        )
+    
+    async def get_custom_message(self) -> Optional[str]:
+        """Get current custom message for public displays."""
+        display_setting = await self._get_setting("display")
+        
+        if not display_setting:
+            # Create default display config if not exists
+            default_display = self.DEFAULT_CONFIG_KEYS["display"]
+            await self._create_default_setting("display", default_display)
+            return None
+        
+        display_config = display_setting.value
+        return display_config.get("custom_message")
+    
+    async def update_custom_message(
+        self, 
+        message: Optional[str],
+        updated_by: str
+    ) -> ConfigurationChangeResponse:
+        """Update custom message for public displays."""
+        # Get current display config
+        display_setting = await self._get_setting("display")
+        
+        if not display_setting:
+            # Create default display config
+            display_config = self.DEFAULT_CONFIG_KEYS["display"].copy()
+        else:
+            display_config = display_setting.value.copy()
+        
+        # Get previous value
+        previous_message = display_config.get("custom_message")
+        
+        # Update custom message
+        display_config["custom_message"] = message
+        
+        # Update in database
+        await self._update_setting("display", display_config, updated_by)
+        
+        # Log change
+        message_detail = f"'{message}'" if message else "None"
+        previous_detail = f"'{previous_message}'" if previous_message else "None"
+        await self._log_config_action(
+            action="UPDATE_CUSTOM_MESSAGE",
+            user=updated_by,
+            details=f"Mensaje personalizado: {previous_detail} → {message_detail}"
+        )
+        
+        return ConfigurationChangeResponse(
+            success=True,
+            message="Mensaje personalizado actualizado correctamente",
+            updated_fields=["custom_message"],
+            previous_values={"custom_message": previous_message},
+            new_values={"custom_message": message},
             updated_at=datetime.now(timezone.utc).isoformat(),
             updated_by=updated_by
         )

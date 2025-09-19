@@ -106,6 +106,19 @@ export const createOverride = async (eventId: string, status: 'CERRADO' | 'CANCE
   return res.json()
 }
 
+export const revertOverride = async (eventId: string, reason: string) => {
+  const res = await fetch(`${API_BASE_URL}/api/admin/events/${eventId}/override`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ action: 'deactivate', reason })
+  })
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(errorData.detail || `HTTP ${res.status}: ${res.statusText}`)
+  }
+  return res.json()
+}
+
 export const applySelectedChanges = async (changeIds: string[]) => {
   const res = await fetch(`${API_BASE_URL}/api/admin/sync/apply`, {
     method: 'POST',

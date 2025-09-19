@@ -62,10 +62,10 @@
               placeholder="Mensaje que aparecerá en las pantallas públicas..."
               class="message-input"
               rows="3"
-              maxlength="200"
+              maxlength="100"
             ></textarea>
             <div class="message-actions">
-              <span class="char-count">{{ customMessage.length }}/200</span>
+              <span class="char-count">{{ customMessage.length }}/100</span>
               <BaseButton 
                 @click="saveCustomMessage"
                 :disabled="!customMessage.trim()"
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useNotifications } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
 import ClockDisplay from '@/components/operator/ClockDisplay.vue'
@@ -183,145 +183,140 @@ const getIconForShow = (showName: string): string | undefined => {
   return iconMap[showName]
 }
 
+// Función para formatear tiempo sin segundos
+const formatTime = (timeString: string) => {
+  if (!timeString || timeString === '--:--') return '--:--'
+  
+  // Si viene con segundos (HH:MM:SS), extraer solo HH:MM
+  if (timeString.includes(':') && timeString.split(':').length === 3) {
+    const [hours, minutes] = timeString.split(':')
+    return `${hours}:${minutes}`
+  }
+  
+  // Si ya está en formato HH:MM, devolverlo tal como está
+  return timeString
+}
+
 const loadRealData = async () => {
   try {
-    // 1. Cargar shows públicos (para display)
-    const publicResponse = await fetch('http://localhost:8000/api/public/schedules')
-    if (!publicResponse.ok) throw new Error('Failed to load public data')
-    const publicData = await publicResponse.json()
-    
-    // 2. Cargar eventos admin (para obtener event_id) - necesitamos autenticación
-    let eventsData: any = null
-    try {
-      const token = getAccessToken()
-      if (!token) {
-        console.warn('No hay token de autenticación, overrides no estarán disponibles')
-        return publicData.shows.map((show: any) => ({
-          id: show.show_id,
-          show_id: show.show_id,
-          name: show.show_name,
-          show_name: show.show_name,
-          selected_icon_filename: getIconForShow(show.show_name),
-          current_pass: show.current_pass,
-          next_pass: show.next_pass,
-          custom_lead_time_access_minutes: 30,
-          hasOverride: false
-        }))
-      }
-      
-      const today = new Date().toISOString().split('T')[0]
-      console.log('[OperatorView] Cargando eventos admin con token...')
-      const eventsResponse = await fetch(`http://localhost:8000/api/admin/events?date_from=${today}&date_to=${today}&page=1&size=50`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      console.log('[OperatorView] Respuesta eventos admin:', eventsResponse.status)
-      if (eventsResponse.ok) {
-        eventsData = await eventsResponse.json()
-        console.log('[OperatorView] Eventos admin cargados exitosamente')
-      } else {
-        const errorText = await eventsResponse.text()
-        console.warn('Error al cargar eventos admin:', eventsResponse.status, errorText)
-      }
-    } catch (error) {
-      console.warn('No se pudieron cargar eventos admin, overrides no estarán disponibles:', error)
+    // NUEVA LÓGICA: Cargar eventos individuales directamente (como EventsView)
+    const token = getAccessToken()
+    if (!token) {
+      console.warn('No hay token de autenticación, no se pueden cargar eventos')
+      throw new Error('No authentication token available')
     }
     
-    // 3. Mapear y enriquecer datos
-    console.log('[OperatorView] Datos públicos cargados:', publicData.shows?.length, 'shows')
-    console.log('[OperatorView] Datos admin cargados:', eventsData?.items?.length, 'events')
-    if (eventsData?.items?.length > 0) {
-      console.log('[OperatorView] Primer evento admin:', eventsData.items[0])
-    }
+    console.log('[OperatorView] Cargando shows visibles primero...')
     
-    return publicData.shows.map((show: any) => {
-      // Buscar el event_id del current_pass si existe
-      let currentEventId = null
-      if (eventsData && show.current_pass) {
-        console.log(`[OperatorView] Buscando evento para show "${show.show_name}":`, {
-          show_name: show.show_name,
-          start_time: show.current_pass.start_time,
-          event_date: show.current_pass.event_date
-        })
-        
-        // Normalizar tiempo para comparación (12:45 -> 12:45, 22:00:00 -> 22:00)
-        const normalizeTime = (timeStr: string) => {
-          if (!timeStr) return ''
-          // Tomar solo HH:MM (ignorar segundos si existen)
-          return timeStr.substring(0, 5)
-        }
-        
-        // NUEVA LÓGICA: Mapear por show_id y tiempo normalizado
-        const matchingEvent = eventsData.items?.find((event: any) => {
-          const eventTimeNormalized = normalizeTime(event.start_time)
-          const showTimeNormalized = normalizeTime(show.current_pass.start_time)
-          
-          const showIdMatch = event.show_id === show.show_id
-          const timeMatch = eventTimeNormalized === showTimeNormalized
-          const dateMatch = event.event_date === show.current_pass.event_date
-          
-          const match = showIdMatch && timeMatch && dateMatch
-          
-          if (showIdMatch) {
-            console.log(`[OperatorView] Comparando evento por show_id ${event.show_id}:`, {
-              event_id: event.id,
-              event_start_time: event.start_time,
-              event_time_normalized: eventTimeNormalized,
-              show_start_time: show.current_pass.start_time,
-              show_time_normalized: showTimeNormalized,
-              event_date: event.event_date,
-              show_date: show.current_pass.event_date,
-              show_id_match: showIdMatch,
-              time_match: timeMatch,
-              date_match: dateMatch,
-              final_match: match
-            })
-          }
-          
-          return match
-        })
-        
-        // Log de todos los eventos disponibles para debug (solo una vez)
-        if (show.show_name === "El Último Cantar") {
-          console.log(`[OperatorView] Eventos disponibles para show_id ${show.show_id}:`, 
-            eventsData.items.filter((e: any) => e.show_id === show.show_id)
-              .map((e: any) => ({
-                event_id: e.id,
-                show_id: e.show_id,
-                start_time: e.start_time,
-                start_time_normalized: normalizeTime(e.start_time),
-                event_date: e.event_date,
-                show_name: e.show_name
-              }))
-          )
-        }
-        
-        if (matchingEvent) {
-          currentEventId = matchingEvent.id
-          console.log(`[OperatorView] ✅ Evento encontrado para "${show.show_name}": ID ${currentEventId}`)
-        } else {
-          console.log(`[OperatorView] ❌ No se encontró evento para "${show.show_name}"`)
-        }
-      }
-      
-      return {
-        id: show.show_id,
-        show_id: show.show_id,
-        name: show.show_name,
-        show_name: show.show_name,
-        selected_icon_filename: getIconForShow(show.show_name),
-        current_pass: show.current_pass ? {
-          ...show.current_pass,
-          event_id: currentEventId // Agregar event_id para overrides
-        } : null,
-        next_pass: show.next_pass,
-        custom_lead_time_access_minutes: 30,
-        hasOverride: false
+    // 1. Cargar shows visibles para filtrar eventos
+    const showsResponse = await fetch('http://localhost:8000/api/admin/shows?visible_only=true&page=1&size=100', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     })
+    
+    if (!showsResponse.ok) {
+      const errorText = await showsResponse.text()
+      throw new Error(`Error al cargar shows visibles: ${showsResponse.status} ${errorText}`)
+    }
+    
+    const showsData = await showsResponse.json()
+    const visibleShowIds = new Set(showsData.items?.map((show: any) => show.id) || [])
+    console.log('[OperatorView] Shows visibles cargados:', visibleShowIds.size, 'shows')
+    
+    if (visibleShowIds.size === 0) {
+      console.log('[OperatorView] No hay shows visibles')
+      return []
+    }
+    
+    const today = new Date().toISOString().split('T')[0]
+    console.log('[OperatorView] Cargando eventos individuales para operador...')
+    
+    // 2. Cargar eventos del día
+    const eventsResponse = await fetch(`http://localhost:8000/api/admin/events?date_from=${today}&date_to=${today}&page=1&size=50`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!eventsResponse.ok) {
+      const errorText = await eventsResponse.text()
+      throw new Error(`Error al cargar eventos: ${eventsResponse.status} ${errorText}`)
+    }
+    
+    const eventsData = await eventsResponse.json()
+    console.log('[OperatorView] Eventos cargados:', eventsData.items?.length, 'eventos')
+    
+    if (!eventsData.items || eventsData.items.length === 0) {
+      console.log('[OperatorView] No hay eventos para hoy')
+      return []
+    }
+    
+    // 3. Filtrar eventos por shows visibles, eventos de sistema y ventana temporal
+    const currentTime = new Date()
+    const showEvents = eventsData.items.filter((event: any) => {
+      const showName = event.show?.name || ''
+      const showId = event.show_id
+      
+      // Filtrar eventos de sistema (Apertura/Cierre)
+      if (showName.includes('Apertura') || showName.includes('Cierre')) {
+        return false
+      }
+      
+      // Filtrar por shows visibles
+      if (!visibleShowIds.has(showId)) {
+        console.log(`[OperatorView] Evento filtrado por show no visible: ${showName} (ID: ${showId})`)
+        return false
+      }
+      
+      // Filtrar eventos que han pasado más de 5 minutos desde el inicio
+      const eventDate = new Date(event.event_date)
+      const [hours, minutes] = event.start_time.split(':').map(Number)
+      const eventDateTime = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), hours, minutes)
+      const minutesSinceStart = (currentTime.getTime() - eventDateTime.getTime()) / (1000 * 60)
+      
+      if (minutesSinceStart > 5) {
+        console.log(`[OperatorView] Evento filtrado por ventana temporal: ${showName} (${minutesSinceStart.toFixed(1)} min desde inicio)`)
+        return false
+      }
+      
+      return true
+    })
+    console.log('[OperatorView] Eventos filtrados por visibilidad:', showEvents.length, 'eventos válidos')
+    
+    return showEvents.map((event: any) => {
+        // Buscar el siguiente evento del mismo show
+        const sameShowEvents = showEvents
+          .filter(e => e.show_id === event.show_id)
+          .sort((a, b) => a.start_time.localeCompare(b.start_time))
+        
+        const currentIndex = sameShowEvents.findIndex(e => e.id === event.id)
+        const nextEvent = currentIndex < sameShowEvents.length - 1 ? sameShowEvents[currentIndex + 1] : null
+        
+        return {
+          id: event.id,
+          event_id: event.id, // ID directo del evento
+          show_id: event.show_id,
+          name: event.show?.name || event.show_name || 'Show desconocido',
+          show_name: event.show?.name || event.show_name || 'Show desconocido',
+          selected_icon_filename: getIconForShow(event.show?.name || event.show_name),
+          current_pass: {
+            start_time: formatTime(event.start_time),
+            status: event.calculated_status || 'PROGRAMADO',
+            event_date: event.event_date,
+            event_id: event.id
+          },
+          next_pass: nextEvent ? {
+            start_time: formatTime(nextEvent.start_time),
+            event_date: nextEvent.event_date
+          } : null,
+          custom_lead_time_access_minutes: event.show?.custom_lead_time_access_minutes || 30,
+          hasOverride: event.status_override?.is_active || false,
+          overrideReason: event.status_override?.reason || null
+        }
+      })
   } catch (error) {
     console.error('Error loading real data:', error)
     throw error
@@ -359,7 +354,38 @@ const onDemoModeChange = async () => {
 
 const refreshPreview = async () => {
   await loadShows()
+  // Also refresh custom message in preview
+  const previewComponent = publicPreview.value
+  if (previewComponent && previewComponent.loadCustomMessage) {
+    previewComponent.loadCustomMessage()
+  }
   showSuccessToast('Preview actualizado')
+}
+
+const loadCurrentCustomMessage = async () => {
+  try {
+    const authStore = useAuthStore()
+    if (!authStore.tokens?.accessToken) {
+      console.warn('[OperatorView] No access token available for loading custom message')
+      return
+    }
+    
+    const response = await fetch('http://localhost:8000/api/admin/config/custom-message', {
+      headers: {
+        'Authorization': `Bearer ${authStore.tokens.accessToken}`
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.has_message && data.custom_message) {
+        customMessage.value = data.custom_message
+        console.log('[OperatorView] Current custom message loaded:', data.custom_message)
+      }
+    }
+  } catch (error) {
+    console.warn('[OperatorView] Error loading current custom message:', error)
+  }
 }
 
 const onOverrideApplied = async (data: { showId: number; status: string; reason: string }) => {
@@ -377,15 +403,71 @@ const onOverrideApplied = async (data: { showId: number; status: string; reason:
 
 const saveCustomMessage = async () => {
   try {
-    // TODO: Implementar API call para guardar mensaje personalizado
-    // await apiPost('/api/operator/custom-message', { message: customMessage.value })
+    console.log('[OperatorView] Guardando mensaje personalizado:', customMessage.value)
+    
+    // Get auth token
+    const authStore = useAuthStore()
+    if (!authStore.tokens?.accessToken) {
+      throw new Error('No authentication token available')
+    }
+    
+    // Prepare message data
+    const messageData = {
+      message: customMessage.value?.trim() || null
+    }
+    
+    // API call to save custom message
+    const response = await fetch('http://localhost:8000/api/admin/config/custom-message', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.tokens.accessToken}`
+      },
+      body: JSON.stringify(messageData)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Error al guardar mensaje')
+    }
+    
+    const result = await response.json()
+    console.log('[OperatorView] Mensaje guardado exitosamente:', result)
     
     showSuccessToast('Mensaje personalizado guardado')
     
-    // Refresh preview para mostrar el nuevo mensaje
-    refreshPreview()
+    // Refresh preview to show the new message (without showing additional toast)
+    await loadShows()
+    const previewComponent = publicPreview.value
+    if (previewComponent && previewComponent.loadCustomMessage) {
+      previewComponent.loadCustomMessage()
+    }
   } catch (error) {
+    console.error('[OperatorView] Error guardando mensaje personalizado:', error)
     showErrorToast('Error al guardar mensaje personalizado')
+  }
+}
+
+// Auto-refresh functionality
+let autoRefreshInterval: NodeJS.Timeout | null = null
+
+const startAutoRefresh = () => {
+  // Limpiar intervalo existente si lo hay
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval)
+  }
+  
+  // Actualizar cada 30 segundos (mismo intervalo que pantallas públicas)
+  autoRefreshInterval = setInterval(async () => {
+    console.log('[OperatorView] Auto-refresh: recargando datos...')
+    await loadShows()
+  }, 30000) // 30 segundos
+}
+
+const stopAutoRefresh = () => {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval)
+    autoRefreshInterval = null
   }
 }
 
@@ -393,8 +475,16 @@ onMounted(() => {
   // Cargar shows al montar el componente
   loadShows()
   
-  // Cargar mensaje personalizado existente si hay uno
-  // TODO: Implementar carga desde API
+  // Iniciar auto-refresh
+  startAutoRefresh()
+  
+  // Cargar mensaje personalizado existente
+  loadCurrentCustomMessage()
+})
+
+// Limpiar intervalo al desmontar el componente
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 

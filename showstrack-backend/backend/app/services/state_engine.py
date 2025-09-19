@@ -36,7 +36,9 @@ class TimeWindows(NamedTuple):
     """Ventanas temporales que definen transiciones de estado."""
     access_start: datetime      # Momento: PROGRAMADO → ABIERTO
     finalized_start: datetime   # Momento: ABIERTO → CERRADO (normalmente = show_start)
+    forced_closure_start: datetime  # Momento: Cierre forzado (prioridad sobre ABIERTO)
     show_start: datetime        # Hora de inicio real del espectáculo
+    display_until: datetime     # Momento: Show desaparece de pantallas públicas
     show_end: Optional[datetime] = None  # Hora de fin (si está definida)
 
 
@@ -87,7 +89,7 @@ class StateEngine:
         lead_times = await self._resolve_lead_times(event.show)
         
         # Paso 3: Calcular ventanas temporales
-        windows = self._calculate_time_windows(event, lead_times)
+        windows = await self._calculate_time_windows(event, lead_times)
         
         # Paso 4: Determinar estado según hora actual
         state = self._determine_state_by_time(current_time, windows)
@@ -144,21 +146,29 @@ class StateEngine:
             finalized_minutes=0
         )
     
-    def _calculate_time_windows(
+    async def _calculate_time_windows(
         self, 
         event: ScheduledEvent, 
         lead_times: LeadTimeConfig
     ) -> TimeWindows:
         """
         Paso 3: Calcula las ventanas temporales que definen los cambios de estado.
+        Incluye nuevas ventanas para cierre forzado y visibilidad post-inicio.
         """
         # Combinar fecha y hora del evento
         # Las columnas Date/Time de la BDD se interpretan como hora local del venue (Europa/Madrid)
         event_datetime = datetime.combine(event.event_date, event.start_time)
         
-        # Calcular puntos de transición
+        # Obtener configuraciones de display desde GlobalSettings
+        display_config = await self._get_display_config()
+        
+        # Calcular puntos de transición originales
         access_start = event_datetime - timedelta(minutes=lead_times.access_minutes)
         finalized_start = event_datetime - timedelta(minutes=lead_times.finalized_minutes)
+        
+        # Calcular nuevos puntos de transición
+        forced_closure_start = event_datetime - timedelta(minutes=display_config["forced_closure_minutes"])
+        display_until = event_datetime + timedelta(minutes=display_config["display_post_start_minutes"])
         
         # Calcular hora de fin si está definida
         show_end = None
@@ -168,7 +178,9 @@ class StateEngine:
         return TimeWindows(
             access_start=access_start,
             finalized_start=finalized_start,
+            forced_closure_start=forced_closure_start,
             show_start=event_datetime,
+            display_until=display_until,
             show_end=show_end
         )
     
@@ -180,19 +192,21 @@ class StateEngine:
         """
         Paso 4: Determina el estado basándose en la hora actual y las ventanas calculadas.
         
-        Lógica temporal:
+        Nueva lógica temporal con cierre forzado:
         - Antes de access_start: PROGRAMADO
-        - Entre access_start y show_start: ABIERTO  
-        - Después de show_start: CERRADO
+        - Entre access_start y forced_closure_start: ABIERTO  
+        - Entre forced_closure_start y show_start: CERRADO (cierre forzado - PRIORIDAD)
+        - Después de show_start: CERRADO (show iniciado)
         """
         if current_time < windows.access_start:
             return "PROGRAMADO"  # Todavía no es hora de abrir acceso
         
-        elif current_time < windows.show_start:
+        elif current_time < windows.forced_closure_start:
             return "ABIERTO"     # Ventana de acceso activa
         
         else:
-            return "CERRADO"     # Show iniciado o finalizado
+            # Cierre forzado O show ya iniciado
+            return "CERRADO"     # Cierre forzado tiene prioridad sobre apertura
     
     def _apply_special_cases(
         self, 
@@ -219,6 +233,55 @@ class StateEngine:
         # Por ahora retornar el estado calculado normalmente
         
         return calculated_state
+    
+    async def _get_display_config(self) -> Dict[str, Any]:
+        """
+        Obtiene la configuración de display desde GlobalSettings.
+        Utiliza valores por defecto si no existe configuración.
+        """
+        try:
+            from app.models.settings import GlobalSettings
+            from sqlalchemy import select
+            
+            stmt = select(GlobalSettings).where(GlobalSettings.key == "display")
+            result = await self.db.execute(stmt)
+            settings = result.scalar_one_or_none()
+            
+            if settings and isinstance(settings.value, dict):
+                return settings.value
+            else:
+                # Valores por defecto si no existe configuración
+                return {
+                    "display_post_start_minutes": 5,
+                    "forced_closure_minutes": 5
+                }
+        except Exception:
+            # Fallback silencioso en caso de error
+            return {
+                "display_post_start_minutes": 5,
+                "forced_closure_minutes": 5
+            }
+    
+    async def should_display_event(self, event: ScheduledEvent, current_time: Optional[datetime] = None) -> bool:
+        """
+        Determina si un evento debe mostrarse en pantallas públicas.
+        Basado en la ventana de visibilidad post-inicio configurada.
+        """
+        if current_time is None:
+            current_time = self._now_local_naive()
+        else:
+            if current_time.tzinfo is not None:
+                current_time = current_time.astimezone(self._venue_tz).replace(tzinfo=None)
+        
+        # Obtener configuración real de display
+        display_config = await self._get_display_config()
+        display_post_start_minutes = display_config.get("display_post_start_minutes", 5)
+        
+        event_datetime = datetime.combine(event.event_date, event.start_time)
+        
+        # Si ya pasaron X minutos del inicio, no mostrar
+        post_start_limit = event_datetime + timedelta(minutes=display_post_start_minutes)
+        return current_time <= post_start_limit
     
     async def calculate_multiple_events_states(
         self, 
@@ -264,7 +327,7 @@ class StateEngine:
             
             # Calcular estado normalmente (pasos 2-5)
             lead_times = await self._resolve_lead_times(event.show)
-            windows = self._calculate_time_windows(event, lead_times)
+            windows = await self._calculate_time_windows(event, lead_times)
             state = self._determine_state_by_time(current_time, windows)
             final_state = self._apply_special_cases(event, state, current_time)
             states[event.id] = final_state
@@ -287,13 +350,17 @@ class StateEngine:
             return None
         
         lead_times = await self._resolve_lead_times(event.show)
-        windows = self._calculate_time_windows(event, lead_times)
+        windows = await self._calculate_time_windows(event, lead_times)
         current_time = self._now_local_naive()
         
-        # Determinar el próximo timestamp de cambio
+        # Determinar el próximo timestamp de cambio con nueva lógica
         if current_time < windows.access_start:
             return windows.access_start  # Próximo: PROGRAMADO → ABIERTO
+        elif current_time < windows.forced_closure_start:
+            return windows.forced_closure_start  # Próximo: ABIERTO → CERRADO (forzado)
         elif current_time < windows.show_start:
-            return windows.show_start    # Próximo: ABIERTO → CERRADO
+            return windows.show_start    # Próximo: CERRADO (forzado) → CERRADO (iniciado)
+        elif current_time < windows.display_until:
+            return windows.display_until # Próximo: Desaparece de pantallas
         else:
             return None  # Ya no hay más cambios automáticos

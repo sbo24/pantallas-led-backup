@@ -30,6 +30,21 @@ class DisplayConfig(BaseModel):
         ge=10, le=300,
         description="Seconds between display refreshes"
     )
+    display_post_start_minutes: int = Field(
+        default=5,
+        ge=0, le=30,
+        description="Minutes after show start before it disappears from displays"
+    )
+    forced_closure_minutes: int = Field(
+        default=5,
+        ge=0, le=30,
+        description="Minutes before show start when it appears as CLOSED (overrides OPEN state)"
+    )
+    custom_message: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Mensaje personalizado para mostrar en displays públicos"
+    )
 
 class VenueConfig(BaseModel):
     """Venue/park basic configuration."""
@@ -105,7 +120,9 @@ class GlobalConfig(BaseModel):
                 },
                 "display": {
                     "max_shows_display": 5,
-                    "display_refresh_seconds": 30
+                    "display_refresh_seconds": 30,
+                    "display_post_start_minutes": 5,
+                    "forced_closure_minutes": 5
                 },
                 "venue": {
                     "venue_name": "Puy du Fou España",

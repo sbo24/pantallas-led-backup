@@ -1,23 +1,6 @@
 <template>
   <div class="public-display-preview">
-    <!-- HEADER - 15% de la pantalla (162px) -->
-    <header class="header">
-      <div class="header-content">
-        <div class="logo-section">
-          <!-- Logo removido según requerimiento -->
-        </div>
-        <div class="title-section">
-          <!-- Título movido a la cabecera de la tabla -->
-        </div>
-        <div class="time-section">
-          <div class="time-container">
-            <div class="current-time">{{ currentTime }}</div>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- MAIN CONTENT - 70% de la pantalla (756px) -->
+    <!-- MAIN CONTENT - Ahora ocupa más espacio al quitar header -->
     <main class="main-content">
       <!-- Contenido normal: tabla de espectáculos -->
       <div class="shows-container" v-if="!isAlertMode">
@@ -31,7 +14,7 @@
                 </div>
               </th>
               <th class="col-time">Hora</th>
-              <th class="col-status">Estado</th>
+              <th class="col-status">{{ currentTime }}</th>
               <th class="col-next">Próximo</th>
             </tr>
           </thead>
@@ -129,8 +112,33 @@ const alertMessage = ref('')
 const alertTimestamp = ref('')
 const customMessage = ref('Disfruta de los espectáculos de Puy du Fou')
 
+// Function to load custom message from API
+const loadCustomMessage = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/public/custom-message')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.has_message && data.custom_message) {
+        customMessage.value = data.custom_message
+        console.log('[PublicDisplayPreview] Custom message loaded:', data.custom_message)
+      } else {
+        console.log('[PublicDisplayPreview] No custom message set, using default')
+      }
+    }
+  } catch (error) {
+    console.warn('[PublicDisplayPreview] Error loading custom message:', error)
+    // Keep default message on error
+  }
+}
+
 // Referencias para cleanup
 let clockInterval: NodeJS.Timeout | null = null
+let messageRefreshInterval: NodeJS.Timeout | null = null
+
+// Expose loadCustomMessage function for parent component
+defineExpose({
+  loadCustomMessage
+})
 
 // Computed con EXACTAMENTE la misma lógica de ordenación que frontend-public
 const displayShows = computed(() => {
@@ -163,11 +171,11 @@ const displayShows = computed(() => {
     }
   }
   
-  // Función sortKey (igual que frontend-public)
+  // Función sortKey - ACTUALIZADA: usar current_pass como backend
   const sortKey = (show) => {
-    const tNext = parseTimeToDate(show?.next_pass?.start_time)
     const tCurr = parseTimeToDate(show?.current_pass?.start_time)
-    const candidate = tNext || tCurr // on préfère un futur
+    // CORREGIDO: Solo usar current_pass para ordenación (consistente con backend)
+    const candidate = tCurr
     const rank = getStatusRank(show)
     if (!candidate) return { rank, past: 1, delta: Number.POSITIVE_INFINITY }
     const deltaMs = candidate - now
@@ -195,8 +203,7 @@ const updateClock = () => {
   const now = new Date()
   currentTime.value = now.toLocaleTimeString('es-ES', { 
     hour: '2-digit', 
-    minute: '2-digit',
-    second: '2-digit'
+    minute: '2-digit'
   })
 }
 
@@ -215,11 +222,21 @@ onMounted(() => {
   updateClock()
   clockInterval = setInterval(updateClock, 1000)
   updateLastUpdateTime()
+  loadCustomMessage()
+  
+  // Auto-refresh custom message every 30 seconds (same as auto-refresh interval)
+  messageRefreshInterval = setInterval(() => {
+    console.log('[PublicDisplayPreview] Auto-refreshing custom message...')
+    loadCustomMessage()
+  }, 30000)
 })
 
 onUnmounted(() => {
   if (clockInterval) {
     clearInterval(clockInterval)
+  }
+  if (messageRefreshInterval) {
+    clearInterval(messageRefreshInterval)
   }
 })
 
@@ -246,9 +263,8 @@ onUnmounted(() => {
   --color-header-bg: #F3F4F6;
   --color-footer-bg: #E5E7EB;
 
-  /* Dimension for layout */
-  --header-height: 15vh;
-  --main-height: 70vh;
+  /* Dimension for layout - Header eliminado, más espacio para main */
+  --main-height: 85vh;
   --footer-height: 15vh;
 
   /* Typography optimized for distance reading */
@@ -274,34 +290,7 @@ onUnmounted(() => {
 }
 
 
-/* HEADER - 15% */
-.header {
-  height: var(--header-height);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  padding: 0 4rem;
-  margin-top: 2rem;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.logo-section .logo {
-  height: 80px;
-  width: auto;
-}
-
-.title-with-icon {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
+/* Mantener estilos de tabla que sí se usan */
 .table-title-with-icon {
   display: flex;
   align-items: center;
@@ -322,32 +311,7 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
-.time-section {
-  text-align: right;
-}
-
-.time-container {
-  background-image: url('/assets/images/hour-box.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  width: 200px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 10;
-}
-
-.current-time {
-  font-size: var(--font-size-time);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-primary);
-}
-
-/* MAIN CONTENT - 70% */
+/* MAIN CONTENT - Ahora más grande sin header */
 .main-content {
   background: transparent;
   height: var(--main-height);
@@ -359,11 +323,15 @@ onUnmounted(() => {
 .shows-container {
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .public-display-preview .shows-table {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 80%;
   border-collapse: collapse;
   background: transparent;
   table-layout: fixed;
@@ -377,7 +345,7 @@ onUnmounted(() => {
 }
 
 .public-display-preview .shows-table th {
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
   font-size: 2rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -412,38 +380,49 @@ onUnmounted(() => {
   color: var(--color-text-shows);
 }
 .public-display-preview .col-time { 
-  width: 180px; 
+  width: 14%; 
   text-align: center; 
-  min-width: 150px;
+  min-width: 12%;
+  max-width: 16%;
 }
 .public-display-preview .col-status { 
-  width: 200px; 
+  width: 20%; 
   text-align: center; 
-  min-width: 180px;
+  min-width: 18%;
+  max-width: 24%;
+}
+
+/* Ajustar espaciado para que Hora y el reloj se vean como una línea */
+.public-display-preview .shows-table th.col-status {
+  text-align: left;
+  padding-left: 0.2rem; /* Mover el reloj más a la izquierda */
 }
 .public-display-preview .col-next { 
-  width: 160px; 
+  width: 13%; 
   text-align: center; 
-  min-width: 140px;
+  min-width: 11%;
+  max-width: 15%;
 }
 
 /* Responsive design for different aspect ratios */
 @media (aspect-ratio: 1/1) {
-  .public-display-preview .col-number { width: 12%; }
-  .public-display-preview .col-time { width: 200px; }
-  .public-display-preview .col-status { width: 220px; }
-  .public-display-preview .col-next { width: 180px; }
+  .public-display-preview .col-number { width: 10%; }
+  .public-display-preview .col-time { width: 15%; min-width: 13%; max-width: 17%; }
+  .public-display-preview .col-status { width: 22%; min-width: 20%; max-width: 26%; }
+  .public-display-preview .col-next { width: 14%; min-width: 12%; max-width: 16%; }
 }
 
 @media (aspect-ratio: 16/9) {
   .public-display-preview .col-number { width: 8%; }
-  .public-display-preview .col-time { width: 160px; }
-  .public-display-preview .col-status { width: 180px; }
-  .public-display-preview .col-next { width: 140px; }
+  .public-display-preview .col-time { width: 13%; min-width: 11%; max-width: 15%; }
+  .public-display-preview .col-status { width: 19%; min-width: 17%; max-width: 23%; }
+  .public-display-preview .col-next { width: 12%; min-width: 10%; max-width: 14%; }
 }
 
 .public-display-preview .shows-table tbody tr {
   height: 100px;
+  min-height: 80px;
+  max-height: 120px;
   border: none;
   transition: all 0.3s ease;
   background: transparent;
@@ -454,7 +433,7 @@ onUnmounted(() => {
 }
 
 .public-display-preview .shows-table td {
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
   text-align: center;
   vertical-align: middle;
   border: none;

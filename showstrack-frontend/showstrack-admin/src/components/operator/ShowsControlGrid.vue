@@ -38,11 +38,11 @@
               {{ show.id }}
             </div>
             <div class="show-details">
-              <h3 class="show-name">{{ show.name }}</h3>
+              <h3 class="show-name">{{ show.name }} - {{ show.current_pass?.start_time || '--:--' }}</h3>
               <p class="show-time">
-                {{ show.current_pass?.start_time || '--:--' }}
+                Evento actual: {{ show.current_pass?.start_time || '--:--' }}
                 <span v-if="show.next_pass?.start_time" class="next-time">
-                  → {{ show.next_pass.start_time }}
+                  | Próximo: {{ show.next_pass.start_time }}
                 </span>
               </p>
             </div>
@@ -130,9 +130,11 @@ interface Show {
   id: number
   name: string
   selected_icon_filename?: string
+  event_id?: number  // ID del evento para overrides
   current_pass?: {
     start_time: string
     status: string
+    event_date?: string
     event_id?: number
   }
   next_pass?: {
@@ -197,13 +199,6 @@ const selectedEventForModal = computed(() => {
 const { showSuccessToast, showErrorToast } = useNotifications()
 
 // Función auxiliar para encontrar el event ID del current pass de un show
-// NOTA: Deshabilitada porque el endpoint /api/public/events no existe (404)
-// TODO: Implementar cuando tengamos el endpoint correcto
-const findCurrentEventId = async (show: Show): Promise<string | null> => {
-  console.warn('findCurrentEventId deshabilitada - endpoint /api/public/events no existe')
-  return null
-}
-
 // Métodos - Ya no necesitamos cargar datos, vienen como props
 
 const openOverrideModal = (show: Show, status: string) => {
@@ -277,7 +272,22 @@ const revertOverride = async (show: Show) => {
   try {
     console.log('[ShowsControlGrid] Revirtiendo override para show:', show.id)
     
-    // NUEVA LÓGICA: Solo emitir evento, el estado se actualiza en OperatorView
+    // Verificar que el show tiene event_id para poder revertir
+    const eventId = show.event_id || show.current_pass?.event_id
+    if (!eventId) {
+      console.error('[ShowsControlGrid] No se puede revertir override: event_id no disponible', show)
+      showErrorToast('No se puede revertir override: evento no disponible para revertir')
+      return
+    }
+    
+    console.log('[ShowsControlGrid] Enviando revert a API con event_id:', eventId)
+    
+    // Llamada real a la API para revertir override
+    await eventsService.revertOverride(eventId.toString(), 'Override manual eliminado por operador')
+    
+    console.log('[ShowsControlGrid] Override revertido exitosamente para event_id:', eventId)
+    
+    // Emitir evento para actualizar la vista principal
     emit('overrideApplied', {
       showId: show.id,
       status: 'REVERTIDO',
@@ -286,11 +296,15 @@ const revertOverride = async (show: Show) => {
     
     showSuccessToast(`Override revertido: ${show.name}`)
     
-    // TODO: Implementar llamada real a la API cuando tengamos el endpoint correcto
-    
   } catch (error: any) {
     console.error('Error reverting override:', error)
-    showErrorToast(`Error al revertir override: ${error.message || 'Error desconocido'}`)
+    if (error.response?.status === 404) {
+      showErrorToast('Override no encontrado o ya está inactivo')
+    } else if (error.response?.status === 401) {
+      showErrorToast('No autorizado: inicia sesión nuevamente')
+    } else {
+      showErrorToast(`Error al revertir override: ${error.message || 'Error desconocido'}`)
+    }
   }
 }
 

@@ -1,0 +1,15 @@
+# ShowsTrack ETL - Configuración Cron
+# Ejecuta el proceso ETL cada 2 horas para sincronizar datos con Puy du Fou API
+#
+# Formato cron: minuto hora día_del_mes mes día_de_la_semana comando
+# */2 en horas significa "cada 2 horas"
+#
+# Ejecutión cada 2 horas a los 5 minutos de la hora (00:05, 02:05, 04:05, etc.)
+# Esto evita colisiones con otros procesos que ejecutan en punto
+5 */2 * * * /workspace/scripts/etl-cron.sh
+
+# Alternativa: Ejecutar solo en horario laboral (6:00 a 22:00)
+# 5 6-22/2 * * * /workspace/scripts/etl-cron.sh
+
+# Alternativa: Ejecutar cada 4 horas (como en documentación)
+# 0 */4 * * * /workspace/scripts/etl-cron.sh

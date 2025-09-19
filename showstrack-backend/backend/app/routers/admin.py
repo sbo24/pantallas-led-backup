@@ -765,6 +765,73 @@ async def update_venue_hours(
         )
 
 
+# ===== CUSTOM MESSAGE ENDPOINTS =====
+
+@router.get("/config/custom-message")
+async def get_custom_message(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current custom message for public displays.
+    
+    **Returns**: Current custom message or null if none set.
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        config_service = ConfigService(db)
+        custom_message = await config_service.get_custom_message()
+        return {
+            "custom_message": custom_message,
+            "has_message": custom_message is not None
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting custom message: {str(e)}"
+        )
+
+
+@router.put("/config/custom-message", response_model=ConfigurationChangeResponse)
+async def update_custom_message(
+    message_data: dict,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update custom message for public displays.
+    
+    **Body**: {"message": "Texto del mensaje" | null}
+    
+    **Requiere autenticación JWT**
+    """
+    try:
+        # Extract message from request body
+        message = message_data.get("message")
+        
+        # Validate message length if provided
+        if message and len(message) > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Message cannot exceed 100 characters"
+            )
+        
+        config_service = ConfigService(db)
+        change_response = await config_service.update_custom_message(
+            message=message,
+            updated_by=current_user.username
+        )
+        return change_response
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating custom message: {str(e)}"
+        )
+
+
 # ===== IMPORT/SYNC SYSTEM ENDPOINTS =====
 
 @router.post("/import", response_model=ImportResponse, status_code=status.HTTP_201_CREATED)
