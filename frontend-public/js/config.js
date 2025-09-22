@@ -1,6 +1,9 @@
 const CONFIG = {
     // API configuration
-    API_URL: "http://localhost:8000",
+    // Detect if accessing via external IP and use appropriate backend URL
+    API_URL: window.location.hostname === '172.26.131.240' 
+        ? "http://172.26.131.240:8001" 
+        : "http://localhost:8000",
 
     // Timing configuration
     UPDATE_INTERVAL: 30000,

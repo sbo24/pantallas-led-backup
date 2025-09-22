@@ -3,9 +3,10 @@
 
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios'
 import type { ApiError, ApiResponse } from '@/types/api'
+import { getApiBaseUrl, getApiBaseUrlWithLogging } from '@/utils/api'
 
-// Environment configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// Dynamic API base URL - evaluate each time
+let API_BASE_URL = getApiBaseUrlWithLogging('API Client')
 const API_TIMEOUT = 30000 // 30 seconds
 
 // Token storage keys
@@ -28,7 +29,6 @@ export const tokenStorage = {
 
 // Create Axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
@@ -36,9 +36,15 @@ const apiClient: AxiosInstance = axios.create({
   }
 })
 
-// Request interceptor - Add JWT token
+// Update baseURL dynamically before each request
+apiClient.defaults.baseURL = getApiBaseUrl()
+
+// Request interceptor - Add JWT token and update baseURL
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    // Update baseURL dynamically for each request
+    config.baseURL = getApiBaseUrl()
+    
     const token = tokenStorage.getAccessToken()
     
     if (token && config.headers) {
@@ -47,6 +53,7 @@ apiClient.interceptors.request.use(
     
     // Add request timestamp for debugging
     if (import.meta.env.DEV) {
+      console.log('[API Request] Using baseURL:', config.baseURL)
       ;(config as any).metadata = { startTime: new Date() }
     }
     

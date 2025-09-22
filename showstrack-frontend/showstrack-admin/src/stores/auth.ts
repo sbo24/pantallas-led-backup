@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, type ComputedRef } from 'vue'
 import { apiPost, apiGet } from '@/services/api/client'
 import { tokenStorage } from '@/services/api/client'
+import { getApiBaseUrl } from '@/utils/api'
 import type { User, LoginCredentials, AuthResponse, AuthTokens } from '@/types/api'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -42,8 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
       formData.append('username', credentials.username)
       formData.append('password', credentials.password)
       
-      // Make request with form data
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/login`, {
+      // Make request with form data using our configured API client
+      const response = await fetch(`${getApiBaseUrl()}/api/admin/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

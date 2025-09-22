@@ -187,12 +187,189 @@ eventId: null
 2. ✅ **Completar tests de verificación** - Prioridad ALTA - COMPLETADO
 3. ✅ **Confirmar sincronización completa** - Prioridad MEDIA - COMPLETADO
 
+### PRÓXIMAS FASES PLANIFICADAS:
+
+## **FASE 3: MODIFICAR ENDPOINT PÚBLICO (EN PROGRESO)**
+
+### **Objetivo:**
+Implementar nueva ordenación por cercanía temporal y filtrado de visibilidad en `/api/public/schedules`.
+
+### **Problema encontrado y resuelto:**
+- **Issue inicial**: KeyError: 'forced_closure_minutes' en StateEngine
+- **Causa**: Configuración de database no incluía nuevos campos de Phase 1
+- **Solución**: Actualizada configuración `display` en GlobalSettings con nuevos campos:
+  ```json
+  {
+    "max_shows_display": 5,
+    "display_refresh_seconds": 30,
+    "display_post_start_minutes": 5,
+    "forced_closure_minutes": 5
+  }
+  ```
+- **Estado**: ✅ Endpoint funcionando nuevamente
+
+### **PUNTO ACTUAL DE TRABAJO (para próxima sesión):**
+
+**ESTADO**: ✅ **Configuración fixed, endpoint funcional**  
+**SIGUIENTE PASO**: Implementar cambios de temporal ordering en `/workspace/showstrack-backend/backend/app/routers/public.py`
+
+**Cambios ya identificados para aplicar:**
+1. ✅ Descomentar StateEngine import (línea ~84)
+2. ✅ Activar filtrado de visibilidad temporal (líneas ~92-100)  
+3. ✅ Activar garantía columna izquierda no vacía (líneas ~159-163)
+4. 🟡 **PENDIENTE**: Reemplazar sorting por display_order con temporal ordering (líneas ~165-209)
+
+**Ubicaciones exactas en public.py:**
+- **Líneas 82-85**: Descomentar StateEngine initialization
+- **Líneas 91-100**: Descomentar filtrado should_display_event()
+- **Líneas 158-164**: Descomentar promote next_pass to current_pass
+- **Líneas 165-209**: Reemplazar todo el bloque comentado con temporal sorting function
+
+**Comando para testing:**
+```bash
+curl -s "http://localhost:8000/api/public/schedules" | jq
+```
+
+**Próxima acción específica**: 
+Aplicar los 4 cambios listados arriba usando MultiEdit para activar completamente la nueva lógica temporal en el endpoint público.
+
+### **Cambios planificados:**
+1. **Filtrar shows por visibilidad temporal**:
+   - Usar `StateEngine.should_display_event()` para filtrar shows post-inicio
+   - Solo mostrar shows dentro de la ventana de visibilidad
+
+2. **Nueva ordenación por cercanía temporal**:
+   - Reemplazar ordenación por `display_order` (estático)
+   - Implementar ordenación por distancia temporal desde hora actual
+   - Priorizar eventos más cercanos en el tiempo
+
+3. **Garantizar columna izquierda nunca vacía**:
+   - Lógica para asegurar que `current_pass` siempre tenga valor
+   - Si no hay `current_pass`, promover `next_pass` a `current_pass`
+
+### **Archivos a modificar:**
+- `/workspace/showstrack-backend/backend/app/routers/public.py`
+
+---
+
+## **FASE 4: ACTUALIZAR FRONTEND (PENDIENTE)**
+
+### **Objetivo:**
+Adaptar componentes frontend a la nueva lógica del backend.
+
+### **Cambios planificados:**
+1. **Simplificar lógica de ordenación**: Remover ordenación por prioridad de estados
+2. **Optimizar renderizado**: Confiar en la nueva lógica del backend
+3. **Actualizar componentes**: PublicDisplayPreview.vue y frontend-public/app.js
+
+### **Archivos a modificar:**
+- `PublicDisplayPreview.vue`
+- `frontend-public/js/app.js`
+
+---
+
 ### PENDIENTES IDENTIFICADOS:
 1. **Implementar funcionalidad real de revertir override** - Prioridad ALTA
    - Los botones de revertir están visibles pero no funcionan
    - Función `revertOverride()` existe pero solo emite evento local
    - Necesita implementar llamada real a API: `PATCH /api/admin/events/{eventId}/override` con `action: 'deactivate'`
    - Ubicación: `ShowsControlGrid.vue` líneas 276-295
+
+### IMPLEMENTACIÓN NUEVA LÓGICA DE PANTALLAS PÚBLICAS:
+
+## **FASE 1: NUEVAS CONFIGURACIONES BACKEND ✅ COMPLETADA**
+
+### **Objetivo:**
+Agregar nuevas configuraciones para controlar el timing de displays en pantallas públicas.
+
+### **Configuraciones implementadas:**
+```python
+"display": {
+    "max_shows_display": 5,                    # Existente
+    "display_refresh_seconds": 30,             # Existente  
+    "display_post_start_minutes": 5,           # NUEVO - Shows desaparecen 5min post-inicio
+    "forced_closure_minutes": 5                # NUEVO - Shows aparecen cerrados 5min antes
+}
+```
+
+### **Archivos modificados:**
+- **`/workspace/showstrack-backend/backend/app/services/config_service.py`**
+  - Agregadas configuraciones a `DEFAULT_CONFIG_KEYS`
+  - Valores por defecto establecidos en 5 minutos para ambos parámetros
+
+- **`/workspace/showstrack-backend/backend/app/schemas/config.py`**
+  - Actualizado `DisplayConfig` con nuevos campos
+  - Validación: rango 0-30 minutos para ambos parámetros
+  - Documentación completa de propósito de cada campo
+  - Ejemplos JSON actualizados
+
+### **Verificaciones realizadas:**
+- ✅ Schema `DisplayConfig` funciona correctamente
+- ✅ Schema `GlobalConfig` incluye nuevas configuraciones  
+- ✅ Validación de rangos funcionando (0-30 minutos)
+- ✅ Valores por defecto razonables (5 minutos cada uno)
+- ✅ Compatibilidad con configuraciones existentes
+
+---
+
+## **FASE 2: MODIFICACIÓN DEL STATE ENGINE ✅ COMPLETADA**
+
+### **Objetivo:**
+Implementar nueva lógica temporal con cierre forzado y visibilidad post-inicio.
+
+### **Estructura TimeWindows actualizada:**
+```python
+class TimeWindows(NamedTuple):
+    access_start: datetime              # PROGRAMADO → ABIERTO
+    finalized_start: datetime           # Existente (normalmente = show_start)
+    forced_closure_start: datetime      # NUEVO - Cierre forzado (prioridad)
+    show_start: datetime                # Inicio real del espectáculo
+    display_until: datetime             # NUEVO - Desaparece de pantallas
+    show_end: Optional[datetime] = None # Fin del espectáculo (opcional)
+```
+
+### **Nueva lógica de estados:**
+```python
+def _determine_state_by_time(current_time, windows):
+    if current_time < windows.access_start:
+        return "PROGRAMADO"                    # Antes del leadtime
+    elif current_time < windows.forced_closure_start:
+        return "ABIERTO"                       # Ventana de acceso
+    else:
+        return "CERRADO"                       # Cierre forzado O show iniciado
+```
+
+### **Ejemplo temporal verificado:**
+**Show a las 14:00 con leadtime 30min:**
+- **13:25**: PROGRAMADO ✅
+- **13:30**: ABIERTO (según leadtime) ✅  
+- **13:55**: CERRADO (cierre forzado - PRIORIDAD) ✅
+- **14:00**: CERRADO (inicio del show) ✅
+- **14:05**: Desaparece de pantallas ✅
+
+### **Métodos implementados/modificados:**
+- **`_calculate_time_windows()`**: Ahora async, calcula nuevas ventanas temporales
+- **`_determine_state_by_time()`**: Nueva lógica con cierre forzado prioritario
+- **`should_display_event()`**: Nuevo método async para visibilidad post-inicio
+- **`get_next_state_change_time()`**: Incluye todas las transiciones temporales
+- **`_get_display_config()`**: Obtiene configuración desde GlobalSettings con fallback
+
+### **Archivos modificados:**
+- **`/workspace/showstrack-backend/backend/app/services/state_engine.py`**
+  - TimeWindows con 2 nuevos campos temporales
+  - Lógica de cierre forzado implementada (prioridad sobre apertura)
+  - Integración con configuraciones de GlobalSettings
+  - Método de visibilidad post-inicio funcional
+  - Actualización de todas las transiciones de estado
+
+### **Verificaciones realizadas:**
+- ✅ TimeWindows con nuevos campos funciona correctamente
+- ✅ Nueva lógica temporal verificada paso a paso
+- ✅ Cierre forzado tiene prioridad sobre apertura
+- ✅ Visibilidad post-inicio funcional (shows desaparecen a tiempo)
+- ✅ Integración con configuraciones GlobalSettings
+
+---
 
 ### ANÁLISIS DE COMPORTAMIENTOS VERIFICADOS:
 
@@ -260,4 +437,8 @@ eventId: null
 - ✅ **COMPLETADO**: Integración con endpoints existentes
 - ✅ **COMPLETADO**: Tests de verificación completa
 - ✅ **COMPLETADO**: Override funcionalidad básica (crear overrides)
+- ✅ **COMPLETADO**: FASE 1 - Nuevas configuraciones backend (timing displays)
+- ✅ **COMPLETADO**: FASE 2 - StateEngine modificado (cierre forzado + visibilidad)
+- 🟡 **EN PROGRESO**: FASE 3 - Modificar endpoint público (ordenación + filtrado)
+- 🟡 **PENDIENTE**: FASE 4 - Actualizar frontend (adaptación nueva lógica)
 - 🟡 **PENDIENTE**: Implementación funcional de revertir overrides
