@@ -1,0 +1,15 @@
+<p>Puy Du Fou PDO : sqlsrv:Server=195.53.45.242,1156;Database=ES-HORARIOS / User : eshorariosreader / Pwd : xW7e!xxxxxxxx</p><p>Local PDO : mysql:host=database;port=3306;dbname=dbapimobilepdf / User : apimobilepdf / Pwd : KaTpjxxxxxxxx</p><p>Parc is OPEN on 2025-09-29</p><p>=> Parc open / close hours for 2025-09-29 : </p><pre style='border:1px solid grey;color:orange'>array(2) {
+  ["open"]=>
+  NULL
+  ["close"]=>
+  NULL
+}
+</pre><p>=> Check Local DB Connexion</p><p>Local DB Rows = 0 [SELECT COUNT(*) FROM api_grille_horaire WHERE jour = :date / :date =2025-09-29]</p><p>KO : Local DB contains 0 row in 'api_grille_horaire' table ! (0) ! [SELECT COUNT(*) FROM api_grille_horaire WHERE jour = :date / :date =2025-09-29]</p><pre style='border:1px solid grey;color:orange'>array(0) {
+}
+</pre><p>=> Check PuyDuFou DB Connexion</p><p>Puy Du Fou DB Rows = 0 [SELECT COUNT(*) FROM V_GrilleHoraire WHERE Gh_date = :date / :date =2025-09-29]</p><p>KO : Puy Du Fou DB contains 0 row in 'V_GrilleHoraire' table ! (0) ! [SELECT COUNT(*) FROM V_GrilleHoraire WHERE Gh_date = :date / :date =2025-09-29]</p><p>=> Check PuyDuFou DB Content for table V_GrilleHoraire</p><p>Request = SELECT * FROM V_GrilleHoraire WHERE Gh_date = :date</p><pre style='border:1px solid grey;color:orange'>array(0) {
+}
+</pre><p>=> Check Local DB Opening date</p><p>Next Opening date is = 2025-10-01</p><p>=> Check PuyDuFou DB Opening date</p><p>Next Opening date is = 2025-10-01</p><pre style='border:1px solid grey;color:orange'>array(1) {
+  ["Date"]=>
+  string(10) "2025-10-02"
+}
+</pre>OK

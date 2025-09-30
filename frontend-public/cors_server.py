@@ -10,7 +10,7 @@ class CORSHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', '*')
         # Allow embedding in iframes from localhost and external IP
         self.send_header('X-Frame-Options', 'SAMEORIGIN')
-        self.send_header('Content-Security-Policy', "frame-ancestors 'self' http://localhost:3000 http://127.0.0.1:3000 http://172.26.131.240:3000")
+        self.send_header('Content-Security-Policy', "frame-ancestors 'self' http://localhost:3000 http://127.0.0.1:3000 http://172.26.131.240:3001")
         super().end_headers()
 
     def do_OPTIONS(self):

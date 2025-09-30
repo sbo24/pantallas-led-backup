@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, type ComputedRef } from 'vue'
 import ShowsApiService from '@/services/api/shows'
+import { getApiBaseUrl } from '@/utils/api'
 import type { Show, ShowsListParams, CreateShowData, PaginatedResponse } from '@/types/api'
 
 export const useShowsStore = defineStore('shows', () => {
@@ -70,7 +71,7 @@ export const useShowsStore = defineStore('shows', () => {
         
         try {
           // Intentar obtener datos de eventos de la API pública para enriquecer
-          const publicResponse = await fetch('http://localhost:8000/api/public/schedules')
+          const publicResponse = await fetch(`${getApiBaseUrl()}/api/public/schedules`)
           if (publicResponse.ok) {
             const publicData = await publicResponse.json()
             

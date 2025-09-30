@@ -115,7 +115,8 @@ const customMessage = ref('Disfruta de los espectáculos de Puy du Fou')
 // Function to load custom message from API
 const loadCustomMessage = async () => {
   try {
-    const response = await fetch('http://localhost:8000/api/public/custom-message')
+    const { getApiBaseUrl } = await import('@/utils/api')
+    const response = await fetch(`${getApiBaseUrl()}/api/public/custom-message`)
     if (response.ok) {
       const data = await response.json()
       if (data.has_message && data.custom_message) {

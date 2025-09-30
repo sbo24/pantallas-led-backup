@@ -63,6 +63,9 @@ class ShowsTrackClient {
         // Start the clock
         this.startClock();
 
+        // Load custom message initially (always from API)
+        await this.loadCustomMessage();
+
         // Loading initial
         await this.fetchAndRender();
 
@@ -171,11 +174,6 @@ class ShowsTrackClient {
     }
 
     render(data) {
-        // Update custom message if present in metadata
-        if (data.metadata && data.metadata.custom_message) {
-            this.elements.customMessageText.textContent = data.metadata.custom_message;
-        }
-
         // Verify the display mode
         if(data.display_mode === 'alert' && data.alert) {
             this.renderAlert(data.alert);
@@ -183,6 +181,25 @@ class ShowsTrackClient {
             this.renderNoShows();
         } else {
             this.renderShows(data.shows);
+        }
+    }
+
+    // Function to load custom message from API (same as Vue)
+    async loadCustomMessage() {
+        try {
+            const response = await fetch(`${CONFIG.API_URL}/api/public/custom-message`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.has_message && data.custom_message) {
+                    this.elements.customMessageText.textContent = data.custom_message;
+                    console.log('📋 Custom message loaded from API:', data.custom_message);
+                } else {
+                    console.log('📋 No custom message set, keeping default');
+                }
+            }
+        } catch (error) {
+            console.warn('❌ Error loading custom message:', error);
+            // Keep default message on error
         }
     }
 
@@ -242,14 +259,50 @@ class ShowsTrackClient {
           const status = show.current_pass?.status || show.status || 'PROGRAMADO';
           const nextShow = show.next_pass?.start_time || show.next_show || '---';
       
+          // SISTEMA DE ICONOS: Prioridad configuración Vue > mapeo nombre > fallback índice
+          const getShowIcon = (show, index) => {
+            // PRIORIDAD 1: Si ya tiene icono configurado desde la aplicación Vue admin, usarlo
+            if (show.selected_icon_filename) {
+              return show.selected_icon_filename;
+            }
+            
+            // PRIORIDAD 2: Mapeo de nombres para fallback cuando no hay configuración
+            const showIconFallbackMap = {
+              // Shows principales del sistema
+              "El Último Cantar": "show-01.png",
+              "El tambor de la Libertad": "show-06.png", 
+              "A Pluma y Espada": "show-02.png",
+              "Cetrería de Reyes": "show-04.png",
+              "El Misterio de Sorbaces": "show-05.png",
+              "Allende la Mar Océana": "show-03.png",  
+              "De Tal Palo": "show-03.png",            
+              "El Espadero de Vivar": "show-04.png",   
+              "El Sueño de Toledo": "night-show.png",
+              
+              // Eventos sistema
+              "Apertura": "show-01.png",
+              "Cierre": "show-06.png"
+            };
+            
+            const showName = show.show_name || show.name || '';
+            
+            // PRIORIDAD 3: Usar mapeo fallback por nombre
+            if (showIconFallbackMap[showName]) {
+              return showIconFallbackMap[showName];
+            }
+            
+            // PRIORIDAD 4: Fallback final por índice para shows nuevos/desconocidos
+            const availableIcons = ['show-01.png', 'show-02.png', 'show-03.png', 'show-04.png', 'show-05.png', 'show-06.png'];
+            return availableIcons[index % availableIcons.length];
+          };
+
+          const iconFilename = getShowIcon(show, index);
+      
           return `
             <tr data-show-id="${show.show_id || show.id}" data-status="${status}">
               <td class="col-show-combined" colspan="2">
                 <div class="show-content">
-                  ${show.selected_icon_filename ? 
-                    `<img src="./assets/images/show-icons/${show.selected_icon_filename}" class="show-icon" alt="${showName}">` 
-                    : `<span class="show-number">${index + 1}</span>`
-                  }
+                  <img src="./assets/images/show-icons/${iconFilename}" class="show-icon" alt="${showName}">
                   <span class="show-name">${this.escapeHtml(showName)}</span>
                 </div>
               </td>
@@ -354,8 +407,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // COMUNICACIÓN CON VISTA DE OPERADOR
     // Escuchar mensajes desde la Vista de Operador para refresh forzado
     window.addEventListener('message', (event) => {
-        // Verificar origen por seguridad (solo localhost en desarrollo)
-        if (event.origin !== 'http://localhost:3000' && event.origin !== window.location.origin) {
+        // Verificar origen por seguridad (localhost y IP externa)
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://172.26.131.240:3001',
+            window.location.origin
+        ];
+        if (!allowedOrigins.includes(event.origin)) {
             return;
         }
         

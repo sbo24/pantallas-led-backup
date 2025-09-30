@@ -89,7 +89,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
       throw new Error('No refresh token available')
     }
     
-    const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+    const response = await axios.post(`${getApiBaseUrl()}/api/auth/refresh`, {
       refresh_token: refreshToken
     })
     

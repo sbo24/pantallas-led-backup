@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/stores/dashboard'
 import { useAuthStore } from '@/stores/auth'
 import { useShowsStore } from '@/stores/shows'
 import { useEventsStore } from '@/stores/events'
+import { getApiBaseUrl } from '@/utils/api'
 
 // Stores
 const alertsStore = useAlertsStore()
@@ -62,12 +63,7 @@ onMounted(async () => {
 
 const fetchSystemHealth = async () => {
   try {
-    const apiUrl = import.meta.env.VITE_SHOWSTRACK_API_URL
-    if (!apiUrl) {
-      console.error('VITE_SHOWSTRACK_API_URL is not defined')
-      systemHealth.value = { status: 'error', message: 'API URL not configured' }
-      return
-    }
+    const apiUrl = getApiBaseUrl()
     const response = await fetch(`${apiUrl}/health`)
     systemHealth.value = await response.json()
   } catch (error) {

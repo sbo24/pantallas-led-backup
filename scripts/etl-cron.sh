@@ -2,6 +2,7 @@
 
 # ShowsTrack ETL - Script de automatización para cron
 # Ejecuta ETL cada 2 horas con fecha actual
+# https://api.mobile.puydufouespana.com/nagios?debug&date=2025-03-28
 
 # Configuración de logging
 LOG_FILE="/workspace/logs/showstrack-etl.log"

@@ -1,0 +1,162 @@
+Evento 1:
+  Fecha: 2025-09-24
+  EventoID: 2107137254650000441_
+  Evento: Apertura
+  Tipo: Apertura / Cierre
+  Duración: 0
+  Hora Inicio: 11:00
+  Hora Fin: 11:00
+
+Evento 2:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000373_
+  Evento: Cetrería de Reyes
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 11:45
+  Hora Fin: 12:15
+
+Evento 3:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000370_
+  Evento: Allende la Mar Océana
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 12:00
+  Hora Fin: 14:30
+
+Evento 4:
+  Fecha: 2025-09-24
+  EventoID: 1740673240789621446_
+  Evento: El tambor de la Libertad
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 12:30
+  Hora Fin: 12:55
+
+Evento 5:
+  Fecha: 2025-09-24
+  EventoID: 2232941949479820608_
+  Evento: De Tal Palo
+  Tipo: Show
+  Duración: 15
+  Hora Inicio: 12:30
+  Hora Fin: 15:00
+
+Evento 6:
+  Fecha: 2025-09-24
+  EventoID: 2232491949459820608_
+  Evento: El Misterio de Sorbaces
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 13:00
+  Hora Fin: 13:25
+
+Evento 7:
+  Fecha: 2025-09-24
+  EventoID: 2232947349450827608_
+  Evento: El Espadero de Vivar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 14:00
+  Hora Fin: 14:30
+
+Evento 8:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000369_
+  Evento: A Pluma y Espada
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 14:45
+  Hora Fin: 15:15
+
+Evento 9:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000372_
+  Evento: El Último Cantar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 15:00
+  Hora Fin: 15:30
+
+Evento 10:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000370_
+  Evento: Allende la Mar Océana
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 16:00
+  Hora Fin: 18:30
+
+Evento 11:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000373_
+  Evento: Cetrería de Reyes
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 16:00
+  Hora Fin: 16:30
+
+Evento 12:
+  Fecha: 2025-09-24
+  EventoID: 1740673240789621446_
+  Evento: El tambor de la Libertad
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 16:30
+  Hora Fin: 16:55
+
+Evento 13:
+  Fecha: 2025-09-24
+  EventoID: 2232941949479820608_
+  Evento: De Tal Palo
+  Tipo: Show
+  Duración: 15
+  Hora Inicio: 17:00
+  Hora Fin: 19:00
+
+Evento 14:
+  Fecha: 2025-09-24
+  EventoID: 2232491949459820608_
+  Evento: El Misterio de Sorbaces
+  Tipo: Show
+  Duración: 25
+  Hora Inicio: 17:30
+  Hora Fin: 17:55
+
+Evento 15:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000369_
+  Evento: A Pluma y Espada
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 18:30
+  Hora Fin: 19:00
+
+Evento 16:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000372_
+  Evento: El Último Cantar
+  Tipo: Show
+  Duración: 30
+  Hora Inicio: 19:15
+  Hora Fin: 19:45
+
+Evento 17:
+  Fecha: 2025-09-24
+  EventoID: 2107137254650000442_
+  Evento: Cierre
+  Tipo: Apertura / Cierre
+  Duración: 0
+  Hora Inicio: 21:30
+  Hora Fin: 21:30
+
+Evento 18:
+  Fecha: 2025-09-24
+  EventoID: 2106740768780000371_
+  Evento: El Sueño de Toledo
+  Tipo: Show
+  Duración: 80
+  Hora Inicio: 22:00
+  Hora Fin: 23:20
+

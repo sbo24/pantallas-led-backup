@@ -86,6 +86,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useNotifications } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
+import { getApiBaseUrl } from '@/utils/api'
 import ClockDisplay from '@/components/operator/ClockDisplay.vue'
 import PublicDisplayPreview from '@/components/operator/PublicDisplayPreview.vue'
 import ShowsControlGrid from '@/components/operator/ShowsControlGrid.vue'
@@ -209,7 +210,7 @@ const loadRealData = async () => {
     console.log('[OperatorView] Cargando shows visibles primero...')
     
     // 1. Cargar shows visibles para filtrar eventos
-    const showsResponse = await fetch('http://localhost:8000/api/admin/shows?visible_only=true&page=1&size=100', {
+    const showsResponse = await fetch(`${getApiBaseUrl()}/api/admin/shows?visible_only=true&page=1&size=100`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -234,7 +235,7 @@ const loadRealData = async () => {
     console.log('[OperatorView] Cargando eventos individuales para operador...')
     
     // 2. Cargar eventos del día
-    const eventsResponse = await fetch(`http://localhost:8000/api/admin/events?date_from=${today}&date_to=${today}&page=1&size=50`, {
+    const eventsResponse = await fetch(`${getApiBaseUrl()}/api/admin/events?date_from=${today}&date_to=${today}&page=1&size=50`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -370,7 +371,7 @@ const loadCurrentCustomMessage = async () => {
       return
     }
     
-    const response = await fetch('http://localhost:8000/api/admin/config/custom-message', {
+    const response = await fetch(`${getApiBaseUrl()}/api/admin/config/custom-message`, {
       headers: {
         'Authorization': `Bearer ${authStore.tokens.accessToken}`
       }
@@ -417,7 +418,7 @@ const saveCustomMessage = async () => {
     }
     
     // API call to save custom message
-    const response = await fetch('http://localhost:8000/api/admin/config/custom-message', {
+    const response = await fetch(`${getApiBaseUrl()}/api/admin/config/custom-message`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

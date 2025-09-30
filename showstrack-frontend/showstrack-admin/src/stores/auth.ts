@@ -171,7 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Try to fetch user data with stored token
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/me`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/admin/auth/me`, {
           headers: {
             'Authorization': `Bearer ${storedAccessToken}`
           }
@@ -219,7 +219,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       console.log('[Auth Store] Refreshing token...')
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/admin/auth/refresh`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/admin/auth/refresh`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${storedRefreshToken}`,
