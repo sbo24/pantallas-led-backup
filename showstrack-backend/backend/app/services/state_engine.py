@@ -265,23 +265,32 @@ class StateEngine:
     async def should_display_event(self, event: ScheduledEvent, current_time: Optional[datetime] = None) -> bool:
         """
         Determina si un evento debe mostrarse en pantallas públicas.
-        Basado en la ventana de visibilidad post-inicio configurada.
+        Aplica regla temporal de 5 minutos SOLO a shows CERRADOS y CANCELADOS.
+        Shows PROGRAMADOS y ABIERTOS permanecen siempre visibles.
+
+        PROCESO_SITUACIÓN_3009: Unificar comportamiento temporal CANCELADOS/CERRADOS
         """
         if current_time is None:
             current_time = self._now_local_naive()
         else:
             if current_time.tzinfo is not None:
                 current_time = current_time.astimezone(self._venue_tz).replace(tzinfo=None)
-        
-        # Obtener configuración real de display
-        display_config = await self._get_display_config()
-        display_post_start_minutes = display_config.get("display_post_start_minutes", 5)
-        
-        event_datetime = datetime.combine(event.event_date, event.start_time)
-        
-        # Si ya pasaron X minutos del inicio, no mostrar
-        post_start_limit = event_datetime + timedelta(minutes=display_post_start_minutes)
-        return current_time <= post_start_limit
+
+        # PASO 1: Calcular estado del evento PRIMERO
+        event_status = await self.calculate_event_state(event, current_time)
+
+        # PASO 2: Aplicar regla temporal SOLO a estados finales
+        if event_status in ["CERRADO", "CANCELADO"]:
+            # Para shows cerrados/cancelados: aplicar ventana de 5 min post-inicio
+            display_config = await self._get_display_config()
+            display_post_start_minutes = display_config.get("display_post_start_minutes", 5)
+
+            event_datetime = datetime.combine(event.event_date, event.start_time)
+            post_start_limit = event_datetime + timedelta(minutes=display_post_start_minutes)
+            return current_time <= post_start_limit
+        else:
+            # Para shows programados/abiertos: siempre visibles (hasta cambio de estado)
+            return True
     
     async def calculate_multiple_events_states(
         self, 

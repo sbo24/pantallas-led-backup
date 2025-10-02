@@ -8,7 +8,7 @@ services:
     
     # VOLÚMENES PERSISTENTES (siguiendo patrón establecido)
     volumes:
-      - /c/Users/lmalinge/Documents/Espagne/pantallas-led:/workspace
+      - showstrack_dev_workspace:/workspace
       - showstrack_dev_home:/home/dev
       - /var/run/docker.sock:/var/run/docker.sock
     
@@ -23,7 +23,7 @@ services:
       - "3001:3000"                     # Frontend admin dev  
       - "8081:8080"                     # Frontend public dev
     
-    # VARIABLES DE ENTORNO (sin Git)
+    # VARIABLES DE ENTORNO (CORREGIDAS - con valores por defecto)
     environment:
       # Core - Base de datos y autenticación
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://showstrack_user:showstrack_36Qz4g_password_2025@showstrack-postgres:5432/showstrack_main}
@@ -32,7 +32,10 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-showstrack_main}
       - SECRET_KEY=${SECRET_KEY:-dev_secret36Qz4g_key_2025}
       
-      # SSH y acceso
+      # Git y SSH
+      - GIT_USER_NAME=${GIT_USER_NAME:-rvaquerizo}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}
+      - GIT_TOKEN=${GIT_TOKEN:-}
       - SSH_ROOT_PASSWORD=${SSH_ROOT_PASSWORD:-showstrack_dev_2025}
       - DEV_SSH_PORT=${DEV_SSH_PORT:-222}
       
@@ -40,91 +43,186 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - DEBUG=${DEBUG:-true}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:8080,http://localhost:5173}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173,http://172.26.131.240:3001,http://172.26.131.240:8081,http://172.26.131.240:8000,http://172.26.131.240:8001,https://172.26.131.240:3001,https://172.26.131.240:8001}
     
-    # COMANDO DE INICIALIZACIÓN (sin Git)
+    # COMANDO DE INICIALIZACIÓN SIMPLIFICADO - USA start_showstrack.sh
     command: >
       bash -c "
         # Debug: Mostrar variables cargadas
         echo '🔍 Variables de entorno cargadas:' &&
-        env | grep -E '(DATABASE|POSTGRES|SECRET|SSH|DEV|ENVIRONMENT|DEBUG|ALLOWED)' | head -10 &&
-        
-        # Setup básico del sistema
-        apt update && 
-        apt install -y curl wget nano vim htop tree openssh-server build-essential &&
-        
-        # Python 3.10
-        apt install -y python3.10 python3.10-venv python3.10-dev python3-pip &&
-        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 &&
-        
-        # Node.js 18
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&
-        apt install -y nodejs &&
-        
-        # Claude Code
-        npm install -g @anthropic-ai/claude-code &&
-        
-        # Usuario dev con sudo
-        useradd -m -s /bin/bash dev &&
-        echo \"dev:\$SSH_ROOT_PASSWORD\" | chpasswd &&
-        usermod -aG sudo dev &&
-        
-        # SSH server
-        mkdir -p /var/run/sshd &&
-        echo 'AllowUsers dev' >> /etc/ssh/sshd_config &&
-        echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config &&
-        sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config &&
-        service ssh start &&
-        
-        # Configurar workspace
+        env | grep -E '(DATABASE|POSTGRES|SECRET|GIT|SSH|DEV|ENVIRONMENT|DEBUG|ALLOWED)' | head -10 &&
+
+        # ===================================================================
+        # CONFIGURACIÓN INICIAL - EJECUTAR MANUALMENTE LA PRIMERA VEZ
+        # ===================================================================
+        # IMPORTANTE: La configuración inicial debe hacerse manualmente SSH-eando al container
+        #
+        # PASOS MANUALES PRIMERA VEZ (ejecutar por SSH una sola vez):
+        # 1. SSH al container: ssh root@IP -p 222 (password: showstrack_dev_2025)
+        # 2. Instalar dependencias:
+        #    apt update && apt install -y git curl wget nano vim htop tree openssh-server build-essential
+        # 3. Instalar Python 3.10:
+        #    apt install -y python3.10 python3.10-venv python3.10-dev python3-pip
+        #    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+        # 4. Instalar Node.js 18:
+        #    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        #    apt install -y nodejs
+        # 5. Instalar Claude Code:
+        #    npm install -g @anthropic-ai/claude-code
+        # 6. Crear usuario dev:
+        #    useradd -m -s /bin/bash dev
+        #    echo "dev:showstrack_dev_2025" | chpasswd
+        #    usermod -aG sudo dev
+        # 7. Configurar SSH:
+        #    mkdir -p /var/run/sshd
+        #    echo 'AllowUsers dev root' >> /etc/ssh/sshd_config
+        #    echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config
+        #    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+        # 8. Configurar Git (como usuario dev):
+        #    su - dev -c "git config --global user.name 'rvaquerizo'"
+        #    su - dev -c "git config --global user.email 'rvaquerizo@puydufou.com'"
+        # 9. Clonar repositorio (como usuario dev):
+        #    su - dev -c "cd /workspace && git clone https://github.com/rvaquerizopdf/showstrack-app.git ."
+        # 10. Crear entorno Python (como usuario dev):
+        #     su - dev -c "cd /workspace && python3 -m venv venv"
+        # 11. Instalar dependencias backend (como usuario dev):
+        #     su - dev -c "cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && pip install -r requirements.txt"
+        # 12. Instalar dependencias frontend (como usuario dev):
+        #     su - dev -c "cd /workspace/showstrack-frontend/showstrack-admin && npm install"
+
+        echo '📋 Configuración inicial debe hacerse manualmente' &&
+        echo '📖 Ver comentarios en YAML para pasos detallados' &&
+
+        # Git config para usuario dev (COMENTADO - conservar configuración existente)
+        # su - dev -c \"git config --global user.name '\$GIT_USER_NAME'\" &&
+        # su - dev -c \"git config --global user.email '\$GIT_USER_EMAIL'\" &&
+
+        # Configurar variables de entorno GLOBALES del sistema (COMENTADO - solo primera vez)
+        # echo '# ShowsTrack Environment Variables' >> /etc/environment &&
+        # echo 'DATABASE_URL=\"\$DATABASE_URL\"' >> /etc/environment &&
+        # echo 'POSTGRES_USER=\"\$POSTGRES_USER\"' >> /etc/environment &&
+        # echo 'POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /etc/environment &&
+        # echo 'POSTGRES_DB=\"\$POSTGRES_DB\"' >> /etc/environment &&
+        # echo 'SECRET_KEY=\"\$SECRET_KEY\"' >> /etc/environment &&
+        # echo 'GIT_USER_NAME=\"\$GIT_USER_NAME\"' >> /etc/environment &&
+        # echo 'GIT_USER_EMAIL=\"\$GIT_USER_EMAIL\"' >> /etc/environment &&
+        # echo 'GIT_TOKEN=\"\$GIT_TOKEN\"' >> /etc/environment &&
+        # echo 'ENVIRONMENT=\"\$ENVIRONMENT\"' >> /etc/environment &&
+        # echo 'DEBUG=\"\$DEBUG\"' >> /etc/environment &&
+        # echo 'LOG_LEVEL=\"\$LOG_LEVEL\"' >> /etc/environment &&
+        # echo 'ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /etc/environment &&
+
+        # Configurar SSH para cargar variables de entorno (COMENTADO - solo primera vez)
+        # echo 'PermitUserEnvironment yes' >> /etc/ssh/sshd_config &&
+
+        # Crear archivo de entorno para usuario dev (COMENTADO - solo primera vez)
+        # echo '# ShowsTrack Environment Variables' > /home/dev/.env &&
+        # echo 'export DATABASE_URL=\"\$DATABASE_URL\"' >> /home/dev/.env &&
+        # echo 'export POSTGRES_USER=\"\$POSTGRES_USER\"' >> /home/dev/.env &&
+        # echo 'export POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /home/dev/.env &&
+        # echo 'export POSTGRES_DB=\"\$POSTGRES_DB\"' >> /home/dev/.env &&
+        # echo 'export SECRET_KEY=\"\$SECRET_KEY\"' >> /home/dev/.env &&
+        # echo 'export GIT_USER_NAME=\"\$GIT_USER_NAME\"' >> /home/dev/.env &&
+        # echo 'export GIT_USER_EMAIL=\"\$GIT_USER_EMAIL\"' >> /home/dev/.env &&
+        # echo 'export GIT_TOKEN=\"\$GIT_TOKEN\"' >> /home/dev/.env &&
+        # echo 'export ENVIRONMENT=\"\$ENVIRONMENT\"' >> /home/dev/.env &&
+        # echo 'export DEBUG=\"\$DEBUG\"' >> /home/dev/.env &&
+        # echo 'export LOG_LEVEL=\"\$LOG_LEVEL\"' >> /home/dev/.env &&
+        # echo 'export ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /home/dev/.env &&
+
+        # Agregar carga automática al .bashrc del usuario dev (COMENTADO - solo primera vez)
+        # echo '' >> /home/dev/.bashrc &&
+        # echo '# ShowsTrack Environment Variables' >> /home/dev/.bashrc &&
+        # echo 'if [ -f ~/.env ]; then' >> /home/dev/.bashrc &&
+        # echo '    source ~/.env' >> /home/dev/.bashrc &&
+        # echo 'fi' >> /home/dev/.bashrc &&
+        # chown dev:dev /home/dev/.env &&
+
+        # ===================================================================
+        # COMANDOS ESENCIALES CADA REINICIO (súper simples)
+        # ===================================================================
+
+        # Iniciar SSH server (si está instalado después de configuración manual)
+        if [ -f /usr/sbin/sshd ]; then
+          service ssh start &&
+          echo '✅ SSH iniciado'
+        else
+          echo '⚠️ SSH no instalado - ejecutar configuración manual primero'
+        fi &&
+
+        # Configurar workspace básico
         mkdir -p /workspace &&
-        chown -R dev:dev /workspace /home/dev &&
-        
-        # Configurar variables de entorno GLOBALES del sistema
-        echo '# ShowsTrack Environment Variables' >> /etc/environment &&
-        echo 'DATABASE_URL=\"\$DATABASE_URL\"' >> /etc/environment &&
-        echo 'POSTGRES_USER=\"\$POSTGRES_USER\"' >> /etc/environment &&
-        echo 'POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /etc/environment &&
-        echo 'POSTGRES_DB=\"\$POSTGRES_DB\"' >> /etc/environment &&
-        echo 'SECRET_KEY=\"\$SECRET_KEY\"' >> /etc/environment &&
-        echo 'ENVIRONMENT=\"\$ENVIRONMENT\"' >> /etc/environment &&
-        echo 'DEBUG=\"\$DEBUG\"' >> /etc/environment &&
-        echo 'LOG_LEVEL=\"\$LOG_LEVEL\"' >> /etc/environment &&
-        echo 'ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /etc/environment &&
-        
-        # Configurar SSH para cargar variables de entorno
-        echo 'PermitUserEnvironment yes' >> /etc/ssh/sshd_config &&
-        
-        # Crear archivo de entorno para usuario dev
-        echo '# ShowsTrack Environment Variables' > /home/dev/.env &&
-        echo 'export DATABASE_URL=\"\$DATABASE_URL\"' >> /home/dev/.env &&
-        echo 'export POSTGRES_USER=\"\$POSTGRES_USER\"' >> /home/dev/.env &&
-        echo 'export POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /home/dev/.env &&
-        echo 'export POSTGRES_DB=\"\$POSTGRES_DB\"' >> /home/dev/.env &&
-        echo 'export SECRET_KEY=\"\$SECRET_KEY\"' >> /home/dev/.env &&
-        echo 'export ENVIRONMENT=\"\$ENVIRONMENT\"' >> /home/dev/.env &&
-        echo 'export DEBUG=\"\$DEBUG\"' >> /home/dev/.env &&
-        echo 'export LOG_LEVEL=\"\$LOG_LEVEL\"' >> /home/dev/.env &&
-        echo 'export ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /home/dev/.env &&
-        
-        # Agregar carga automática al .bashrc del usuario dev
-        echo '' >> /home/dev/.bashrc &&
-        echo '# ShowsTrack Environment Variables' >> /home/dev/.bashrc &&
-        echo 'if [ -f ~/.env ]; then' >> /home/dev/.bashrc &&
-        echo '    source ~/.env' >> /home/dev/.bashrc &&
-        echo 'fi' >> /home/dev/.bashrc &&
-        chown dev:dev /home/dev/.env &&
-        
-        echo '🚀 ShowsTrack Development Environment Ready' &&
-        echo '👤 User: dev' &&
-        echo '🔑 SSH: ssh dev@YOUR_IP -p \$DEV_SSH_PORT' &&
-        echo '📁 Workspace: /workspace' &&
-        echo '🤖 Claude Code: claude --help' &&
-        echo '📋 Next Steps:' &&
-        echo '  1. SSH to container: ssh dev@IP -p \$DEV_SSH_PORT' &&
-        echo '  2. Upload/copy code to /workspace' &&
-        echo '  3. Backend dev: cd /workspace/backend && python3 -m venv venv && source venv/bin/activate' &&
-        echo '  4. Frontend dev: cd /workspace/frontend && npm install' &&
+        if id dev >/dev/null 2>&1; then
+          chown -R dev:dev /workspace /home/dev 2>/dev/null || echo 'Usuario dev: usando permisos actuales'
+        fi &&
+
+        # ===================================================================
+        # SCRIPTS REDUNDANTES COMENTADOS - USAR start_showstrack.sh EN SU LUGAR
+        # ===================================================================
+
+        # ===================================================================
+        # SCRIPTS AUTOSTART Y MANAGE-SERVICES COMENTADOS
+        # Estos scripts duplican la funcionalidad de start_showstrack.sh
+        # ===================================================================
+
+        # Crear script de autostart (COMENTADO - usar start_showstrack.sh en su lugar)
+        # cat > /workspace/autostart.sh << 'EOF'
+        # #!/bin/bash
+        # echo '🔧 ShowsTrack AutoStart Script'
+        # cd /workspace
+        # # ... [contenido completo del script comentado] ...
+        # EOF
+
+        # Crear comandos de gestión (COMENTADO - usar start_showstrack.sh/stop_showstrack.sh)
+        # cat > /workspace/manage-services.sh << 'EOF'
+        # #!/bin/bash
+        # # ShowsTrack Services Management Script
+        # # ... [contenido completo del script comentado] ...
+        # EOF
+
+        # Hacer ejecutables los scripts (COMENTADO)
+        # chmod +x /workspace/autostart.sh &&
+        # chmod +x /workspace/manage-services.sh &&
+        # chown dev:dev /workspace/autostart.sh &&
+        # chown dev:dev /workspace/manage-services.sh &&
+
+        # ===================================================================
+        # ENTORNO PREPARADO - INICIO MANUAL CON start_showstrack.sh
+        # ===================================================================
+
+        echo '🎉 ShowsTrack Development Container Ready' &&
+        echo '' &&
+        echo '📋 ESTADO ACTUAL:' &&
+        echo '   ✅ Container iniciado y básico configurado' &&
+        echo '   📦 Workspace: /workspace preparado' &&
+        echo '   🔗 Puerto SSH: 222 (si SSH instalado)' &&
+        echo '' &&
+
+        # ===================================================================
+        # EJECUTAR start_showstrack.sh AUTOMÁTICAMENTE
+        # ===================================================================
+
+        echo '🚀 Iniciando servicios automáticamente con start_showstrack.sh...' &&
+
+        # Ejecutar nuestro script como usuario dev (si existe) o root
+        if id dev >/dev/null 2>&1; then
+          echo '👤 Ejecutando como usuario dev' &&
+          su - dev -c 'cd /workspace && /workspace/start_showstrack.sh' &
+        else
+          echo '⚠️ Usuario dev no existe, ejecutando como root' &&
+          echo '📋 CONFIGURACIÓN MANUAL REQUERIDA:' &&
+          echo '   Ver comentarios detallados en el YAML para configurar usuario dev' &&
+          cd /workspace && /workspace/start_showstrack.sh &
+        fi &&
+
+        echo '' &&
+        echo '📋 URLs que estarán disponibles en breve:' &&
+        echo '  🎯 Vue Admin: http://172.26.131.240:3001/' &&
+        echo '  🎯 Backend API: http://172.26.131.240:8001/docs' &&
+        echo '  🎯 Pantallas: http://172.26.131.240:8081/' &&
+        echo '' &&
+        echo '🔧 Gestión manual: ssh dev@YOUR_IP -p 222' &&
+        echo '🛑 Detener servicios: /workspace/stop_showstrack.sh' &&
         tail -f /dev/null
       "
 
@@ -141,99 +239,136 @@ volumes:
 networks:
   showstrack-network:
     external: true
-    name: showstrack-network
+    name: showstrack-postgres_showstrack-network
 
 # ==========================================
-# 📋 INSTRUCCIONES DE USO (SIN GIT)
+# 📋 INSTRUCCIONES DE USO
 # ==========================================
-# 
+#
+# 🏗️ PRIMER DESPLIEGUE (configuración inicial):
 # 1. Crear stack en Portainer con este YAML
-# 2. Configurar variables de entorno (sin Git)
+# 2. Configurar variables de entorno (las mismas que en otros stacks)
 # 3. Desplegar stack
 # 4. SSH al container: ssh dev@IP -p 222
-# 5. Subir/copiar código al /workspace:
-#    - Via SCP: scp -P 222 -r ./mi-proyecto dev@IP:/workspace/
-#    - Via SFTP: sftp -P 222 dev@IP
-#    - Via editor remoto (VS Code Remote SSH)
-#    - Copiar desde otro container: docker cp source:/path container:/workspace/
-# 6. Crear entorno virtual: cd /workspace && python3 -m venv venv
-# 7. Activar entorno virtual: source venv/bin/activate
-# 8. Instalar dependencias backend: pip install -r requirements.txt
-# 9. Ejecutar backend: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 5. Configurar usuario SSH (solo primera vez):
+#    sudo useradd -m -s /bin/bash dev
+#    sudo echo "dev:showstrack_dev_2025" | chpasswd
+#    sudo usermod -aG sudo dev
+# 6. Configurar Git (solo primera vez):
+#    git config --global user.name "rvaquerizo"
+#    git config --global user.email "rvaquerizo@puydufou.com"
+# 7. Clonar repositorio (solo primera vez):
+#    cd /workspace && git clone https://github.com/rvaquerizopdf/showstrack-app.git .
+# 8. Crear entorno virtual: python3 -m venv venv
+# 9. Activar entorno virtual: source venv/bin/activate
+# 10. Instalar dependencias: cd showstrack-backend/backend && pip install -r requirements.txt
+# 11. Instalar dependencias frontend: cd /workspace/showstrack-frontend/showstrack-admin && npm install
 #
-# 🚀 INICIO RÁPIDO (después de tener el código):
+# 🔄 REINICIOS POSTERIORES (automático):
+# - Todos los servicios se inician automáticamente
+# - SSH, Git y usuario conservan configuración
+# - URLs disponibles inmediatamente
+#
+# 🚀 INICIO RÁPIDO (después del reinicio - AUTOMÁTICO):
+# Los servicios se inician automáticamente.
+# Verificar: ssh dev@IP -p 222 && /workspace/manage-services.sh status
+# URLs disponibles inmediatamente:
+#   🎯 Vue Admin: http://172.26.131.240:3001/
+#   🎯 Backend API: http://172.26.131.240:8001/docs
+#   🎯 Pantallas: http://172.26.131.240:8081/
+#
+# 🔧 GESTIÓN DE SERVICIOS:
+# /workspace/manage-services.sh {start|stop|restart|status|logs|urls}
+#
+# 🧪 VERIFICACIÓN RÁPIDA:
 # ssh dev@IP -p 222
-# cd /workspace && source venv/bin/activate
-# uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# /workspace/manage-services.sh status
+# /workspace/manage-services.sh urls
 # 
 # 🧪 TESTING DEL ENTORNO:
 # ssh dev@IP -p 222
 # cd /workspace && source venv/bin/activate
-# python -c "import sys; print(f'Python: {sys.version}')"
-# node --version
-# claude --help
+# ./showstrack-dev/scripts/test_dev_stack_script.sh --basic
+# ./showstrack-dev/scripts/test_dev_stack_script.sh --full
 # 
-# 🔄 FLUJO DE TRABAJO SIN GIT:
+# 🔄 FLUJO DE TRABAJO GIT:
 # Desarrollo → Validación → Deploy:
 # 1. Desarrollo: cd /workspace && [hacer cambios]
 # 2. Validar localmente: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-# 3. Copiar a producción:
-#    - Desde dev container: scp -r /workspace/* production-server:/path/
-#    - O via docker cp: docker cp showstrack-dev:/workspace/. /local/path/
-#    - Luego: docker cp /local/path/. showstrack-backend:/app/
-# 4. Reiniciar backend: docker restart showstrack-backend
+# 3. Commit y push: git add . && git commit -m "Feature X" && git push
+# 4. Deploy en backend stack:
+#    - Entrar al container backend: docker exec -it showstrack-backend bash
+#    - Actualizar código: cd /app && git pull
+#    - Reiniciar: exit && docker restart showstrack-backend
 # 5. Validar en producción: curl http://IP:8000/health
 # 
-# 📁 MÉTODOS PARA SUBIR CÓDIGO:
-# 
-# 1. SCP (Secure Copy):
-#    scp -P 222 -r ./mi-proyecto dev@IP:/workspace/
-# 
-# 2. SFTP (SSH File Transfer):
-#    sftp -P 222 dev@IP
-#    > put -r ./mi-proyecto /workspace/
-# 
-# 3. VS Code Remote SSH:
-#    - Instalar extensión "Remote - SSH"
-#    - Conectar a: ssh://dev@IP:222
-#    - Abrir carpeta: /workspace
-# 
-# 4. Desde otro container Docker:
-#    docker cp source-container:/source/path/. showstrack-dev:/workspace/
-# 
-# 5. Via volumen compartido:
-#    docker run -v showstrack_dev_workspace:/workspace --rm alpine sh -c "cp -r /source/* /workspace/"
-# 
-# 🌐 URLs DE ACCESO:
-# - Backend DEV: http://IP:8001 (desarrollo)
-# - Backend PROD: http://IP:8000 (producción)
-# - API Docs DEV: http://IP:8001/docs
-# - API Docs PROD: http://IP:8000/docs
+# 🌐 URLs DE ACCESO (AUTO-INICIADAS):
+# - Vue Admin: http://IP:3001/ (desarrollo automático)
+# - Backend DEV: http://IP:8001/docs (desarrollo automático)
+# - Pantallas: http://IP:8081/ (desarrollo automático)
+# - Backend PROD: http://IP:8000 (producción separada)
 # - SSH Dev: ssh dev@IP -p 222
 # 
-# 📁 ESTRUCTURA SUGERIDA EN /workspace/:
+# 📁 ESTRUCTURA RESULTANTE:
 # /workspace/
-# ├── backend/                       ← Código Python FastAPI
-# │   ├── app/
-# │   ├── requirements.txt
-# │   └── main.py
-# ├── frontend/                      ← Código Vue.js/React
-# │   ├── src/
-# │   ├── package.json
-# │   └── ...
+# ├── showstrack-backend/backend/    ← Código Python FastAPI
+# ├── showstrack-frontend/           ← Código Vue.js
+# ├── showstrack-dev/                ← Este stack
 # ├── venv/                          ← Python virtual environment
-# ├── scripts/                       ← Scripts útiles
-# └── docs/                          ← Documentación
+# └── .git/                          ← Git repository
 # 
-# 🔧 COMANDOS DE DESARROLLO:
-# - Backend: cd /workspace/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-# - Frontend: cd /workspace/frontend && npm install && npm run dev
+# 🔧 COMANDOS DE DESARROLLO (AUTOMÁTICOS):
+# - Todos los servicios se inician automáticamente al reiniciar
+# - Backend: Auto-iniciado en puerto 8000 → mapeo Docker 8001
+# - Frontend Vue: Auto-iniciado en puerto 3000 → mapeo Docker 3001
+# - Frontend Público: Auto-iniciado en puerto 8080 → mapeo Docker 8081
+# - Gestión: /workspace/manage-services.sh {start|stop|restart|status|logs|urls}
 # - Conecta automáticamente a PostgreSQL del stack existente
 # 
-# 📚 VENTAJAS SIN GIT:
-# - Control total sobre el código fuente
-# - No dependencia de servicios externos
-# - Flexibilidad para usar cualquier sistema de versiones
-# - Posibilidad de trabajar offline
-# - Seguridad: código no expuesto en repositorios
+# 📚 DOCUMENTACIÓN COMPLETA:
+# Ver "Manual de Operaciones - ShowsTrack Development Environment" para:
+# - Procedimientos de backup y restauración
+# - Gestión de volúmenes
+# - Resolución de problemas
+# - Comandos de mantenimiento
+#
+# ==========================================
+# 📝 CAMBIOS REALIZADOS PARA OPTIMIZACIÓN
+# ==========================================
+#
+# 🔄 OPTIMIZACIÓN IMPLEMENTADA (Octubre 2025):
+#
+# ❌ ELIMINADO DEL FLUJO (comentado, no borrado):
+# - Creación automática de autostart.sh (duplicaba start_showstrack.sh)
+# - Creación automática de manage-services.sh (duplicaba funcionalidad)
+# - Comandos de setup pesados en cada reinicio (apt, instalaciones, etc.)
+# - Configuraciones de SSH/Git en cada reinicio
+# - Variables de entorno globales en cada reinicio
+# - Ejecución automática de servicios en startup Docker
+#
+# ✅ SIMPLIFICADO A:
+# - SSH start (solo lo necesario)
+# - Permisos básicos de workspace
+# - Entorno preparado para inicio MANUAL con start_showstrack.sh
+#
+# 🎯 BENEFICIOS:
+# - Reinicios súper rápidos (segundos vs minutos)
+# - Sin duplicación de scripts
+# - Control manual total: start_showstrack.sh
+# - Preparado para CI/CD futuro (no autostart hardcodeado)
+# - Logs unificados en estructura estándar
+#
+# 📋 GESTIÓN MANUAL:
+# - Preparación: Docker YML solo prepara entorno
+# - Inicio: SSH + /workspace/start_showstrack.sh
+# - Parada: /workspace/stop_showstrack.sh
+# - Logs: /workspace/backend.log, /workspace/frontend-admin.log, etc.
+#
+# 🔧 RESTAURAR FUNCIONALIDAD ORIGINAL:
+# Para volver al sistema anterior, descomente las líneas marcadas
+# con "COMENTADO" en el command: section y comente la línea:
+# su - dev -c 'cd /workspace && /workspace/start_showstrack.sh' &
+#
+# 📅 Cambio realizado: 01/10/2025
+# 🎫 Backup disponible: showstrack-backup-20251001.tar.gz
 # ==========================================

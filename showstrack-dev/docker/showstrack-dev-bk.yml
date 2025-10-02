@@ -1,0 +1,221 @@
+version: '3.8'
+
+services:
+  showstrack-dev:
+    image: ubuntu:22.04
+    container_name: showstrack-dev
+    restart: unless-stopped
+    
+    # VOLÚMENES PERSISTENTES (siguiendo patrón establecido)
+    volumes:
+      - showstrack_dev_workspace:/workspace
+      - showstrack_dev_home:/home/dev
+      - /var/run/docker.sock:/var/run/docker.sock
+    
+    # RED EXTERNA (misma que postgres y backend)
+    networks:
+      - showstrack-network
+    
+    # PUERTOS PARA DESARROLLO LOCAL
+    ports:
+      - "${DEV_SSH_PORT:-222}:22"       # SSH para acceso remoto
+      - "8001:8000"                     # Backend dev (puerto diferente del prod)
+      - "3001:3000"                     # Frontend admin dev  
+      - "8081:8080"                     # Frontend public dev
+    
+    # VARIABLES DE ENTORNO (CORREGIDAS - con valores por defecto)
+    environment:
+      # Core - Base de datos y autenticación
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://showstrack_user:showstrack_36Qz4g_password_2025@showstrack-postgres:5432/showstrack_main}
+      - POSTGRES_USER=${POSTGRES_USER:-showstrack_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-showstrack_36Qz4g_password_2025}
+      - POSTGRES_DB=${POSTGRES_DB:-showstrack_main}
+      - SECRET_KEY=${SECRET_KEY:-dev_secret36Qz4g_key_2025}
+      
+      # Git y SSH
+      - GIT_USER_NAME=${GIT_USER_NAME:-rvaquerizo}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-rvaquerizo@puydufou.com}
+      - GIT_TOKEN=${GIT_TOKEN:-}
+      - SSH_ROOT_PASSWORD=${SSH_ROOT_PASSWORD:-showstrack_dev_2025}
+      - DEV_SSH_PORT=${DEV_SSH_PORT:-222}
+      
+      # Desarrollo
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173}
+    
+    # COMANDO DE INICIALIZACIÓN (MEJORADO - con debug de variables)
+    command: >
+      bash -c "
+        # Debug: Mostrar variables cargadas
+        echo '🔍 Variables de entorno cargadas:' &&
+        env | grep -E '(DATABASE|POSTGRES|SECRET|GIT|SSH|DEV|ENVIRONMENT|DEBUG|ALLOWED)' | head -10 &&
+        
+        # Setup básico del sistema
+        apt update && 
+        apt install -y git curl wget nano vim htop tree openssh-server build-essential &&
+        
+        # Python 3.10
+        apt install -y python3.10 python3.10-venv python3.10-dev python3-pip &&
+        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 &&
+        
+        # Node.js 18
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&
+        apt install -y nodejs &&
+        
+        # Claude Code
+        npm install -g @anthropic-ai/claude-code &&
+        
+        # Usuario dev con sudo
+        useradd -m -s /bin/bash dev &&
+        echo \"dev:\$SSH_ROOT_PASSWORD\" | chpasswd &&
+        usermod -aG sudo dev &&
+        
+        # SSH server
+        mkdir -p /var/run/sshd &&
+        echo 'AllowUsers dev' >> /etc/ssh/sshd_config &&
+        echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config &&
+        sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config &&
+        service ssh start &&
+        
+        # Configurar workspace
+        mkdir -p /workspace &&
+        chown -R dev:dev /workspace /home/dev &&
+        
+        # Git config para usuario dev (usando variables de entorno)
+        su - dev -c \"git config --global user.name '\$GIT_USER_NAME'\" &&
+        su - dev -c \"git config --global user.email '\$GIT_USER_EMAIL'\" &&
+        
+        # Configurar variables de entorno GLOBALES del sistema
+        echo '# ShowsTrack Environment Variables' >> /etc/environment &&
+        echo 'DATABASE_URL=\"\$DATABASE_URL\"' >> /etc/environment &&
+        echo 'POSTGRES_USER=\"\$POSTGRES_USER\"' >> /etc/environment &&
+        echo 'POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /etc/environment &&
+        echo 'POSTGRES_DB=\"\$POSTGRES_DB\"' >> /etc/environment &&
+        echo 'SECRET_KEY=\"\$SECRET_KEY\"' >> /etc/environment &&
+        echo 'GIT_USER_NAME=\"\$GIT_USER_NAME\"' >> /etc/environment &&
+        echo 'GIT_USER_EMAIL=\"\$GIT_USER_EMAIL\"' >> /etc/environment &&
+        echo 'GIT_TOKEN=\"\$GIT_TOKEN\"' >> /etc/environment &&
+        echo 'ENVIRONMENT=\"\$ENVIRONMENT\"' >> /etc/environment &&
+        echo 'DEBUG=\"\$DEBUG\"' >> /etc/environment &&
+        echo 'LOG_LEVEL=\"\$LOG_LEVEL\"' >> /etc/environment &&
+        echo 'ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /etc/environment &&
+        
+        # Configurar SSH para cargar variables de entorno
+        echo 'PermitUserEnvironment yes' >> /etc/ssh/sshd_config &&
+        
+        # Crear archivo de entorno para usuario dev (backup)
+        echo '# ShowsTrack Environment Variables' > /home/dev/.env &&
+        echo 'export DATABASE_URL=\"\$DATABASE_URL\"' >> /home/dev/.env &&
+        echo 'export POSTGRES_USER=\"\$POSTGRES_USER\"' >> /home/dev/.env &&
+        echo 'export POSTGRES_PASSWORD=\"\$POSTGRES_PASSWORD\"' >> /home/dev/.env &&
+        echo 'export POSTGRES_DB=\"\$POSTGRES_DB\"' >> /home/dev/.env &&
+        echo 'export SECRET_KEY=\"\$SECRET_KEY\"' >> /home/dev/.env &&
+        echo 'export GIT_USER_NAME=\"\$GIT_USER_NAME\"' >> /home/dev/.env &&
+        echo 'export GIT_USER_EMAIL=\"\$GIT_USER_EMAIL\"' >> /home/dev/.env &&
+        echo 'export GIT_TOKEN=\"\$GIT_TOKEN\"' >> /home/dev/.env &&
+        echo 'export ENVIRONMENT=\"\$ENVIRONMENT\"' >> /home/dev/.env &&
+        echo 'export DEBUG=\"\$DEBUG\"' >> /home/dev/.env &&
+        echo 'export LOG_LEVEL=\"\$LOG_LEVEL\"' >> /home/dev/.env &&
+        echo 'export ALLOWED_ORIGINS=\"\$ALLOWED_ORIGINS\"' >> /home/dev/.env &&
+        
+        # Agregar carga automática al .bashrc del usuario dev
+        echo '' >> /home/dev/.bashrc &&
+        echo '# ShowsTrack Environment Variables' >> /home/dev/.bashrc &&
+        echo 'if [ -f ~/.env ]; then' >> /home/dev/.bashrc &&
+        echo '    source ~/.env' >> /home/dev/.bashrc &&
+        echo 'fi' >> /home/dev/.bashrc &&
+        chown dev:dev /home/dev/.env &&
+        
+        echo '🚀 ShowsTrack Development Environment Ready' &&
+        echo '👤 User: dev' &&
+        echo '🔑 SSH: ssh dev@YOUR_IP -p \$DEV_SSH_PORT' &&
+        echo '📁 Workspace: /workspace' &&
+        echo '🤖 Claude Code: claude --help' &&
+        echo '📋 Next Steps:' &&
+        echo '  1. SSH to container: ssh dev@IP -p \$DEV_SSH_PORT' &&
+        echo '  2. Clone repo: cd /workspace && git clone REPO_URL .' &&
+        echo '  3. Backend dev: cd showstrack-backend/backend && python3 -m venv venv && source venv/bin/activate' &&
+        echo '  4. Frontend dev: cd showstrack-frontend/frontend-admin && npm install' &&
+        tail -f /dev/null
+      "
+
+# VOLÚMENES NAMED (siguiendo patrón establecido)
+volumes:
+  showstrack_dev_workspace:
+    driver: local
+    name: showstrack_dev_workspace
+  showstrack_dev_home:
+    driver: local
+    name: showstrack_dev_home
+
+# RED EXTERNA (igual que backend y postgres)
+networks:
+  showstrack-network:
+    external: true
+    name: showstrack-postgres_showstrack-network
+
+# ==========================================
+# 📋 INSTRUCCIONES DE USO
+# ==========================================
+# 
+# 1. Crear stack en Portainer con este YAML
+# 2. Configurar variables de entorno (las mismas que en otros stacks)
+# 3. Desplegar stack
+# 4. SSH al container: ssh dev@IP -p 222
+# 5. Clonar repositorio (solo primera vez): cd /workspace && git clone https://github.com/rvaquerizopdf/showstrack-app.git .
+# 6. Crear entorno virtual: python3 -m venv venv
+# 7. Activar entorno virtual: source venv/bin/activate
+# 8. Instalar dependencias backend: cd showstrack-backend/backend && pip install -r requirements.txt
+# 9. Ejecutar backend: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+#
+# 🚀 INICIO RÁPIDO (después de la configuración inicial):
+# ssh dev@IP -p 222
+# cd /workspace && source venv/bin/activate
+# cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 
+# 🧪 TESTING DEL ENTORNO:
+# ssh dev@IP -p 222
+# cd /workspace && source venv/bin/activate
+# ./showstrack-dev/scripts/test_dev_stack_script.sh --basic
+# ./showstrack-dev/scripts/test_dev_stack_script.sh --full
+# 
+# 🔄 FLUJO DE TRABAJO GIT:
+# Desarrollo → Validación → Deploy:
+# 1. Desarrollo: cd /workspace && [hacer cambios]
+# 2. Validar localmente: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 3. Commit y push: git add . && git commit -m "Feature X" && git push
+# 4. Deploy en backend stack:
+#    - Entrar al container backend: docker exec -it showstrack-backend bash
+#    - Actualizar código: cd /app && git pull
+#    - Reiniciar: exit && docker restart showstrack-backend
+# 5. Validar en producción: curl http://IP:8000/health
+# 
+# 🌐 URLs DE ACCESO:
+# - Backend DEV: http://IP:8001 (desarrollo)
+# - Backend PROD: http://IP:8000 (producción)
+# - API Docs DEV: http://IP:8001/docs
+# - API Docs PROD: http://IP:8000/docs
+# - SSH Dev: ssh dev@IP -p 222
+# 
+# 📁 ESTRUCTURA RESULTANTE:
+# /workspace/
+# ├── showstrack-backend/backend/    ← Código Python FastAPI
+# ├── showstrack-frontend/           ← Código Vue.js
+# ├── showstrack-dev/                ← Este stack
+# ├── venv/                          ← Python virtual environment
+# └── .git/                          ← Git repository
+# 
+# 🔧 COMANDOS DE DESARROLLO:
+# - Backend: cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# - Frontend: cd showstrack-frontend/frontend-admin && npm install && npm run dev
+# - Conecta automáticamente a PostgreSQL del stack existente
+# 
+# 📚 DOCUMENTACIÓN COMPLETA:
+# Ver "Manual de Operaciones - ShowsTrack Development Environment" para:
+# - Procedimientos de backup y restauración
+# - Gestión de volúmenes
+# - Resolución de problemas
+# - Comandos de mantenimiento
+# ==========================================

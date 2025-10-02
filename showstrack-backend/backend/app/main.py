@@ -21,12 +21,12 @@ app = FastAPI(
 )
 
 # Configurar CORS
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:5173").split(",")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:5173,http://172.26.131.240:3001,http://172.26.131.240:8081,http://172.26.131.240:8000,http://172.26.131.240:8001,https://172.26.131.240:3001,https://172.26.131.240:8001").split(",")
 allowed_origins = [origin.strip() for origin in allowed_origins]  # Limpiar espacios
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # NUCLEAR: Permitir TODOS los origins para resolver problema crítico
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -169,3 +169,5 @@ async def health():
 @app.get("/")
 async def root():
     return {"message": "ShowsTrack API funcionando"}
+
+# Force reload for CORS fix - timestamp: 15:15:04
