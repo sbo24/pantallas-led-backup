@@ -90,7 +90,9 @@ class ShowBasicInfo(BaseModel):
     """Schema básico para información de Show en Event"""
     id: int
     name: str
-    
+    custom_lead_time_access_minutes: Optional[int] = None
+    custom_lead_time_finalized_minutes: Optional[int] = None
+
     model_config = {
         "from_attributes": True
     }

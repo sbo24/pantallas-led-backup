@@ -10,6 +10,7 @@ services:
     volumes:
       - showstrack_dev_workspace:/workspace
       - showstrack_dev_home:/home/dev
+      - showstrack_dev_ssh:/etc/ssh
       - /var/run/docker.sock:/var/run/docker.sock
     
     # RED EXTERNA (misma que postgres y backend)
@@ -65,8 +66,7 @@ services:
         #    apt install -y python3.10 python3.10-venv python3.10-dev python3-pip
         #    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
         # 4. Instalar Node.js 18:
-        #    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-        #    apt install -y nodejs
+        #    curl -fsSL https://deb.nodesource.com/setup_18.x | bash && apt install -y nodejs
         # 5. Instalar Claude Code:
         #    npm install -g @anthropic-ai/claude-code
         # 6. Crear usuario dev:
@@ -204,15 +204,17 @@ services:
 
         echo '🚀 Iniciando servicios automáticamente con start_showstrack.sh...' &&
 
-        # Ejecutar nuestro script como usuario dev (si existe) o root
+        # Ejecutar nuestro script como usuario dev (si existe)
         if id dev >/dev/null 2>&1; then
           echo '👤 Ejecutando como usuario dev' &&
-          su - dev -c 'cd /workspace && /workspace/start_showstrack.sh' &
+          cd /workspace &&
+          su dev -c '/workspace/start_showstrack.sh' &
         else
-          echo '⚠️ Usuario dev no existe, ejecutando como root' &&
+          echo '❌ ERROR: Usuario dev no existe' &&
           echo '📋 CONFIGURACIÓN MANUAL REQUERIDA:' &&
           echo '   Ver comentarios detallados en el YAML para configurar usuario dev' &&
-          cd /workspace && /workspace/start_showstrack.sh &
+          echo '🛑 No se pueden iniciar servicios sin usuario dev' &&
+          echo '   SSH como root para configurar: ssh root@IP -p 222'
         fi &&
 
         echo '' &&
@@ -234,6 +236,9 @@ volumes:
   showstrack_dev_home:
     driver: local
     name: showstrack_dev_home
+  showstrack_dev_ssh:
+    driver: local
+    name: showstrack_dev_ssh
 
 # RED EXTERNA (igual que backend y postgres)
 networks:

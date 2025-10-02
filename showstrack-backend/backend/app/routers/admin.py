@@ -283,7 +283,9 @@ async def get_events(
             "updated_at": event.updated_at,
             "show": {
                 "id": event.show.id,
-                "name": event.show.name
+                "name": event.show.name,
+                "custom_lead_time_access_minutes": event.show.custom_lead_time_access_minutes,
+                "custom_lead_time_finalized_minutes": event.show.custom_lead_time_finalized_minutes
             },
             "override": None,
             "calculated_status": await EventService.calculate_event_status(event, db)

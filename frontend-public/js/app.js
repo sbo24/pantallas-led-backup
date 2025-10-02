@@ -207,7 +207,7 @@ class ShowsTrackClient {
         // Afficher la zone "shows"
         this.elements.alertMode.style.display = 'none';
         this.elements.showsContainer.style.display = 'block';
-      
+
         const now = new Date();
         const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       
@@ -222,12 +222,13 @@ class ShowsTrackClient {
 
         const getStatusRank = (show) => {
             const status = show?.current_pass?.status || show?.status || 'PROGRAMADO';
-            // Priority: ABIERTO (0) > CERRADO (1) > PROGRAMADO (2) > CANCELADO (3)
+            // Priority: ABIERTO (0) > CERRADO/CANCELADO (1) > PROGRAMADO (2)
+            // CANCELADO tiene misma prioridad que CERRADO (ambos son estados finales)
             switch (status) {
                 case 'ABIERTO': return 0;
                 case 'CERRADO': return 1;
+                case 'CANCELADO': return 1;  // Mismo rank que CERRADO
                 case 'PROGRAMADO': return 2;
-                case 'CANCELADO': return 3;
                 default: return 4;
             }
         };

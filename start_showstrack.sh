@@ -54,6 +54,55 @@ echo "⏳ Esperando servicios (15 segundos)..."
 sleep 15
 
 # =============================================================================
+# VERIFICACIÓN Y CONFIGURACIÓN DE CRON ETL
+# =============================================================================
+
+echo "🔄 Verificando automatización ETL..."
+
+# Verificar si cron está instalado
+if command -v crontab >/dev/null 2>&1; then
+    # Cron está instalado, verificar si hay tarea configurada
+    if crontab -l 2>/dev/null | grep -q "etl-cron.sh"; then
+        echo "✅ Cron ETL: Configurado y activo"
+        # Verificar si el servicio cron está corriendo
+        if service cron status >/dev/null 2>&1; then
+            echo "   ✅ Servicio cron: Running"
+        else
+            echo "   ⚠️  Servicio cron no está corriendo, intentando iniciar..."
+            service cron start 2>/dev/null && echo "   ✅ Servicio cron iniciado" || echo "   ❌ No se pudo iniciar cron (requiere permisos root)"
+        fi
+    else
+        echo "⚠️  Cron instalado pero sin tarea ETL configurada"
+        echo "   📝 Para configurar: echo '5 */2 * * * /workspace/scripts/etl-cron.sh' | crontab -"
+    fi
+else
+    echo "⚠️  CRON NO INSTALADO - Automatización ETL no disponible"
+    echo ""
+    echo "   📌 Para habilitar la sincronización automática cada 2 horas:"
+    echo "   1️⃣  Desde el HOST Docker ejecuta:"
+    echo "      docker exec -u root showstrack-dev bash -c 'apt update && apt install -y cron'"
+    echo "      docker exec -u root showstrack-dev service cron start"
+    echo "      docker exec -u dev showstrack-dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
+    echo ""
+    echo "   2️⃣  O ejecuta ETL manualmente cuando necesites:"
+    echo "      /workspace/scripts/etl-cron.sh"
+    echo ""
+    echo "   📖 Más información: /workspace/scripts/CRON_SETUP.md"
+    echo ""
+
+    # Preguntar si quiere ejecutar ETL manualmente ahora
+    read -t 10 -p "   ¿Ejecutar ETL ahora manualmente? (s/N): " RUN_ETL
+    if [[ "$RUN_ETL" =~ ^[Ss]$ ]]; then
+        echo "   🔄 Ejecutando ETL..."
+        /workspace/scripts/etl-cron.sh
+    else
+        echo "   ⏭️  ETL omitido (puedes ejecutarlo después con: /workspace/scripts/etl-cron.sh)"
+    fi
+fi
+
+echo ""
+
+# =============================================================================
 # VERIFICACIÓN SIMPLE
 # =============================================================================
 
@@ -78,12 +127,14 @@ echo "📋 Ver logs:"
 echo "   Backend: tail -f /workspace/backend.log"
 echo "   Vue Admin: tail -f /workspace/frontend-admin.log"
 echo "   Pantallas: tail -f /workspace/frontend-public.log"
+echo "   ETL: tail -f /workspace/logs/showstrack-etl.log"
 echo ""
 echo "📊 PIDs guardados en:"
 echo "   Backend: /workspace/backend.pid ($BACKEND_PID)"
 echo "   Vue Admin: /workspace/frontend-admin.pid ($VUE_PID)"
 echo "   Pantallas: /workspace/frontend-public.pid ($PUBLIC_PID)"
 echo ""
+echo "🔄 ETL Manual: /workspace/scripts/etl-cron.sh"
 echo "🛑 Detener: /workspace/stop_showstrack.sh"
 
 # =============================================================================

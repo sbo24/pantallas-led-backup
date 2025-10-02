@@ -179,7 +179,7 @@ const getIconForShow = (showName: string): string | undefined => {
     'El Tambor de la Libertad': 'show-06.png',
     'De Tal Palo': 'show-07.png',
     'El Espadero de Vivar': 'show-08.png',
-    'El Sueño de Toledo': 'show-09.png',
+    'El Sueño de Toledo': 'night-show.png',
   }
   return iconMap[showName]
 }
@@ -285,17 +285,16 @@ const loadRealData = async () => {
       
       return true
     })
-    console.log('[OperatorView] Eventos filtrados por visibilidad:', showEvents.length, 'eventos válidos')
-    
+
     return showEvents.map((event: any) => {
-        // Buscar el siguiente evento del mismo show
+        // Buscar el siguiente evento del mismo show (ordenados ascendente para encontrar el próximo)
         const sameShowEvents = showEvents
-          .filter(e => e.show_id === event.show_id)
-          .sort((a, b) => a.start_time.localeCompare(b.start_time))
-        
-        const currentIndex = sameShowEvents.findIndex(e => e.id === event.id)
+          .filter((e: any) => e.show_id === event.show_id)
+          .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+
+        const currentIndex = sameShowEvents.findIndex((e: any) => e.id === event.id)
         const nextEvent = currentIndex < sameShowEvents.length - 1 ? sameShowEvents[currentIndex + 1] : null
-        
+
         return {
           id: event.id,
           event_id: event.id, // ID directo del evento
@@ -313,7 +312,17 @@ const loadRealData = async () => {
             start_time: formatTime(nextEvent.start_time),
             event_date: nextEvent.event_date
           } : null,
-          custom_lead_time_access_minutes: event.show?.custom_lead_time_access_minutes || 30,
+          custom_lead_time_access_minutes: (() => {
+            const leadTime = event.show?.custom_lead_time_access_minutes || 30
+            if (event.show?.name === 'A Pluma y Espada') {
+              console.log('[OperatorView] A Pluma y Espada lead time:', {
+                from_api: event.show?.custom_lead_time_access_minutes,
+                show_object: event.show,
+                final_value: leadTime
+              })
+            }
+            return leadTime
+          })(),
           hasOverride: event.status_override?.is_active || false,
           overrideReason: event.status_override?.reason || null
         }
@@ -332,12 +341,8 @@ const loadShows = async () => {
   try {
     if (demoMode.value) {
       shows.value = await loadDemoData()
-      console.log('[OperatorView] Shows demo cargados:', shows.value.length)
-      console.log('[OperatorView] Primer show demo:', shows.value[0])
     } else {
       shows.value = await loadRealData()
-      console.log('[OperatorView] Shows reales cargados:', shows.value.length)
-      console.log('[OperatorView] Primer show real:', shows.value[0])
     }
   } catch (error) {
     console.error('Error loading shows:', error)

@@ -162,12 +162,13 @@ const displayShows = computed(() => {
   // Función getStatusRank (igual que frontend-public)
   const getStatusRank = (show) => {
     const status = show?.current_pass?.status || show?.status || 'PROGRAMADO'
-    // Priority: ABIERTO (0) > CERRADO (1) > PROGRAMADO (2) > CANCELADO (3)
+    // Priority: ABIERTO (0) > CERRADO/CANCELADO (1) > PROGRAMADO (2)
+    // CANCELADO tiene misma prioridad que CERRADO (ambos son estados finales)
     switch (status) {
       case 'ABIERTO': return 0
       case 'CERRADO': return 1
+      case 'CANCELADO': return 1  // Mismo rank que CERRADO
       case 'PROGRAMADO': return 2
-      case 'CANCELADO': return 3
       default: return 4
     }
   }
@@ -265,15 +266,30 @@ onUnmounted(() => {
   --color-footer-bg: #E5E7EB;
 
   /* Dimension for layout - Header eliminado, más espacio para main */
-  --main-height: 85vh;
-  --footer-height: 15vh;
+  --main-height: 89vh;
+  --footer-height: 11vh;
 
-  /* Typography optimized for distance reading */
-  --font-size-title: 3.5rem;
-  --font-size-time: 3rem;
-  --font-size-status: 2.5rem;
-  --font-size-show: 2.2rem;
-  --font-size-next: 2rem;
+  /* TIPOGRAFÍA ESCALABLE - Ajustada para preview en contenedor reducido */
+  --font-size-title: clamp(8px, 1.2vw, 18px);
+  --font-size-time: clamp(10px, 1.5vw, 22px);
+  --font-size-status: clamp(8px, 1.2vw, 18px);
+  --font-size-show: clamp(10px, 1.5vw, 20px);
+  --font-size-next: clamp(10px, 1.5vw, 22px);
+  --font-size-footer: clamp(9px, 1.3vw, 20px);
+
+  /* ESPACIADOS ESCALABLES - Reducidos para contenedor */
+  --padding-container: clamp(1px, 0.3vw, 4px);
+  --padding-cell: clamp(2px, 0.4vw, 6px);
+  --gap-elements: clamp(2px, 0.4vw, 6px);
+  --row-height: clamp(18px, 3vh, 40px);
+  --header-height: clamp(12px, 2vh, 30px);
+  --letter-spacing: clamp(0.3px, 0.15vw, 1.5px);
+
+  /* ELEMENTOS GRÁFICOS ESCALABLES - Reducidos */
+  --icon-size: clamp(16px, 2.5vw, 35px);
+  --table-icon-size: clamp(18px, 3vw, 45px);
+  --border-radius: clamp(1px, 0.4vw, 6px);
+  --min-column-width: clamp(50px, 10vw, 150px);
 }
 
 /* Reset and base styles */
@@ -295,20 +311,20 @@ onUnmounted(() => {
 .table-title-with-icon {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--gap-elements);
   justify-content: flex-start;
 }
 
 .table-shows-icon {
-  height: 40px;
+  height: var(--table-icon-size);
   width: auto;
 }
 
 .table-title-with-icon span {
-  font-size: 2rem;
+  font-size: var(--font-size-title);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: var(--letter-spacing);
   color: var(--color-text-primary);
 }
 
@@ -342,15 +358,15 @@ onUnmounted(() => {
 .public-display-preview .shows-table thead {
   background: transparent;
   color: var(--color-text-primary);
-  height: 80px;
+  height: var(--header-height);
 }
 
 .public-display-preview .shows-table th {
-  padding: 1rem 1.5rem;
-  font-size: 2rem;
+  padding: var(--padding-cell);
+  font-size: var(--font-size-title);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: var(--letter-spacing);
   border: none;
   text-align: center;
   color: var(--color-text-primary);
@@ -361,17 +377,17 @@ onUnmounted(() => {
 }
 
 /* Columns with responsive widths */
-.public-display-preview .col-show-combined { 
-  width: 50%; 
-  text-align: left; 
-  min-width: 280px;
+.public-display-preview .col-show-combined {
+  width: 50%;
+  text-align: left;
+  min-width: var(--min-column-width);
 }
 
 .public-display-preview .show-content {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding-left: 1rem;
+  gap: var(--gap-elements);
+  padding-left: var(--padding-cell);
 }
 
 .public-display-preview .show-content .show-name { 
@@ -421,9 +437,7 @@ onUnmounted(() => {
 }
 
 .public-display-preview .shows-table tbody tr {
-  height: 100px;
-  min-height: 80px;
-  max-height: 120px;
+  height: var(--row-height);
   border: none;
   transition: all 0.3s ease;
   background: transparent;
@@ -434,7 +448,7 @@ onUnmounted(() => {
 }
 
 .public-display-preview .shows-table td {
-  padding: 1rem 1.5rem;
+  padding: var(--padding-cell);
   text-align: center;
   vertical-align: middle;
   border: none;
@@ -447,8 +461,8 @@ onUnmounted(() => {
 
 /* Show icon */
 .public-display-preview .show-icon {
-  width: 60px;
-  height: 60px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   object-fit: contain;
 }
 
@@ -467,15 +481,12 @@ onUnmounted(() => {
 }
 
 .public-display-preview .show-time {
+  font-family: 'Arial', sans-serif;
   font-size: var(--font-size-time);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  background-image: url('/assets/images/hour-box.png');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-  padding: 1rem;
+  padding: var(--padding-container);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -487,8 +498,8 @@ onUnmounted(() => {
   font-size: var(--font-size-status);
   font-weight: 600;
   text-transform: uppercase;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  padding: var(--padding-cell);
+  border-radius: var(--border-radius);
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -518,14 +529,12 @@ onUnmounted(() => {
 }
 
 .public-display-preview .show-next {
+  font-family: 'Arial', sans-serif;
   font-size: var(--font-size-time);
+  font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-  background-image: url('/assets/images/hour-box.png');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-  padding: 1rem;
+  padding: var(--padding-container);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -543,7 +552,7 @@ onUnmounted(() => {
   justify-content: center;
   height: 300px;
   text-align: center;
-  font-size: 2rem;
+  font-size: var(--font-size-title);
 }
 
 .retry-button {
@@ -614,7 +623,7 @@ onUnmounted(() => {
 }
 
 .custom-text {
-  font-size: 2.5rem;
+  font-size: var(--font-size-footer);
   font-weight: 600;
   color: var(--color-text-custom);
   margin: 0;

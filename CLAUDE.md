@@ -28,7 +28,10 @@ cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uv
 # SSH into development container
 ssh dev@[IP_SERVIDOR] -p 222
 
-# Activate Python environment and start server (single command)
+# OPTION A: Start all services with automation script (RECOMMENDED)
+/workspace/start_showstrack.sh
+
+# OPTION B: Start backend manually (legacy method)
 cd /workspace && source venv/bin/activate && cd showstrack-backend/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Alternative: Step by step commands
@@ -40,6 +43,26 @@ cd showstrack-backend/backend
 
 # 3. Start FastAPI server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### ETL Automation (Cron)
+```bash
+# Check cron status
+service cron status
+crontab -l
+
+# Manual ETL execution
+/workspace/scripts/etl-cron.sh
+
+# View ETL logs
+tail -f /workspace/logs/showstrack-etl.log
+
+# If cron is not installed (after stack update), reinstall from Docker host:
+# docker exec -u root showstrack-dev bash -c "apt update && apt install -y cron"
+# docker exec -u root showstrack-dev service cron start
+# docker exec -u dev showstrack-dev bash -c 'echo "5 */2 * * * /workspace/scripts/etl-cron.sh" | crontab -'
+
+# See full documentation: /workspace/scripts/CRON_SETUP.md
 ```
 
 ### Testing and Validation

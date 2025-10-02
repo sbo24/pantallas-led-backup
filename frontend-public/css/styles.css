@@ -242,18 +242,24 @@ body {
   padding-left: var(--padding-container);
 }
 
-.public-display-preview .show-content .show-name { 
+.public-display-preview .show-content .show-name {
   text-align: left !important;
-  margin-left: 0;
+  margin: 0;
   flex: 1;
   color: var(--color-text-shows);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
 }
 
-.show-content .show-name { 
+.show-content .show-name {
   text-align: left !important;
-  margin-left: 0;
+  margin: 0;
   flex: 1;
   color: var(--color-text-shows);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
 }
 
 .public-display-preview .col-time { 
@@ -689,3 +695,8 @@ body {
   .shows-table thead th.col-next {
       letter-spacing: -0.1px !important;
   }
+
+
+.show-content .show-name {
+  padding-top: 3%;
+}

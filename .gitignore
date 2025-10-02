@@ -5,6 +5,7 @@ __pycache__/
 .env
 .env.local
 *.log
+*.pid
 venv/
 
 # Python packages
@@ -71,3 +72,22 @@ temp/
 showstrack-backend/docker/showstrack_backend.yml
 showstrack-dev/docker/showstrack-dev.yml
 showstrack-postgres/docker/showstrack-postgres.yml
+
+# ETL Debug and temporary files
+scripts/extraction/debug/response_*.txt
+scripts/extraction/debug/shows_*.txt
+scripts/extraction/output/etl_api_*.json
+
+# Old/backup image files
+frontend-public/assets/images/show-icons/old/
+showstrack-frontend/showstrack-admin/public/assets/images/show-icons/old/
+
+# Docker configuration backups and temporary versions
+showstrack-dev/docker/showstrack-dev-bk.yml
+showstrack-dev/docker/showstrack-dev-ok.yml
+showstrack-dev/docker/showstrack-dev-fixed.yml
+showstrack-backend/docker/showstrack_backend-bk.yml
+showstrack-postgres/docker/showstrack-postgres-bk.yml
+
+# Setup completion markers
+.setup_complete

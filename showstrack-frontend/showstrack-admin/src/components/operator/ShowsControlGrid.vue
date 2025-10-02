@@ -16,8 +16,8 @@
     
     <!-- Shows grid -->
     <div v-else-if="visibleShows.length > 0" class="shows-list">
-      <div 
-        v-for="show in visibleShows" 
+      <div
+        v-for="(show, index) in visibleShows"
         :key="show.id"
         class="show-control-card"
         :class="{ 'has-override': show.hasOverride }"
@@ -25,14 +25,14 @@
         <!-- Header del show -->
         <div class="show-header">
           <div class="show-info">
-            <img 
+            <img
               v-if="show.selected_icon_filename"
               :src="`/assets/images/show-icons/${show.selected_icon_filename}`"
               :alt="show.name"
               class="show-icon"
             />
-            <div 
-              v-else 
+            <div
+              v-else
               class="show-number-fallback"
             >
               {{ show.id }}
@@ -167,18 +167,63 @@ const emit = defineEmits<{
 const isLoading = computed(() => props.isLoading || false)
 const hasError = computed(() => !!props.error)
 
-// Computed para filtrar shows visibles solo en vista operador
+// Computed para filtrar y ordenar shows visibles para vista operador
 const visibleShows = computed(() => {
   const showsArray = props.shows || []
-  
+
   // En modo demo, mostrar todos los shows del demo
   if (props.demoMode) {
     return showsArray
   }
-  
+
   // En modo real, los datos de la API pública ya vienen filtrados (solo visibles)
   // pero agregamos el filtro por seguridad
-  return showsArray.filter(show => show.is_visible !== false)
+  const filtered = showsArray.filter(show => show.is_visible !== false)
+
+  // Aplicar misma lógica de ordenación que PublicDisplayPreview
+  const now = new Date()
+  const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const parseTimeToDate = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return null
+    const [h, m] = timeStr.split(':').map(x => parseInt(x, 10))
+    if (Number.isNaN(h) || Number.isNaN(m)) return null
+    const d = new Date(baseDate)
+    d.setHours(h, m, 0, 0)
+    return d
+  }
+
+  const getStatusRank = (show) => {
+    const status = show?.current_pass?.status || 'PROGRAMADO'
+    // Priority: ABIERTO (0) > CERRADO/CANCELADO (1) > PROGRAMADO (2)
+    // CANCELADO tiene misma prioridad que CERRADO (ambos son estados finales)
+    switch (status) {
+      case 'ABIERTO': return 0
+      case 'CERRADO': return 1
+      case 'CANCELADO': return 1  // Mismo rank que CERRADO
+      case 'PROGRAMADO': return 2
+      default: return 4
+    }
+  }
+
+  const sortKey = (show) => {
+    const tCurr = parseTimeToDate(show?.current_pass?.start_time)
+    const rank = getStatusRank(show)
+    if (!tCurr) return { rank, past: 1, delta: Number.POSITIVE_INFINITY }
+    const deltaMs = tCurr - now
+    return { rank, past: deltaMs < 0 ? 1 : 0, delta: Math.abs(deltaMs) }
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    const ka = sortKey(a), kb = sortKey(b)
+    if (ka.rank !== kb.rank) return ka.rank - kb.rank
+    if (ka.past !== kb.past) return ka.past - kb.past
+    if (ka.delta !== kb.delta) return ka.delta - kb.delta
+    const na = (a.show_name || a.name || ''), nb = (b.show_name || b.name || '')
+    return na.localeCompare(nb)
+  })
+
+  return sorted
 })
 const showOverrideModal = ref(false)
 const selectedShow = ref<Show | null>(null)

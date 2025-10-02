@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki ShowsTrack - Manual de Usuario</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h1>📚 Wiki ShowsTrack</h1>
+            <p class="version">Versión 1.0</p>
+        </div>
+
+        <div class="nav-section">
+            <a href="#inicio" class="nav-link active">🏠 Inicio</a>
+            <a href="#acceso" class="nav-link">🔐 Acceso al Sistema</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Menú Principal</div>
+            <a href="#dashboard" class="nav-link">📊 Dashboard</a>
+            <a href="#shows" class="nav-link">🎭 Gestión de Espectáculos</a>
+            <a href="#eventos" class="nav-link">📅 Gestión de Eventos</a>
+            <a href="#alertas" class="nav-link">🚨 Centro de Alertas</a>
+            <a href="#configuracion" class="nav-link">⚙️ Configuración</a>
+            <a href="#operador" class="nav-link">🎬 Vista de Operador</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-title">Conceptos Clave</div>
+            <a href="#estados" class="nav-link">Estados de Eventos</a>
+            <a href="#overrides" class="nav-link">¿Qué es un Override?</a>
+            <a href="#modos" class="nav-link">Modos de Operación</a>
+            <a href="#sincronizacion" class="nav-link">Sincronización ETL</a>
+        </div>
+
+        <div class="nav-section">
+            <a href="#casos-uso" class="nav-link">💡 Casos de Uso</a>
+            <a href="#buenas-practicas" class="nav-link">✅ Buenas Prácticas</a>
+            <a href="#problemas" class="nav-link">🔧 Solución de Problemas</a>
+            <a href="#glosario" class="nav-link">📖 Glosario</a>
+            <a href="#limitaciones" class="nav-link">⚠️ Limitaciones</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Inicio -->
+        <section id="inicio" class="content-section">
+            <h1>¿Qué es ShowsTrack?</h1>
+
+            <div class="info-card">
+                <p class="lead">
+                    ShowsTrack es un sistema de gestión y visualización de horarios de espectáculos
+                    en tiempo real para Puy du Fou España.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📺</div>
+                    <h3>Visualizar</h3>
+                    <p>Horarios en pantallas públicas distribuidas por el parque</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎮</div>
+                    <h3>Gestionar</h3>
+                    <p>Estados de espectáculos ante contingencias</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Sincronizar</h3>
+                    <p>Horarios automáticamente cada 2 horas</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📢</div>
+                    <h3>Comunicar</h3>
+                    <p>Alertas e información importante a visitantes</p>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>ℹ️ Nota:</strong> El sistema calcula automáticamente cuándo un espectáculo está
+                abierto para acceder, cerrado o cancelado, actualizando la información cada 30 segundos.
+            </div>
+        </section>
+
+        <!-- Acceso al Sistema -->
+        <section id="acceso" class="content-section">
+            <h1>🔐 Acceso al Sistema</h1>
+
+            <div class="info-card">
+                <h3>🌐 URLs del Sistema ShowsTrack</h3>
+                <div style="margin-top: 1rem;">
+                    <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <strong>🎬 Panel de Gestión (Admin):</strong><br>
+                        <a href="http://172.26.131.240:3001/" target="_blank" style="color: var(--primary-color); font-family: monospace; font-size: 1.1em;">
+                            http://172.26.131.240:3001/
+                        </a>
+                        <p style="margin-top: 0.5rem; font-size: 0.9em; color: var(--gray-600);">Acceso con usuario y contraseña. Para operadores y administradores.</p>
+                    </div>
+                    <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px;">
+                        <strong>📺 Pantallas Públicas:</strong><br>
+                        <a href="http://172.26.131.240:8081/" target="_blank" style="color: var(--primary-color); font-family: monospace; font-size: 1.1em;">
+                            http://172.26.131.240:8081/
+                        </a>
+                        <p style="margin-top: 0.5rem; font-size: 0.9em; color: var(--gray-600);">Visualización pública de horarios. Sin autenticación requerida.</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Acceso al Panel de Gestión</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Abrir Navegador</h3>
+                        <p>Acceda a: <strong><a href="http://172.26.131.240:3001/" target="_blank" style="color: var(--primary-color);">http://172.26.131.240:3001/</a></strong></p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Introducir Credenciales</h3>
+                        <p>Escriba su nombre de usuario y contraseña</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Iniciar Sesión</h3>
+                        <p>Haga clic en el botón "Iniciar Sesión"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Importante:</strong> Solo el personal autorizado tiene credenciales de acceso.
+                Si no puede iniciar sesión, contacte con el administrador del sistema.
+            </div>
+        </section>
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="content-section">
+            <h1>📊 Dashboard</h1>
+
+            <p class="lead">El Dashboard es su punto de partida. Muestra un resumen visual rápido del estado del sistema.</p>
+
+            <h2>¿Qué puedo ver aquí?</h2>
+
+            <div class="metric-grid">
+                <div class="metric-card blue">
+                    <div class="metric-icon">🎭</div>
+                    <h3>Shows Activos</h3>
+                    <p>Número de espectáculos configurados como visibles en las pantallas públicas</p>
+                </div>
+                <div class="metric-card green">
+                    <div class="metric-icon">📅</div>
+                    <h3>Eventos de Hoy</h3>
+                    <p>Cantidad de funciones programadas para el día actual</p>
+                </div>
+                <div class="metric-card orange">
+                    <div class="metric-icon">🚨</div>
+                    <h3>Alertas Activas</h3>
+                    <p>Si hay alguna alerta global activada (aparece destacada)</p>
+                </div>
+                <div class="metric-card purple">
+                    <div class="metric-icon">✏️</div>
+                    <h3>Overrides Manuales</h3>
+                    <p>Número de intervenciones manuales aplicadas actualmente</p>
+                </div>
+            </div>
+
+            <h2>¿Cuándo usar esta sección?</h2>
+            <ul class="check-list">
+                <li>Al iniciar sesión, para tener una visión general del día</li>
+                <li>Para verificar rápidamente si hay alertas o situaciones especiales</li>
+                <li>Para comprobar cuántos espectáculos están activos</li>
+            </ul>
+        </section>
+
+        <!-- Gestión de Espectáculos -->
+        <section id="shows" class="content-section">
+            <h1>🎭 Gestión de Espectáculos</h1>
+
+            <p class="lead">Esta sección le permite administrar el catálogo de espectáculos del parque.</p>
+
+            <h2>¿Qué puedo hacer aquí?</h2>
+
+            <div class="action-card">
+                <h3>1. Ver todos los espectáculos</h3>
+                <p>Lista completa de shows configurados con información detallada:</p>
+                <ul>
+                    <li>Nombre del espectáculo</li>
+                    <li>Duración en minutos</li>
+                    <li>Orden de visualización</li>
+                    <li>Si está visible en pantallas públicas</li>
+                    <li>Número de eventos programados para hoy</li>
+                </ul>
+            </div>
+
+            <div class="action-card">
+                <h3>2. Crear un nuevo espectáculo</h3>
+                <div class="steps-compact">
+                    <p><strong>Paso 1:</strong> Haga clic en el botón "➕ Nuevo Show"</p>
+                    <p><strong>Paso 2:</strong> Complete el formulario:</p>
+                    <ul>
+                        <li><strong>Nombre:</strong> Nombre del espectáculo (ej: "El Sueño de Toledo")</li>
+                        <li><strong>Duración:</strong> Tiempo en minutos (ej: 50)</li>
+                        <li><strong>Orden:</strong> Posición de visualización (1-5)</li>
+                        <li><strong>Visible:</strong> Active para mostrar en pantallas públicas</li>
+                    </ul>
+                    <p><strong>Paso 3:</strong> Guarde los cambios</p>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h3>3. Editar un espectáculo</h3>
+                <p>Haga clic en el icono de lápiz (✏️), modifique los campos necesarios y guarde.</p>
+            </div>
+
+            <div class="action-card">
+                <h3>4. Eliminar un espectáculo</h3>
+                <div class="alert alert-danger">
+                    <strong>⚠️ Atención:</strong> Esto eliminará también todos los eventos asociados
+                </div>
+                <p>Haga clic en el icono de papelera (🗑️) y confirme la eliminación.</p>
+            </div>
+
+            <div class="action-card">
+                <h3>5. Funciones avanzadas</h3>
+                <ul>
+                    <li><strong>🔍 Búsqueda:</strong> Filtre espectáculos por nombre</li>
+                    <li><strong>🔃 Ordenar:</strong> Haga clic en cabeceras para ordenar</li>
+                    <li><strong>☑️ Selección múltiple:</strong> Acciones en lote</li>
+                    <li><strong>📊 Exportar:</strong> Descargue en Excel o CSV</li>
+                    <li><strong>👁️ Visibilidad masiva:</strong> Active/desactive varios shows</li>
+                </ul>
+            </div>
+
+            <h2>¿Cuándo usar esta sección?</h2>
+            <ul class="check-list">
+                <li>Al inicio de temporada para configurar espectáculos disponibles</li>
+                <li>Cuando se añade o retira un espectáculo del parque</li>
+                <li>Para cambiar el orden de visualización en pantallas</li>
+                <li>Para ocultar temporalmente un show sin eliminarlo</li>
+            </ul>
+        </section>
+
+        <!-- Gestión de Eventos -->
+        <section id="eventos" class="content-section">
+            <h1>📅 Gestión de Eventos</h1>
+
+            <p class="lead">Los eventos son las funciones individuales de cada espectáculo en fechas y horas específicas.</p>
+
+            <h2>¿Qué puedo hacer aquí?</h2>
+
+            <div class="action-card">
+                <h3>1. Ver eventos del día</h3>
+                <ul>
+                    <li>Lista de todas las funciones programadas para hoy</li>
+                    <li>Estado actual (PROGRAMADO, ABIERTO, CERRADO, CANCELADO)</li>
+                    <li>Información de overrides manuales aplicados</li>
+                </ul>
+            </div>
+
+            <div class="action-card highlight">
+                <h3>2. Aplicar overrides manuales</h3>
+
+                <div class="info-box">
+                    <p><strong>¿Qué es un override?</strong></p>
+                    <p>Una intervención manual que fuerza un estado específico a un evento, ignorando el cálculo automático.</p>
+                </div>
+
+                <h4>¿Cuándo aplicar un override?</h4>
+                <ul>
+                    <li>El espectáculo se cancela por lluvia → Override "CANCELADO"</li>
+                    <li>Se cierra el acceso antes de tiempo → Override "CERRADO"</li>
+                    <li>Hay un problema técnico → Override según la situación</li>
+                </ul>
+
+                <h4>Pasos para aplicar un override:</h4>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Localice el evento en la tabla</p>
+                    <p><strong>2.</strong> Haga clic en el botón de estado deseado</p>
+                    <p><strong>3.</strong> Escriba un motivo claro (obligatorio)</p>
+                    <p><strong>4.</strong> Confirme la acción</p>
+                    <p><strong>5.</strong> El estado se actualiza inmediatamente en pantallas</p>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h3>3. Gestión de cambios pendientes (Modo Manual)</h3>
+                <p>Cuando el sistema está en modo manual, los cambios de sincronización quedan pendientes:</p>
+                <ul>
+                    <li><strong>Ver cambios pendientes:</strong> Lista de modificaciones propuestas</li>
+                    <li><strong>Previsualizar:</strong> Vea en detalle qué va a cambiar</li>
+                    <li><strong>Aplicar seleccionados:</strong> Acepte los cambios deseados</li>
+                    <li><strong>Descartar:</strong> Rechace cambios no deseados</li>
+                    <li><strong>Sincronización completa:</strong> Aplique todos de una vez</li>
+                </ul>
+            </div>
+
+            <div class="action-card">
+                <h3>4. Importar eventos desde archivo</h3>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Clic en "📤 Importar Eventos"</p>
+                    <p><strong>2.</strong> Seleccione archivo JSON</p>
+                    <p><strong>3.</strong> Revise el resumen de validación</p>
+                    <p><strong>4.</strong> Verifique conflictos si los hay</p>
+                    <p><strong>5.</strong> Confirme la importación</p>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h3>5. Ver historial de importaciones</h3>
+                <p>Consulte todas las importaciones realizadas con detalles completos:</p>
+                <ul>
+                    <li>Fecha y hora de cada importación</li>
+                    <li>Eventos aplicados, fallidos y omitidos</li>
+                    <li>Usuario que realizó la acción</li>
+                </ul>
+            </div>
+
+            <div class="action-card">
+                <h3>6. Cambiar modo de operación</h3>
+
+                <div class="mode-comparison">
+                    <div class="mode-box auto">
+                        <h4>🤖 Modo Automático</h4>
+                        <p>Los cambios de sincronización se aplican inmediatamente sin revisión</p>
+                    </div>
+                    <div class="mode-box manual">
+                        <h4>✋ Modo Manual</h4>
+                        <p>Los cambios quedan pendientes para revisión y aprobación manual</p>
+                    </div>
+                </div>
+
+                <p><strong>Para cambiar de modo:</strong></p>
+                <div class="steps-compact">
+                    <p>1. Haga clic en "Cambiar a Modo..."</p>
+                    <p>2. Confirme el cambio</p>
+                    <p>3. El nuevo modo se aplica inmediatamente</p>
+                </div>
+            </div>
+
+            <h2>¿Cuándo usar esta sección?</h2>
+            <ul class="check-list">
+                <li>Durante el día para monitorear el estado de eventos</li>
+                <li>Cuando necesite cancelar o cerrar manualmente un evento</li>
+                <li>Para revisar cambios pendientes (modo manual)</li>
+                <li>Para importar horarios desde archivos</li>
+                <li>Al final del día para consultar el historial</li>
+            </ul>
+        </section>
+
+        <!-- Centro de Alertas -->
+        <section id="alertas" class="content-section">
+            <h1>🚨 Centro de Alertas</h1>
+
+            <p class="lead">Gestione alertas globales que aparecen destacadas en todas las pantallas públicas.</p>
+
+            <h2>¿Qué puedo hacer aquí?</h2>
+
+            <div class="action-card">
+                <h3>1. Ver alerta activa actual</h3>
+                <p>Si hay una alerta activa, se muestra con:</p>
+                <ul>
+                    <li>Mensaje de la alerta</li>
+                    <li>Tipo de alerta (Info/Warning/Error)</li>
+                    <li>Quién la activó y cuándo</li>
+                </ul>
+            </div>
+
+            <div class="action-card highlight">
+                <h3>2. Activar una nueva alerta global</h3>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Escribir mensaje</h4>
+                            <p>Mínimo 10 caracteres, claro y conciso</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Seleccionar tipo</h4>
+                            <div class="alert-types">
+                                <div class="alert-type info">
+                                    <strong>ℹ️ Info (azul):</strong> Información general
+                                </div>
+                                <div class="alert-type warning">
+                                    <strong>⚠️ Warning (amarillo):</strong> Advertencia importante
+                                </div>
+                                <div class="alert-type error">
+                                    <strong>🔴 Error (rojo):</strong> Emergencia o situación crítica
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Activar y confirmar</h4>
+                            <p>La alerta aparece inmediatamente en todas las pantallas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h3>3. Desactivar alerta activa</h3>
+                <p>Clic en "Desactivar Alerta" → Confirmar → Desaparece de todas las pantallas</p>
+            </div>
+
+            <h2>Ejemplos de uso</h2>
+            <div class="examples">
+                <div class="example">
+                    <div class="example-icon">🌧️</div>
+                    <p><strong>Cierre anticipado por mal tiempo</strong></p>
+                </div>
+                <div class="example">
+                    <div class="example-icon">📢</div>
+                    <p><strong>Aviso importante sobre un espectáculo</strong></p>
+                </div>
+                <div class="example">
+                    <div class="example-icon">🚨</div>
+                    <p><strong>Información de evacuación o emergencia</strong></p>
+                </div>
+                <div class="example">
+                    <div class="example-icon">📣</div>
+                    <p><strong>Comunicados generales importantes</strong></p>
+                </div>
+            </div>
+
+            <h2>Buenas prácticas</h2>
+            <div class="good-practices">
+                <div class="practice good">
+                    <h4>✅ Sí hacer</h4>
+                    <ul>
+                        <li>Mensajes claros y concisos</li>
+                        <li>Tipo correcto según urgencia</li>
+                        <li>Desactivar cuando ya no sea necesaria</li>
+                    </ul>
+                </div>
+                <div class="practice bad">
+                    <h4>❌ No hacer</h4>
+                    <ul>
+                        <li>Dejar alertas activas innecesariamente</li>
+                        <li>Usar para información rutinaria</li>
+                        <li>Abusar de las alertas</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuración -->
+        <section id="configuracion" class="content-section">
+            <h1>⚙️ Configuración del Sistema</h1>
+
+            <div class="alert alert-warning">
+                <strong>🔒 Acceso restringido:</strong> Esta sección solo está disponible para usuarios con rol de <strong>Administrador</strong>.
+            </div>
+
+            <h2>¿Qué puedo hacer aquí?</h2>
+
+            <div class="config-grid">
+                <div class="config-card">
+                    <h3>⏱️ Tiempos de espera</h3>
+                    <p><strong>Minutos antes del inicio:</strong> Tiempo de antelación para abrir el acceso al espectáculo</p>
+                    <p class="example">Ejemplo: Si pone 30, el show se marca como "ABIERTO" 30 minutos antes de empezar</p>
+                </div>
+
+                <div class="config-card">
+                    <h3>📺 Pantallas públicas</h3>
+                    <ul>
+                        <li><strong>Máximo de shows:</strong> Cuántos se muestran simultáneamente (máx. 5)</li>
+                        <li><strong>Intervalo de actualización:</strong> Frecuencia de refresco en segundos</li>
+                    </ul>
+                </div>
+
+                <div class="config-card">
+                    <h3>🔐 Autenticación</h3>
+                    <ul>
+                        <li><strong>Expiración de tokens:</strong> Duración de las sesiones</li>
+                        <li>Configuraciones de seguridad</li>
+                    </ul>
+                </div>
+
+                <div class="config-card">
+                    <h3>👥 Gestión de usuarios</h3>
+                    <ul>
+                        <li>Crear nuevos usuarios</li>
+                        <li>Modificar permisos</li>
+                        <li>Desactivar cuentas</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>¿Cuándo usar esta sección?</h2>
+            <ul class="check-list">
+                <li>Configuración inicial del sistema</li>
+                <li>Ajustar tiempos de apertura según necesidades</li>
+                <li>Gestionar acceso de nuevos operadores</li>
+                <li>Cambiar parámetros globales</li>
+            </ul>
+        </section>
+
+        <!-- Vista de Operador -->
+        <section id="operador" class="content-section">
+            <h1>🎬 Vista de Operador</h1>
+
+            <p class="lead">Vista principal durante la operación diaria. Combina visualización y control en una sola pantalla.</p>
+
+            <h2>Distribución de la pantalla</h2>
+
+            <div class="operator-layout">
+                <div class="operator-panel left">
+                    <h3>👈 Panel Izquierdo: Preview Pantallas Públicas</h3>
+                    <ul>
+                        <li>Visualización en tiempo real</li>
+                        <li><strong>Modo Demo:</strong> Datos de ejemplo sin afectar el sistema</li>
+                        <li><strong>Actualizar Preview:</strong> Refresco manual</li>
+                    </ul>
+                </div>
+
+                <div class="operator-panel right">
+                    <h3>👉 Panel Derecho: Controles Manuales</h3>
+                    <ul>
+                        <li>Cuadrícula de shows</li>
+                        <li>Acciones rápidas por show</li>
+                        <li>Mensaje personalizado</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="action-card highlight">
+                <h3>Cuadrícula de Shows</h3>
+                <p>Una tarjeta por cada espectáculo visible con:</p>
+                <ul>
+                    <li>Nombre del espectáculo</li>
+                    <li>Próximo evento (hora de inicio)</li>
+                    <li>Estado actual calculado</li>
+                    <li>Botones de acción rápida</li>
+                </ul>
+            </div>
+
+            <div class="action-card">
+                <h3>Acciones rápidas por show</h3>
+                <div class="quick-actions">
+                    <div class="quick-action">
+                        <strong>🔴 Cerrar:</strong> Fuerza el cierre del acceso al próximo evento
+                    </div>
+                    <div class="quick-action">
+                        <strong>🟡 Cancelar:</strong> Marca el próximo evento como cancelado
+                    </div>
+                    <div class="quick-action">
+                        <strong>🔄 Limpiar Override:</strong> Elimina intervención manual, vuelve al cálculo automático
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h3>Mensaje Personalizado</h3>
+                <p>Escriba un mensaje que aparecerá en las pantallas públicas:</p>
+                <ul>
+                    <li>Máximo 100 caracteres</li>
+                    <li>Útil para comunicados rápidos sin alertas</li>
+                    <li>Clic en "💾 Guardar Mensaje" para aplicar</li>
+                </ul>
+            </div>
+
+            <h2>¿Cuándo usar esta sección?</h2>
+            <ul class="check-list">
+                <li>Durante la operación diaria del parque</li>
+                <li>Para monitorear en tiempo real el estado</li>
+                <li>Para aplicar overrides rápidamente</li>
+                <li>Para ver lo que están viendo los visitantes</li>
+                <li>Para mensajes informativos breves</li>
+            </ul>
+
+            <div class="workflow">
+                <h3>Flujo de trabajo típico</h3>
+                <div class="workflow-steps">
+                    <div class="workflow-step">1. Abrir Vista de Operador al iniciar turno</div>
+                    <div class="workflow-step">2. Revisar preview de pantallas públicas</div>
+                    <div class="workflow-step">3. Mantener vista abierta durante el día</div>
+                    <div class="workflow-step">4. Aplicar overrides según necesidad</div>
+                    <div class="workflow-step">5. Usar mensajes para comunicados</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estados de Eventos -->
+        <section id="estados" class="content-section">
+            <h1>Estados de Eventos</h1>
+
+            <p class="lead">El sistema calcula automáticamente 4 estados posibles para cada evento:</p>
+
+            <div class="estados-grid">
+                <div class="estado-card programado">
+                    <div class="estado-badge">⚪ PROGRAMADO</div>
+                    <h3>Programado</h3>
+                    <ul>
+                        <li>El evento está anunciado</li>
+                        <li>Aún no es momento de acceder</li>
+                        <li>Aparece en pantallas como "programado"</li>
+                    </ul>
+                </div>
+
+                <div class="estado-card abierto">
+                    <div class="estado-badge">🟢 ABIERTO</div>
+                    <h3>Abierto</h3>
+                    <ul>
+                        <li>El acceso al espectáculo está abierto</li>
+                        <li>Visitantes pueden dirigirse al recinto</li>
+                        <li>Se calcula según tiempo configurado</li>
+                    </ul>
+                </div>
+
+                <div class="estado-card cerrado">
+                    <div class="estado-badge">🔴 CERRADO</div>
+                    <h3>Cerrado</h3>
+                    <ul>
+                        <li>El acceso está cerrado</li>
+                        <li>Show en curso o finalizado</li>
+                        <li>Visitantes no pueden acceder</li>
+                    </ul>
+                </div>
+
+                <div class="estado-card cancelado">
+                    <div class="estado-badge">🟡 CANCELADO</div>
+                    <h3>Cancelado</h3>
+                    <ul>
+                        <li>El evento ha sido cancelado</li>
+                        <li>Solo aplicable mediante override manual</li>
+                        <li>Motivos: lluvia, problemas técnicos, etc.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Overrides -->
+        <section id="overrides" class="content-section">
+            <h1>¿Qué es un Override?</h1>
+
+            <div class="definition-box">
+                <p class="lead">
+                    Un <strong>override</strong> (intervención manual) es una acción que fuerza un estado
+                    específico a un evento, ignorando el cálculo automático del sistema.
+                </p>
+            </div>
+
+            <h2>Características importantes</h2>
+            <div class="characteristics">
+                <div class="char-item">
+                    <span class="char-icon">📝</span>
+                    <p>Requiere siempre un <strong>motivo</strong> escrito</p>
+                </div>
+                <div class="char-item">
+                    <span class="char-icon">👤</span>
+                    <p>Se registra <strong>quién</strong> lo aplicó y <strong>cuándo</strong></p>
+                </div>
+                <div class="char-item">
+                    <span class="char-icon">🔒</span>
+                    <p><strong>No se sobrescribe</strong> por sincronizaciones automáticas</p>
+                </div>
+                <div class="char-item">
+                    <span class="char-icon">⏱️</span>
+                    <p>Permanece hasta que se <strong>elimine manualmente</strong></p>
+                </div>
+                <div class="char-item">
+                    <span class="char-icon">🎯</span>
+                    <p>Es la forma de gestionar <strong>contingencias</strong> en tiempo real</p>
+                </div>
+            </div>
+
+            <h2>Ejemplo práctico</h2>
+            <div class="example-comparison">
+                <div class="comparison-box without">
+                    <h3>❌ Sin Override</h3>
+                    <p>El sistema abre el show automáticamente 30 min antes</p>
+                </div>
+                <div class="comparison-box with">
+                    <h3>✅ Con Override "CANCELADO"</h3>
+                    <p>El show aparece cancelado independientemente de la hora</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modos de Operación -->
+        <section id="modos" class="content-section">
+            <h1>Modos de Operación</h1>
+
+            <div class="modes-comparison">
+                <div class="mode-detail auto">
+                    <h2>🤖 Modo Automático</h2>
+                    <div class="mode-features">
+                        <h3>Características:</h3>
+                        <ul>
+                            <li>Sincronizaciones se aplican <strong>inmediatamente</strong></li>
+                            <li>Ideal para operación normal sin cambios frecuentes</li>
+                            <li>Menos trabajo manual</li>
+                            <li>Más automatización</li>
+                        </ul>
+                    </div>
+                    <div class="mode-use">
+                        <h3>¿Cuándo usar?</h3>
+                        <ul>
+                            <li>Temporada regular estable</li>
+                            <li>Equipo pequeño de operadores</li>
+                            <li>Confianza en los datos del sistema central</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mode-detail manual">
+                    <h2>✋ Modo Manual</h2>
+                    <div class="mode-features">
+                        <h3>Características:</h3>
+                        <ul>
+                            <li>Sincronizaciones quedan <strong>pendientes de revisión</strong></li>
+                            <li>Usted decide qué aplicar y qué descartar</li>
+                            <li>Más control sobre cambios</li>
+                            <li>Requiere revisión diaria</li>
+                        </ul>
+                    </div>
+                    <div class="mode-use">
+                        <h3>¿Cuándo usar?</h3>
+                        <ul>
+                            <li>Períodos con muchos cambios</li>
+                            <li>Eventos especiales</li>
+                            <li>Necesidad de validación manual</li>
+                            <li>Situaciones excepcionales</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sincronización ETL -->
+        <section id="sincronizacion" class="content-section">
+            <h1>Sincronización Automática ETL</h1>
+
+            <p class="lead">El sistema se sincroniza automáticamente cada 2 horas con los datos centrales de Puy du Fou.</p>
+
+            <div class="sync-info-grid">
+                <div class="sync-info-card">
+                    <div class="sync-icon">⏰</div>
+                    <h3>Frecuencia</h3>
+                    <p>Cada 2 horas</p>
+                    <p class="small">00:05, 02:05, 04:05, 06:05, etc.</p>
+                </div>
+
+                <div class="sync-info-card">
+                    <div class="sync-icon">🔄</div>
+                    <h3>Qué sincroniza</h3>
+                    <ul>
+                        <li>Horarios actualizados</li>
+                        <li>Nuevos eventos</li>
+                        <li>Cambios en shows</li>
+                    </ul>
+                </div>
+
+                <div class="sync-info-card">
+                    <div class="sync-icon">🔒</div>
+                    <h3>Qué NO toca</h3>
+                    <p><strong>Overrides manuales</strong></p>
+                    <p class="small">Se respetan siempre</p>
+                </div>
+
+                <div class="sync-info-card">
+                    <div class="sync-icon">👁️</div>
+                    <h3>Dónde se ve</h3>
+                    <p>Gestión de Eventos</p>
+                    <p class="small">Pestaña "Cambios Pendientes" (modo manual)</p>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>ℹ️ Nota:</strong> La sincronización es completamente automática y no requiere intervención.
+                En modo manual, los cambios quedan pendientes para su revisión.
+            </div>
+        </section>
+
+        <!-- Casos de Uso -->
+        <section id="casos-uso" class="content-section">
+            <h1>💡 Casos de Uso Comunes</h1>
+
+            <div class="use-case">
+                <h2>Caso 1: Cancelar un espectáculo por lluvia</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">Vaya a <strong>Vista de Operador</strong> o <strong>Gestión de Eventos</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">Localice el evento del show afectado</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">Haga clic en <strong>"Cancelar"</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">Escriba el motivo: <em>"Cancelado por lluvia"</em></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">Confirme → Estado aparece inmediatamente como CANCELADO</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="use-case">
+                <h2>Caso 2: Cerrar acceso antes de tiempo</h2>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Vaya a Vista de Operador</p>
+                    <p><strong>2.</strong> Localice el show en la cuadrícula</p>
+                    <p><strong>3.</strong> Clic en "Cerrar"</p>
+                    <p><strong>4.</strong> Motivo: <em>"Aforo completo"</em></p>
+                    <p><strong>5.</strong> Confirme → Acceso cerrado inmediatamente</p>
+                </div>
+            </div>
+
+            <div class="use-case">
+                <h2>Caso 3: Activar alerta por cierre anticipado</h2>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Vaya a <strong>Centro de Alertas</strong></p>
+                    <p><strong>2.</strong> Mensaje: <em>"El parque cerrará hoy a las 18:00 por previsión meteorológica"</em></p>
+                    <p><strong>3.</strong> Tipo: <strong>Warning</strong> (amarillo)</p>
+                    <p><strong>4.</strong> Clic en "Activar Alerta Global"</p>
+                    <p><strong>5.</strong> Confirme → Todos ven el mensaje destacado</p>
+                </div>
+            </div>
+
+            <div class="use-case">
+                <h2>Caso 4: Revisar cambios en Modo Manual</h2>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Verifique que está en Modo Manual</p>
+                    <p><strong>2.</strong> Vaya a Gestión de Eventos → "Cambios Pendientes"</p>
+                    <p><strong>3.</strong> Revise la lista de cambios propuestos</p>
+                    <p><strong>4.</strong> Clic en "👁️ Ver" para previsualizar cada cambio</p>
+                    <p><strong>5.</strong> Marque los cambios a aplicar</p>
+                    <p><strong>6.</strong> Clic en "Aplicar Seleccionados"</p>
+                    <p><strong>7.</strong> Descarte los no deseados</p>
+                </div>
+            </div>
+
+            <div class="use-case">
+                <h2>Caso 5: Añadir un nuevo espectáculo</h2>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Gestión de Espectáculos → "+ Nuevo Show"</p>
+                    <p><strong>2.</strong> Nombre: <em>"Nuevo Show 2024"</em></p>
+                    <p><strong>3.</strong> Duración: <em>45 minutos</em></p>
+                    <p><strong>4.</strong> Orden: <em>3</em></p>
+                    <p><strong>5.</strong> Visible: ✅ marcado</p>
+                    <p><strong>6.</strong> Guarde → Show disponible para programar</p>
+                </div>
+            </div>
+
+            <div class="use-case">
+                <h2>Caso 6: Importar horarios manualmente</h2>
+                <div class="steps-compact">
+                    <p><strong>1.</strong> Obtenga el archivo JSON</p>
+                    <p><strong>2.</strong> Gestión de Eventos → "📤 Importar Eventos"</p>
+                    <p><strong>3.</strong> Seleccione el archivo JSON</p>
+                    <p><strong>4.</strong> Revise resumen de validación</p>
+                    <p><strong>5.</strong> Verifique conflictos si los hay</p>
+                    <p><strong>6.</strong> Confirme la importación</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Buenas Prácticas -->
+        <section id="buenas-practicas" class="content-section">
+            <h1>✅ Buenas Prácticas</h1>
+
+            <div class="practices-section">
+                <h2>Gestión de Overrides</h2>
+                <div class="practices-grid">
+                    <div class="practice-card good">
+                        <h3>✅ Sí hacer</h3>
+                        <ul>
+                            <li>Siempre escriba un motivo claro y descriptivo</li>
+                            <li>Elimine el override cuando la situación se normalice</li>
+                            <li>Revise los overrides activos al final del día</li>
+                        </ul>
+                    </div>
+                    <div class="practice-card bad">
+                        <h3>❌ No hacer</h3>
+                        <ul>
+                            <li>No deje overrides antiguos "olvidados"</li>
+                            <li>No use motivos genéricos como "prueba"</li>
+                            <li>No abuse de overrides para situaciones configurables</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="practices-section">
+                <h2>Gestión de Alertas</h2>
+                <div class="practices-grid">
+                    <div class="practice-card good">
+                        <h3>✅ Sí hacer</h3>
+                        <ul>
+                            <li>Use alertas solo para información realmente importante</li>
+                            <li>Desactive la alerta cuando ya no sea necesaria</li>
+                            <li>Elija el tipo correcto según la urgencia</li>
+                        </ul>
+                    </div>
+                    <div class="practice-card bad">
+                        <h3>❌ No hacer</h3>
+                        <ul>
+                            <li>No deje alertas activadas más tiempo del necesario</li>
+                            <li>No use alertas para información rutinaria</li>
+                            <li>No active múltiples alertas simultáneamente</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="practices-section">
+                <h2>Operación Diaria</h2>
+                <div class="practices-grid">
+                    <div class="practice-card good">
+                        <h3>✅ Sí hacer</h3>
+                        <ul>
+                            <li>Revise el Dashboard al iniciar el turno</li>
+                            <li>Mantenga abierta la Vista de Operador durante el día</li>
+                            <li>Revise cambios pendientes diariamente (modo manual)</li>
+                            <li>Documente situaciones especiales en los motivos</li>
+                        </ul>
+                    </div>
+                    <div class="practice-card bad">
+                        <h3>❌ No hacer</h3>
+                        <ul>
+                            <li>No cierre sesión sin verificar alertas activas</li>
+                            <li>No cambie de modo sin consultar supervisión</li>
+                            <li>No elimine espectáculos sin verificar eventos futuros</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Solución de Problemas -->
+        <section id="problemas" class="content-section">
+            <h1>🔧 Solución de Problemas</h1>
+
+            <div class="problem-card">
+                <h3>❓ No puedo iniciar sesión</h3>
+                <div class="solutions">
+                    <p>✓ Verifique que usuario y contraseña son correctos</p>
+                    <p>✓ Asegúrese de usar la URL correcta del sistema</p>
+                    <p>✓ Contacte con el administrador si persiste</p>
+                </div>
+            </div>
+
+            <div class="problem-card">
+                <h3>❓ No veo cambios en las pantallas públicas</h3>
+                <div class="solutions">
+                    <p>✓ Los cambios se reflejan cada 30 segundos, espere</p>
+                    <p>✓ Verifique que el espectáculo está marcado como "Visible"</p>
+                    <p>✓ Verifique problemas de red con las pantallas</p>
+                </div>
+            </div>
+
+            <div class="problem-card">
+                <h3>❓ Un override no se aplica</h3>
+                <div class="solutions">
+                    <p>✓ Asegúrese de haber escrito un motivo (obligatorio)</p>
+                    <p>✓ Verifique que confirmó la acción</p>
+                    <p>✓ Refresque la página y vuelva a intentar</p>
+                    <p>✓ Si persiste, contacte con soporte técnico</p>
+                </div>
+            </div>
+
+            <div class="problem-card">
+                <h3>❓ Los cambios pendientes no aparecen</h3>
+                <div class="solutions">
+                    <p>✓ Verifique que está en <strong>Modo Manual</strong></p>
+                    <p>✓ La sincronización ocurre cada 2 horas</p>
+                    <p>✓ Haga clic en "Actualizar" para refrescar</p>
+                </div>
+            </div>
+
+            <div class="problem-card">
+                <h3>❓ No puedo acceder a Configuración</h3>
+                <div class="solutions">
+                    <p>✓ Requiere permisos de <strong>Administrador</strong></p>
+                    <p>✓ Solicite acceso al administrador del sistema</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Glosario -->
+        <section id="glosario" class="content-section">
+            <h1>📖 Glosario</h1>
+
+            <div class="glossary">
+                <div class="glossary-item">
+                    <h3>Show / Espectáculo</h3>
+                    <p>Un tipo de espectáculo del parque (ej: "El Sueño de Toledo")</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Evento</h3>
+                    <p>Una función específica de un show en una fecha y hora concreta</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Override</h3>
+                    <p>Intervención manual que fuerza un estado específico</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Estado</h3>
+                    <p>Situación actual de un evento (PROGRAMADO, ABIERTO, CERRADO, CANCELADO)</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Sincronización</h3>
+                    <p>Proceso automático de actualización de horarios</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>ETL</h3>
+                    <p>Sistema de extracción y sincronización automática de datos</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Modo Automático</h3>
+                    <p>Los cambios se aplican sin revisión</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Modo Manual</h3>
+                    <p>Los cambios requieren aprobación antes de aplicarse</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Alerta Global</h3>
+                    <p>Mensaje destacado que aparece en todas las pantallas</p>
+                </div>
+
+                <div class="glossary-item">
+                    <h3>Preview</h3>
+                    <p>Vista previa de cómo se muestran las pantallas públicas</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Limitaciones y Notas Importantes -->
+        <section id="limitaciones" class="content-section">
+            <h1>⚠️ Limitaciones y Notas Importantes de Esta Versión</h1>
+
+            <div class="alert alert-warning">
+                <strong>Importante:</strong> Esta sección documenta funcionalidades no implementadas y limitaciones conocidas de la versión actual de ShowsTrack.
+            </div>
+
+            <h2>❌ Funcionalidades NO Implementadas</h2>
+
+            <div class="limitation-card critical">
+                <h3>🚫 NO se pueden eliminar overrides desde la interfaz</h3>
+                <div class="limitation-details">
+                    <p><strong>Problema:</strong> Una vez que aplicas un override manual a un evento (ej: CANCELADO), NO existe forma de eliminarlo desde la interfaz de usuario.</p>
+
+                    <p><strong>Impacto:</strong></p>
+                    <ul>
+                        <li>El override permanece activo indefinidamente</li>
+                        <li>El estado manual se mantiene incluso cuando ya no es necesario</li>
+                        <li>No puedes volver al cálculo automático de estados</li>
+                    </ul>
+
+                    <p><strong>Workaround temporal:</strong></p>
+                    <div class="workaround">
+                        <p>💡 <strong>Solución:</strong> Contacta con el administrador técnico para que elimine el override manualmente desde la base de datos</p>
+                        <p>📝 <strong>Mejora planificada:</strong> Se implementará un botón "Eliminar Override" en futuras versiones</p>
+                    </div>
+
+                    <div class="code-box">
+                        <p><strong>Estado actual del código:</strong></p>
+                        <code>
+                        # Backend NO tiene endpoint para DELETE override<br>
+                        # Solo existen endpoints: POST /events/{id}/override<br>
+                        # Falta: DELETE /events/{id}/override
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="limitation-card warning">
+                <h3>⚙️ Vista de Configuración sin funcionalidad</h3>
+                <div class="limitation-details">
+                    <p><strong>Problema:</strong> La sección "Configuración del Sistema" existe en el menú pero NO tiene funcionalidad implementada.</p>
+
+                    <p><strong>Estado actual:</strong></p>
+                    <ul>
+                        <li>La vista muestra un mensaje "⚠️ Esta sección está en desarrollo"</li>
+                        <li>NO se pueden modificar tiempos de espera globales</li>
+                        <li>NO se puede configurar actualización de pantallas</li>
+                        <li>NO existe gestión de usuarios</li>
+                    </ul>
+
+                    <p><strong>Workaround temporal:</strong></p>
+                    <div class="workaround">
+                        <p>💡 <strong>Para configurar Lead Time por espectáculo:</strong></p>
+                        <ol>
+                            <li>Ve a "Gestión de Espectáculos"</li>
+                            <li>Edita el show específico (icono ✏️)</li>
+                            <li>Configura "Minutos de acceso" y "Minutos de cierre" en el formulario</li>
+                            <li>Guarda los cambios</li>
+                        </ol>
+                        <p>📝 Esto configura tiempos específicos para ese show, anulando los valores globales por defecto</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="limitation-card warning">
+                <h3>👥 Gestión de usuarios NO implementada</h3>
+                <div class="limitation-details">
+                    <p><strong>Problema:</strong> No existe funcionalidad para gestionar usuarios desde la interfaz.</p>
+
+                    <p><strong>Limitaciones:</strong></p>
+                    <ul>
+                        <li>NO se pueden crear nuevos usuarios</li>
+                        <li>NO se pueden modificar permisos de roles</li>
+                        <li>NO se pueden desactivar cuentas</li>
+                        <li>Los roles (Admin/Operador) existen en el código pero no son gestionables</li>
+                    </ul>
+
+                    <p><strong>Workaround temporal:</strong></p>
+                    <div class="workaround">
+                        <p>💡 Contacta con el administrador técnico para gestión de usuarios</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2>⚠️ Limitaciones Conocidas y Comportamientos Importantes</h2>
+
+            <div class="limitation-card info">
+                <h3>🎬 Preview de Vista de Operador NO es 100% exacto</h3>
+                <div class="limitation-details">
+                    <p><strong>Importante:</strong> La previsualización en el panel izquierdo de la Vista de Operador es una <strong>simulación aproximada</strong>, NO es una captura exacta de las pantallas públicas reales.</p>
+
+                    <p><strong>Diferencias posibles:</strong></p>
+                    <ul>
+                        <li>Formato visual puede variar ligeramente</li>
+                        <li>Animaciones no se muestran en el preview</li>
+                        <li>Actualización puede tener ligero desfase temporal</li>
+                    </ul>
+
+                    <div class="workaround">
+                        <p>✅ <strong>Verificación obligatoria:</strong></p>
+                        <p>Siempre verifica los cambios críticos directamente en las pantallas públicas:</p>
+                        <p><a href="http://172.26.131.240:8081/" target="_blank" style="color: var(--primary-color); font-weight: bold;">http://172.26.131.240:8081/</a></p>
+                        <p>📝 Especialmente antes de cancelar eventos o activar alertas importantes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="limitation-card info">
+                <h3>🎭 Los cambios en Shows son PERMANENTES en todos los días</h3>
+                <div class="limitation-details">
+                    <p><strong>Concepto clave:</strong> Los Shows son entidades de <strong>catálogo permanente</strong>, NO son específicos de un día.</p>
+
+                    <p><strong>Esto significa:</strong></p>
+                    <ul>
+                        <li>Si modificas el nombre de un show → Se modifica en TODOS los días (pasado, presente, futuro)</li>
+                        <li>Si cambias la duración → Afecta a TODOS los eventos de ese show</li>
+                        <li>Si ocultas un show → Se oculta en TODAS las fechas</li>
+                        <li>Si eliminas un show → Se eliminan TODOS sus eventos históricos</li>
+                    </ul>
+
+                    <div class="alert alert-danger">
+                        <strong>⚠️ CUIDADO:</strong> NO uses "Gestión de Espectáculos" para hacer cambios temporales de un solo día. Para eso usa <strong>Overrides en Eventos</strong>.
+                    </div>
+
+                    <div class="workaround">
+                        <p>✅ <strong>Uso correcto:</strong></p>
+                        <ul>
+                            <li><strong>Para cambios permanentes:</strong> Edita el Show (ej: corregir nombre, ajustar duración definitiva)</li>
+                            <li><strong>Para cambios de un día:</strong> Aplica Override al Evento específico (ej: cancelar hoy por lluvia)</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-box">
+                        <p><strong>Ejemplo práctico:</strong></p>
+                        <code>
+                        ❌ MAL: Ocultar el show "El Sueño de Toledo" solo para hoy<br>
+                        → Esto lo oculta en TODAS las fechas<br><br>
+
+                        ✅ BIEN: Aplicar override CANCELADO al evento de hoy a las 20:00<br>
+                        → Solo afecta a ese evento específico
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="limitation-card info">
+                <h3>⏱️ ¿Qué es el Lead Time y cómo se configura?</h3>
+                <div class="limitation-details">
+                    <p><strong>Definición:</strong> El Lead Time determina cuándo cambia automáticamente el estado de un evento antes de su hora de inicio.</p>
+
+                    <div class="lead-time-explanation">
+                        <h4>Dos tipos de Lead Time:</h4>
+
+                        <div class="lead-time-type">
+                            <h5>1. Lead Time de Acceso (access_minutes)</h5>
+                            <p>Cuántos minutos ANTES del inicio el estado cambia a <strong>ABIERTO</strong></p>
+                            <p><strong>Rango válido:</strong> 0-120 minutos</p>
+                            <p><strong>Por defecto:</strong> 30 minutos</p>
+                        </div>
+
+                        <div class="lead-time-type">
+                            <h5>2. Lead Time de Cierre (finalized_minutes)</h5>
+                            <p>Cuántos minutos ANTES del inicio el estado cambia a <strong>CERRADO</strong></p>
+                            <p><strong>Rango válido:</strong> 0-60 minutos</p>
+                            <p><strong>Por defecto:</strong> 5 minutos</p>
+                        </div>
+                    </div>
+
+                    <div class="code-box">
+                        <p><strong>Ejemplo de timeline:</strong></p>
+                        <code>
+                        Show: "El Sueño de Toledo" a las 20:00<br>
+                        Lead Time Access: 30 minutos<br>
+                        Lead Time Finalized: 5 minutos<br><br>
+
+                        19:00 → Estado: PROGRAMADO (aún falta tiempo)<br>
+                        19:30 → Estado cambia a: ABIERTO (30 min antes del inicio)<br>
+                        19:55 → Estado cambia a: CERRADO (5 min antes del inicio)<br>
+                        20:00 → Show comienza
+                        </code>
+                    </div>
+
+                    <div class="workaround">
+                        <p>💡 <strong>Cómo configurar Lead Time por show:</strong></p>
+                        <ol>
+                            <li>Ve a "Gestión de Espectáculos"</li>
+                            <li>Edita el show (icono ✏️)</li>
+                            <li>En el formulario encontrarás:
+                                <ul>
+                                    <li><strong>Minutos de acceso:</strong> Configura cuándo abre (0-120)</li>
+                                    <li><strong>Minutos de cierre:</strong> Configura cuándo cierra (0-60)</li>
+                                </ul>
+                            </li>
+                            <li>Guarda los cambios</li>
+                            <li>Estos valores anulan los globales por defecto para ese show específico</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Nota:</strong> Si NO configuras lead time específico para un show, se usarán los valores globales por defecto (30 min acceso, 5 min cierre).
+                    </div>
+                </div>
+            </div>
+
+            <h2>📋 Checklist Operativa Considerando Limitaciones</h2>
+
+            <div class="checklist-section">
+                <h3>✅ Al inicio del turno:</h3>
+                <ul class="check-list">
+                    <li>Revisa el Dashboard para visión general</li>
+                    <li>Verifica alertas activas (recuerda desactivarlas cuando no sean necesarias)</li>
+                    <li>Consulta overrides activos en Gestión de Eventos</li>
+                    <li><strong>⚠️ Si hay overrides antiguos que deberían eliminarse → Contacta administrador técnico</strong></li>
+                    <li>Abre Vista de Operador en una pantalla</li>
+                    <li><strong>⚠️ Verifica estado real en pantallas públicas (<a href="http://172.26.131.240:8081/" target="_blank">http://172.26.131.240:8081/</a>)</strong></li>
+                </ul>
+
+                <h3>✅ Durante operación:</h3>
+                <ul class="check-list">
+                    <li>Aplica overrides con motivos claros y descriptivos</li>
+                    <li><strong>⚠️ PIENSA BIEN antes de aplicar override → NO podrás deshacerlo desde la UI</strong></li>
+                    <li>Usa alertas solo para situaciones importantes</li>
+                    <li>Para cambios temporales → Usa overrides en Eventos, NO modifiques Shows</li>
+                    <li><strong>⚠️ Verifica cambios críticos siempre en pantallas reales</strong></li>
+                </ul>
+
+                <h3>✅ Al final del turno:</h3>
+                <ul class="check-list">
+                    <li>Desactiva alertas que ya no sean necesarias</li>
+                    <li>Documenta overrides aplicados que seguirán activos</li>
+                    <li><strong>⚠️ Informa a siguiente turno sobre overrides que NO se pudieron eliminar</strong></li>
+                    <li>Revisa historial de importaciones si fue día de sincronización</li>
+                </ul>
+            </div>
+
+            <h2>🔄 Workarounds Rápidos - Resumen</h2>
+
+            <div class="workarounds-summary">
+                <div class="workaround-item">
+                    <h4>🚫 No puedo eliminar override</h4>
+                    <p>→ Contacta administrador técnico con ID del evento</p>
+                </div>
+
+                <div class="workaround-item">
+                    <h4>⚙️ No puedo configurar tiempos globales</h4>
+                    <p>→ Configura lead time específico por show en "Gestión de Espectáculos" > Editar</p>
+                </div>
+
+                <div class="workaround-item">
+                    <h4>👥 Necesito crear un usuario</h4>
+                    <p>→ Contacta administrador técnico del sistema</p>
+                </div>
+
+                <div class="workaround-item">
+                    <h4>🎬 Preview no coincide con pantallas</h4>
+                    <p>→ SIEMPRE verifica en <a href="http://172.26.131.240:8081/" target="_blank">http://172.26.131.240:8081/</a></p>
+                </div>
+
+                <div class="workaround-item">
+                    <h4>🎭 Necesito cambio temporal en show</h4>
+                    <p>→ NO edites el show → Aplica override al evento específico</p>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>📞 Soporte técnico:</strong> Para limitaciones que requieran intervención técnica, contacta con el equipo de desarrollo o administrador del sistema.
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="wiki-footer">
+            <div class="footer-content">
+                <p><strong>Wiki ShowsTrack</strong> - Manual de Usuario</p>
+                <p>Versión 1.0 • Octubre 2025</p>
+                <p>Sistema ShowsTrack - Puy du Fou España</p>
+            </div>
+        </footer>
+    </main>
+
+    <script src="wiki.js"></script>
+</body>
+</html>

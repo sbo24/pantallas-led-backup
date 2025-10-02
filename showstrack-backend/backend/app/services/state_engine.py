@@ -119,31 +119,27 @@ class StateEngine:
         1. Configuración específica del show (máxima prioridad)
         2. Configuración global del sistema
         """
-        # Si el show tiene configuración personalizada, usarla
-        if (show.custom_lead_time_access_minutes is not None and 
-            show.custom_lead_time_finalized_minutes is not None):
-            return LeadTimeConfig(
-                access_minutes=show.custom_lead_time_access_minutes,
-                finalized_minutes=show.custom_lead_time_finalized_minutes
-            )
-        
-        # Usar configuración global si está disponible en GlobalSettings
+        # Obtener valores por defecto (global o fallback)
+        default_access = 30
+        default_finalized = 0
+
         try:
             stmt = select(GlobalSettings).where(GlobalSettings.key == "lead_times")
             result = await self.db.execute(stmt)
             settings = result.scalar_one_or_none()
             if settings and isinstance(settings.value, dict):
-                access = settings.value.get("default_lead_time_access_minutes", 30)
-                finalized = settings.value.get("default_lead_time_finalized_minutes", 0)
-                return LeadTimeConfig(access_minutes=int(access), finalized_minutes=int(finalized))
+                default_access = int(settings.value.get("default_lead_time_access_minutes", 30))
+                default_finalized = int(settings.value.get("default_lead_time_finalized_minutes", 0))
         except Exception:
-            # Fallback silencioso a valores por defecto si no existe configuración
             pass
 
-        # Fallback por defecto del business-rules.md
+        # Usar configuración personalizada del show si existe (permite valores parciales)
+        access_minutes = show.custom_lead_time_access_minutes if show.custom_lead_time_access_minutes is not None else default_access
+        finalized_minutes = show.custom_lead_time_finalized_minutes if show.custom_lead_time_finalized_minutes is not None else default_finalized
+
         return LeadTimeConfig(
-            access_minutes=30,
-            finalized_minutes=0
+            access_minutes=access_minutes,
+            finalized_minutes=finalized_minutes
         )
     
     async def _calculate_time_windows(
