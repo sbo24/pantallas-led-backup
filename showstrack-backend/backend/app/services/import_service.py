@@ -321,14 +321,21 @@ class ImportService:
                     # Log del error pero continuar con el siguiente evento
                     continue
             
+            # FASE DE LIMPIEZA: Eliminar eventos obsoletos del día
+            # Importante: Solo eliminar eventos del día actual que ya no vienen en el ETL
+            deleted_count = await ImportService._cleanup_obsolete_events(
+                db, import_data, preserve_overrides, user_id
+            )
+
             await db.commit()
-            
+
             return {
                 "success": failed_count == 0,
                 "applied_count": applied_count,
                 "failed_count": failed_count,
                 "skipped_count": skipped_count,
-                "message": f"Aplicados {applied_count} cambios, {failed_count} fallaron, {skipped_count} omitidos"
+                "deleted_count": deleted_count,
+                "message": f"Aplicados {applied_count} cambios, {failed_count} fallaron, {skipped_count} omitidos, {deleted_count} eliminados"
             }
             
         except Exception as e:
@@ -609,3 +616,103 @@ class ImportService:
                 stored_at=None,
                 validation_result=None
             )
+
+    @staticmethod
+    async def _cleanup_obsolete_events(
+        db: AsyncSession,
+        import_data: PuyDuFouImportData,
+        preserve_overrides: bool,
+        user_id: str
+    ) -> int:
+        """
+        Elimina eventos obsoletos del día actual que ya no vienen en el ETL.
+
+        Args:
+            db: Sesión de base de datos
+            import_data: Datos del ETL con eventos válidos
+            preserve_overrides: Si preservar eventos con overrides activos
+            user_id: Usuario que ejecuta la importación
+
+        Returns:
+            Número de eventos eliminados
+        """
+        deleted_count = 0
+
+        try:
+            # 1. Obtener todas las fechas únicas del ETL
+            etl_dates = set(event.event_date for event in import_data.events)
+
+            # 2. Para cada fecha, identificar eventos a eliminar
+            for target_date in etl_dates:
+                # Convertir string a date
+                event_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+
+                # 3. Obtener IDs de eventos válidos del ETL para esta fecha
+                etl_event_ids = {
+                    event.external_event_id
+                    for event in import_data.events
+                    if event.event_date == target_date
+                }
+
+                # 4. Obtener todos los eventos de esta fecha en BD
+                existing_events_query = select(ScheduledEvent).where(
+                    ScheduledEvent.event_date == event_date
+                )
+                existing_events = (await db.execute(existing_events_query)).scalars().all()
+
+                # 5. Identificar eventos a eliminar (están en BD pero no en ETL)
+                for event in existing_events:
+                    if event.external_event_id not in etl_event_ids:
+                        # Verificar si tiene override activo y preserve_overrides
+                        if preserve_overrides:
+                            override_query = select(StatusOverride).where(
+                                and_(
+                                    StatusOverride.scheduled_event_id == event.id,
+                                    StatusOverride.is_active == True
+                                )
+                            )
+                            has_active_override = (await db.execute(override_query)).scalar_one_or_none()
+
+                            if has_active_override:
+                                # No eliminar eventos con overrides activos
+                                continue
+
+                        # Eliminar evento obsoleto
+                        await db.delete(event)
+                        deleted_count += 1
+
+                        # Log para auditoría (opcional)
+                        await ImportService._log_event_cleanup(
+                            db, event, user_id, f"Evento {event.external_event_id} eliminado - ya no viene en ETL"
+                        )
+
+            return deleted_count
+
+        except Exception as e:
+            # Log del error pero no interrumpir el proceso
+            print(f"Error en limpieza de eventos obsoletos: {e}")
+            return deleted_count
+
+    @staticmethod
+    async def _log_event_cleanup(db: AsyncSession, event: ScheduledEvent, user_id: str, reason: str):
+        """Registra en auditoría la eliminación de un evento"""
+        try:
+            audit_log = AuditLog(
+                action="EVENT_DELETED",
+                entity_type="ScheduledEvent",
+                entity_id=str(event.id),
+                old_values={
+                    "external_event_id": event.external_event_id,
+                    "show_name": event.show.name if event.show else "Unknown",
+                    "event_date": str(event.event_date),
+                    "start_time": str(event.start_time),
+                    "end_time": str(event.end_time)
+                },
+                new_values=None,
+                user_id=user_id,
+                reason=reason
+            )
+            db.add(audit_log)
+        except Exception as e:
+            # No interrumpir el proceso si falla el log
+            print(f"Error creando audit log para evento {event.id}: {e}")

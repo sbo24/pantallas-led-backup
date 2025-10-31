@@ -28,14 +28,16 @@ cd "$ETL_DIR" || {
     exit 1
 }
 
-# Obtener fecha actual y siguiente día
+# CORRECCIÓN: Configurar timezone para compensar cambio de horario
+export TZ='Europe/Madrid'
+
+# Obtener fecha actual (SOLO día actual para evitar duplicación)
 CURRENT_DATE=$(date +%Y-%m-%d)
-NEXT_DATE=$(date -d '+1 day' +%Y-%m-%d)
 
-log "Iniciando ETL para rango: $CURRENT_DATE a $NEXT_DATE"
+log "Iniciando ETL para el día: $CURRENT_DATE (timezone: $TZ)"
 
-# Ejecutar script ETL
-python3 main.py --start-date "$CURRENT_DATE" --end-date "$NEXT_DATE" 2>&1 | while read -r line; do
+# Ejecutar script ETL (solo día actual)
+python3 main.py --start-date "$CURRENT_DATE" --end-date "$CURRENT_DATE" 2>&1 | while read -r line; do
     log "$line"
 done
 
