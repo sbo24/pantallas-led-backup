@@ -76,27 +76,68 @@ if command -v crontab >/dev/null 2>&1; then
         echo "   📝 Para configurar: echo '5 */2 * * * /workspace/scripts/etl-cron.sh' | crontab -"
     fi
 else
-    echo "⚠️  CRON NO INSTALADO - Automatización ETL no disponible"
-    echo ""
-    echo "   📌 Para habilitar la sincronización automática cada 2 horas:"
-    echo "   1️⃣  Desde el HOST Docker ejecuta:"
-    echo "      docker exec -u root showstrack-dev bash -c 'apt update && apt install -y cron'"
-    echo "      docker exec -u root showstrack-dev service cron start"
-    echo "      docker exec -u dev showstrack-dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
-    echo ""
-    echo "   2️⃣  O ejecuta ETL manualmente cuando necesites:"
-    echo "      /workspace/scripts/etl-cron.sh"
-    echo ""
-    echo "   📖 Más información: /workspace/scripts/CRON_SETUP.md"
+    echo "⚠️  CRON NO INSTALADO - Iniciando instalación automática..."
     echo ""
 
-    # Preguntar si quiere ejecutar ETL manualmente ahora
-    read -t 10 -p "   ¿Ejecutar ETL ahora manualmente? (s/N): " RUN_ETL
-    if [[ "$RUN_ETL" =~ ^[Ss]$ ]]; then
-        echo "   🔄 Ejecutando ETL..."
-        /workspace/scripts/etl-cron.sh
+    # Verificar si tenemos permisos de root para instalar
+    if [ "$EUID" -eq 0 ]; then
+        echo "🔧 Ejecutando como root - Instalando cron automáticamente..."
+        if apt update && apt install -y cron && service cron start && update-rc.d cron enable; then
+            echo "✅ Cron instalado exitosamente"
+
+            # Configurar tarea ETL
+            echo "📝 Configurando tarea ETL en crontab..."
+            if sudo -u dev bash -c 'echo "5 */2 * * * /workspace/scripts/etl-cron.sh" | crontab -'; then
+                echo "✅ Tarea ETL configurada exitosamente"
+                echo "🔄 ETL automático habilitado (cada 2 horas a los 5 minutos)"
+            else
+                echo "❌ Error configurando tarea ETL"
+            fi
+        else
+            echo "❌ Error en la instalación de cron"
+        fi
     else
-        echo "   ⏭️  ETL omitido (puedes ejecutarlo después con: /workspace/scripts/etl-cron.sh)"
+        echo "🔐 Se necesitan permisos de root para instalar cron"
+        echo "💡 Intentando instalación con sudo..."
+
+        # Intentar instalación con sudo
+        if sudo bash -c 'apt update && apt install -y cron && service cron start && update-rc.d cron enable'; then
+            echo "✅ Cron instalado exitosamente"
+
+            # Configurar tarea ETL
+            echo "📝 Configurando tarea ETL en crontab..."
+            if sudo -u dev bash -c 'echo "5 */2 * * * /workspace/scripts/etl-cron.sh" | crontab -'; then
+                echo "✅ Tarea ETL configurada exitosamente"
+                echo "🔄 ETL automático habilitado (cada 2 horas a los 5 minutos)"
+            else
+                echo "❌ Error configurando tarea ETL"
+                echo "📝 Configurar manualmente: sudo -u dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
+            fi
+        else
+            echo "❌ Error en la instalación de cron con sudo"
+            echo ""
+            echo "📌 Alternativas para instalar:"
+            echo "   1️⃣  Ejecuta: sudo bash /workspace/install_cron_etl.sh"
+            echo "   2️⃣  O desde el HOST Docker:"
+            echo "      docker exec -u root showstrack-dev bash -c 'apt update && apt install -y cron'"
+            echo "      docker exec -u root showstrack-dev service cron start"
+            echo "      docker exec -u dev showstrack-dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
+            echo ""
+            echo "   3️⃣  O ejecuta ETL manualmente cuando necesites:"
+            echo "      /workspace/scripts/etl-cron.sh"
+            echo ""
+            echo "   📖 Más información: /workspace/scripts/CRON_SETUP.md"
+            echo ""
+
+            # Preguntar si quiere ejecutar ETL manualmente ahora
+            read -t 10 -p "   ¿Ejecutar ETL ahora manualmente? (s/N): " RUN_ETL
+            if [[ "$RUN_ETL" =~ ^[Ss]$ ]]; then
+                echo "   🔄 Ejecutando ETL..."
+                /workspace/scripts/etl-cron.sh
+            else
+                echo "   ⏭️  ETL omitido (puedes ejecutarlo después con: /workspace/scripts/etl-cron.sh)"
+            fi
+        fi
     fi
 fi
 

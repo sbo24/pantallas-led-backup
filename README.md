@@ -118,9 +118,124 @@ showstrack-app/
 
 ### Requisitos del Sistema
 - **✅ Python 3.10**: Backend FastAPI funcionando
-- **✅ Node.js 18**: Frontend Vue.js 3 operativo  
+- **✅ Node.js 18**: Frontend Vue.js 3 operativo
 - **✅ PostgreSQL 15**: 9 tablas + migraciones configuradas
 - **✅ Docker Environment**: Contenedor desarrollo Ubuntu 22.04
+
+### 🐳 Entorno Docker de Desarrollo (Recomendado)
+
+El sistema ShowsTrack utiliza un entorno Docker de desarrollo con configuración automatizada a través del script `setup.sh`.
+
+#### 🏗️ Arquitectura del Entorno
+
+**Componentes Separados para Mayor Robustez:**
+- **Docker Stack (`showstrack-dev/`)**: Infraestructura básica + contenedor Ubuntu
+- **Setup Script (`setup.sh`)**: Configuración completa del entorno de desarrollo
+- **Variables de Entorno**: Inyectadas automáticamente desde Portainer
+
+#### 🔄 Flujo de Configuración
+
+**1. Primer Despliegue (Ejecutar solo una vez):**
+```bash
+# Conectar al contenedor via SSH
+ssh dev@<IP_SERVIDOR> -p 222
+
+# Ejecutar script de configuración (solo primer despliegue)
+~/setup.sh
+```
+
+**2. Inicio Rápido Diario:**
+```bash
+# Script automatizado que levanta todo el stack
+/workspace/start_showstrack.sh
+```
+
+#### 📋 Qué Instala el Script `setup.sh`
+
+**🔧 Sistema Base:**
+- `curl`, `wget`, `nano`, `vim`, `htop`, `tree`, `build-essential`
+- Actualización de paquetes del sistema
+
+**🐍 Python 3.10:**
+- Python 3.10 + entorno virtual + pip
+- Herramientas de desarrollo Python
+- Configuración como versión por defecto
+
+**🟢 Node.js 18:**
+- Instalación desde repositorios oficiales NodeSource
+- Gestión de paquetes npm global
+
+**🤖 Claude Code:**
+- Instalación via npm global
+- CLI para desarrollo asistido
+
+**👤 Configuración Usuario:**
+- Usuario `dev` con sudo sin contraseña
+- Configuración Git global
+- Directorio `/workspace` con permisos
+
+**🌐 Variables de Entorno:**
+- **Sistema**: Escritas en `/etc/environment` (globales)
+- **Usuario**: Archivo `~/.env` cargado automáticamente en `.bashrc`
+- **Disponibles**: `DATABASE_URL`, `SECRET_KEY`, `GIT_*`, etc.
+
+#### 📁 Ubicación de Logs y Archivos Importantes
+
+**🗂️ Logs del Sistema:**
+```bash
+# Ver logs en tiempo real del setup
+tail -f /var/log/setup.log
+
+# Logs de la aplicación
+/workspace/backend.log           # Logs del backend FastAPI
+/workspace/frontend-admin.log    # Logs del panel Vue.js
+/workspace/frontend-public.log   # Logs de pantallas públicas
+```
+
+**🔍 Archivos de Configuración:**
+```bash
+# Variables de entorno del sistema
+cat /etc/environment
+
+# Variables del usuario dev
+cat /home/dev/.env
+
+# Configuración automática en .bashrc
+tail -n 10 /home/dev/.bashrc
+```
+
+**📂 Directorios Clave:**
+```bash
+/workspace/                     # Directorio de trabajo principal
+/home/dev/                      # Home del usuario dev
+/var/log/                       # Logs del sistema
+```
+
+#### 🚨 Solución de Problemas Comunes
+
+**❌ Error: "sudo: unable to execute"**
+- **Causa**: Script creado en Windows con caracteres `\r`
+- **Solución**: Crear el script directamente en el contenedor
+
+**❌ Error: "command not found"**
+- **Verificación**: Revisar logs de instalación
+```bash
+cat /var/log/setup.log | grep -i error
+```
+
+**❌ Variables de entorno no disponibles**
+- **Verificación**: Confirmar que están cargadas
+```bash
+echo $DATABASE_URL
+env | grep DATABASE
+```
+
+**🔄 Reinicio del Entorno:**
+```bash
+# Si el contenedor se reinicia, las variables persisten
+# No es necesario volver a ejecutar setup.sh
+# Solo ejecutar /workspace/start_showstrack.sh
+```
 
 ### Configuración de Desarrollo
 
