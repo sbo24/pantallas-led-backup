@@ -28,7 +28,7 @@
             <img
               v-if="show.selected_icon_filename"
               :src="`/assets/images/show-icons/${show.selected_icon_filename}`"
-              :alt="show.name"
+              alt=""
               class="show-icon"
             />
             <div

@@ -155,7 +155,7 @@ class ImportService:
         
         # Obtener shows existentes
         shows_query = select(Show)
-        existing_shows = {show.name: show for show in (await db.execute(shows_query)).scalars().all()}
+        existing_shows = {show.name.lower(): show for show in (await db.execute(shows_query)).scalars().all()}
         
         # Obtener eventos existentes por external_event_id
         external_ids = [event.external_event_id for event in import_data.events]
@@ -204,8 +204,8 @@ class ImportService:
                     # Evento nuevo
                     new_events += 1
                     
-                    # Verificar si el show existe
-                    if event_data.show_name not in existing_shows:
+                    # Verificar si el show existe (case-insensitive)
+                    if event_data.show_name.lower() not in existing_shows:
                         warnings.append(f"Show no existe, se creará automáticamente: {event_data.show_name}")
                 
             except ValueError as e:
@@ -241,7 +241,7 @@ class ImportService:
         try:
             # Obtener shows existentes
             shows_query = select(Show)
-            existing_shows = {show.name: show for show in (await db.execute(shows_query)).scalars().all()}
+            existing_shows = {show.name.lower(): show for show in (await db.execute(shows_query)).scalars().all()}
             
             # Obtener shows existentes para mapear nombres a IDs
             show_name_to_id = {show.name: show.id for show in existing_shows.values()}
@@ -254,23 +254,21 @@ class ImportService:
                     start_time = datetime.strptime(event_data.start_time, '%H:%M').time()
                     end_time = datetime.strptime(event_data.end_time, '%H:%M').time()
                     
-                    # Crear show si no existe
-                    show = existing_shows.get(event_data.show_name)
+                    # Crear show si no existe (búsqueda case-insensitive)
+                    show_name_lower = event_data.show_name.lower()
+                    show = existing_shows.get(show_name_lower)
+                    
                     if not show:
                         show = Show(
                             name=event_data.show_name,
                             description=f"Show importado automáticamente desde {import_data.metadata.source}",
-                            venue="Por determinar",
-                            duration_minutes=event_data.duration_minutes,
-                            capacity=100,  # Valor por defecto
-                            min_age=0,
-                            accessibility_info="Por determinar",
-                            show_type=event_data.event_type.upper(),
+                            duration_estimated=event_data.duration_minutes,
+                            show_category=event_data.event_type.upper(),
                             is_visible=True
                         )
                         db.add(show)
                         await db.flush()  # Para obtener el ID
-                        existing_shows[event_data.show_name] = show
+                        existing_shows[show_name_lower] = show
                     
                     # Buscar evento existente por show + fecha + hora
                     existing_event_query = select(ScheduledEvent).where(

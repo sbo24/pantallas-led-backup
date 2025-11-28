@@ -14,7 +14,7 @@
         <PublicDisplayPreview 
           ref="publicPreview"
           :demo-mode="demoMode"
-          :shows="shows"
+          :shows="uniqueShows"
           :is-loading="isLoadingShows"
           :error="showsError"
           class="preview-container"
@@ -46,7 +46,7 @@
         <h2 class="section-title">Controles Manuales</h2>
         <ShowsControlGrid 
           :demo-mode="demoMode"
-          :shows="shows"
+          :shows="uniqueShows"
           :is-loading="isLoadingShows"
           :error="showsError"
           @override-applied="onOverrideApplied"
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useNotifications } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
 import { getApiBaseUrl } from '@/utils/api'
@@ -101,6 +101,31 @@ const publicPreview = ref<InstanceType<typeof PublicDisplayPreview>>()
 const shows = ref<any[]>([])
 const isLoadingShows = ref(false)
 const showsError = ref('')
+
+// Computed para filtrar shows únicos (agrupar por show_id)
+// Esto evita que aparezcan múltiples filas para el mismo show si hay varios pases
+const uniqueShows = computed(() => {
+  if (!shows.value || shows.value.length === 0) return []
+  
+  const uniqueMap = new Map()
+  
+  shows.value.forEach(show => {
+    // Si ya existe este show_id, nos quedamos con el que tenga el pase más temprano
+    // (Asumiendo que la API ya devuelve ordenado, el primero suele ser el correcto,
+    // pero por seguridad comparamos start_time)
+    if (!uniqueMap.has(show.show_id)) {
+      uniqueMap.set(show.show_id, show)
+    } else {
+      const existing = uniqueMap.get(show.show_id)
+      // Comparar horas (formato HH:MM)
+      if (show.current_pass?.start_time < existing.current_pass?.start_time) {
+        uniqueMap.set(show.show_id, show)
+      }
+    }
+  })
+  
+  return Array.from(uniqueMap.values())
+})
 
 // Composables
 const { showSuccessToast, showErrorToast } = useNotifications()
@@ -180,8 +205,30 @@ const getIconForShow = (showName: string): string | undefined => {
     'De Tal Palo': 'show-07.png',
     'El Espadero de Vivar': 'show-08.png',
     'El Sueño de Toledo': 'night-show.png',
+    'La Alegría de la Navidad': 'show-04.png',
+    'Mercadillo de Navidad': 'show-04.png'
   }
-  return iconMap[showName]
+  
+  if (!showName) return undefined
+  
+  // 1. Exact match
+  if (iconMap[showName]) return iconMap[showName]
+  
+  // 2. Normalized match (NFC)
+  const normalize = (str: string) => str.normalize('NFC')
+  const normalizedName = normalize(showName)
+  const exactKey = Object.keys(iconMap).find(k => normalize(k) === normalizedName)
+  if (exactKey) return iconMap[exactKey]
+  
+  // 3. Case insensitive
+  const lowerName = normalizedName.toLowerCase()
+  const mapKey = Object.keys(iconMap).find(k => normalize(k).toLowerCase() === lowerName)
+  if (mapKey) return iconMap[mapKey]
+  
+  // 4. Partial match for Navidad
+  if (lowerName.includes('navidad')) return 'show-04.png'
+  
+  return undefined
 }
 
 // Función para formatear tiempo sin segundos

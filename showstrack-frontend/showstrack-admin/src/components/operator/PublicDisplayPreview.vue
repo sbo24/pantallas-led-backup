@@ -29,7 +29,7 @@
                   <img 
                     v-if="show.selected_icon_filename"
                     :src="`/assets/images/show-icons/${show.selected_icon_filename}`"
-                    :alt="show.show_name"
+                    alt=""
                     class="show-icon"
                   />
                   <span v-else class="show-number">{{ show.show_id || (index + 1) }}</span>

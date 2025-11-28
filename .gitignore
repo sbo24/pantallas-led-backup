@@ -91,3 +91,6 @@ showstrack-postgres/docker/showstrack-postgres-bk.yml
 
 # Setup completion markers
 .setup_complete
+
+# Import files
+uploads/import/*.json

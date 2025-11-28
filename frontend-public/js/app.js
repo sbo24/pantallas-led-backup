@@ -110,15 +110,15 @@ class ShowsTrackClient {
 
             const response = await fetch(`${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
             console.log('📡 Respuesta recibida, estado:', response.status);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
             console.log('📦 Datos recibidos:', data);
-            
+
             // Verificar la estructura de los datos
-            if(!this.validateData(data)) {
+            if (!this.validateData(data)) {
                 console.error('❌ Estructura de datos inválida');
                 throw new Error('Estructura de datos inválida');
             }
@@ -140,7 +140,7 @@ class ShowsTrackClient {
     }
 
     validateData(data) {
-        return data && 
+        return data &&
             typeof data === 'object' &&
             Array.isArray(data.shows) &&
             data.current_time &&
@@ -151,19 +151,19 @@ class ShowsTrackClient {
     handleError(error) {
         this.isOnline = false;
         this.retryCount++;
-        
+
         console.warn(`🔄 Tentative ${this.retryCount}/${CONFIG.MAX_RETRIES}`);
-        
+
         // if we have valid previous data, keep it
         if (this.lastValidData) {
             this.renderWithWarning(this.lastValidData);
         }
-        
+
         // Schedule a new attempt with exponential backoff
         if (this.retryCount <= CONFIG.MAX_RETRIES) {
             const delay = CONFIG.RETRY_DELAYS[this.retryCount - 1] || CONFIG.RETRY_DELAYS[CONFIG.RETRY_DELAYS.length - 1];
-            console.log(`⏰ Nouvelle tentative dans ${delay/1000}s`);
-            
+            console.log(`⏰ Nouvelle tentative dans ${delay / 1000}s`);
+
             setTimeout(() => {
                 this.fetchAndRender();
             }, delay);
@@ -175,7 +175,7 @@ class ShowsTrackClient {
 
     render(data) {
         // Verify the display mode
-        if(data.display_mode === 'alert' && data.alert) {
+        if (data.display_mode === 'alert' && data.alert) {
             this.renderAlert(data.alert);
         } else if (data.shows.length === 0) {
             this.renderNoShows();
@@ -210,14 +210,14 @@ class ShowsTrackClient {
 
         const now = new Date();
         const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
         const parseTimeToDate = (timeStr) => {
-          if (!timeStr || typeof timeStr !== 'string') return null;
-          const [h, m] = timeStr.split(':').map(x => parseInt(x, 10));
-          if (Number.isNaN(h) || Number.isNaN(m)) return null;
-          const d = new Date(baseDate);
-          d.setHours(h, m, 0, 0);
-          return d;
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const [h, m] = timeStr.split(':').map(x => parseInt(x, 10));
+            if (Number.isNaN(h) || Number.isNaN(m)) return null;
+            const d = new Date(baseDate);
+            d.setHours(h, m, 0, 0);
+            return d;
         };
 
         const getStatusRank = (show) => {
@@ -232,17 +232,17 @@ class ShowsTrackClient {
                 default: return 4;
             }
         };
-      
+
         const sortKey = (show) => {
-          const tCurr = parseTimeToDate(show?.current_pass?.start_time);
-          // CORREGIDO: Solo usar current_pass para ordenación (consistente con backend)
-          const candidate = tCurr;
-          const rank = getStatusRank(show);
-          if (!candidate) return { rank, past: 1, delta: Number.POSITIVE_INFINITY };
-          const deltaMs = candidate - now;
-          return { rank, past: deltaMs < 0 ? 1 : 0, delta: Math.abs(deltaMs) };
+            const tCurr = parseTimeToDate(show?.current_pass?.start_time);
+            // CORREGIDO: Solo usar current_pass para ordenación (consistente con backend)
+            const candidate = tCurr;
+            const rank = getStatusRank(show);
+            if (!candidate) return { rank, past: 1, delta: Number.POSITIVE_INFINITY };
+            const deltaMs = candidate - now;
+            return { rank, past: deltaMs < 0 ? 1 : 0, delta: Math.abs(deltaMs) };
         };
-      
+
         const sorted = [...shows].sort((a, b) => {
             const ka = sortKey(a), kb = sortKey(b);
             if (ka.rank !== kb.rank) return ka.rank - kb.rank;
@@ -250,56 +250,78 @@ class ShowsTrackClient {
             if (ka.delta !== kb.delta) return ka.delta - kb.delta;
             const na = (a.show_name || a.name || ''), nb = (b.show_name || b.name || '');
             return na.localeCompare(nb);
-          });
-      
-        const displayShows = sorted.slice(0, CONFIG.MAX_SHOWS_DISPLAYED);
-      
-        const rows = displayShows.map((show, index) => {
-          const showName = show.show_name || show.name || 'Show desconocido';
-          const startTime = show.current_pass?.start_time || '--:--';      // HORA = passe en cours uniquement
-          const status = show.current_pass?.status || show.status || 'PROGRAMADO';
-          const nextShow = show.next_pass?.start_time || show.next_show || '---';
-      
-          // SISTEMA DE ICONOS: Prioridad configuración Vue > mapeo nombre > fallback índice
-          const getShowIcon = (show, index) => {
-            // PRIORIDAD 1: Si ya tiene icono configurado desde la aplicación Vue admin, usarlo
-            if (show.selected_icon_filename) {
-              return show.selected_icon_filename;
-            }
-            
-            // PRIORIDAD 2: Mapeo de nombres para fallback cuando no hay configuración
-            const showIconFallbackMap = {
-              // Shows principales del sistema
-              "El Último Cantar": "show-01.png",
-              "El tambor de la Libertad": "show-06.png", 
-              "A Pluma y Espada": "show-02.png",
-              "Cetrería de Reyes": "show-04.png",
-              "El Misterio de Sorbaces": "show-05.png",
-              "Allende la Mar Océana": "show-03.png",  
-              "De Tal Palo": "show-03.png",            
-              "El Espadero de Vivar": "show-04.png",   
-              "El Sueño de Toledo": "night-show.png",
-              
-              // Eventos sistema
-              "Apertura": "show-01.png",
-              "Cierre": "show-06.png"
-            };
-            
-            const showName = show.show_name || show.name || '';
-            
-            // PRIORIDAD 3: Usar mapeo fallback por nombre
-            if (showIconFallbackMap[showName]) {
-              return showIconFallbackMap[showName];
-            }
-            
-            // PRIORIDAD 4: Fallback final por índice para shows nuevos/desconocidos
-            const availableIcons = ['show-01.png', 'show-02.png', 'show-03.png', 'show-04.png', 'show-05.png', 'show-06.png'];
-            return availableIcons[index % availableIcons.length];
-          };
+        });
 
-          const iconFilename = getShowIcon(show, index);
-      
-          return `
+        const displayShows = sorted.slice(0, CONFIG.MAX_SHOWS_DISPLAYED);
+
+        const rows = displayShows.map((show, index) => {
+            const showName = show.show_name || show.name || 'Show desconocido';
+            const startTime = show.current_pass?.start_time || '--:--';      // HORA = passe en cours uniquement
+            const status = show.current_pass?.status || show.status || 'PROGRAMADO';
+            const nextShow = show.next_pass?.start_time || show.next_show || '---';
+
+            // SISTEMA DE ICONOS: Prioridad configuración Vue > mapeo nombre > fallback índice
+            const getShowIcon = (show, index) => {
+                // PRIORIDAD 1: Si ya tiene icono configurado desde la aplicación Vue admin, usarlo
+                if (show.selected_icon_filename) {
+                    return show.selected_icon_filename;
+                }
+
+                // PRIORIDAD 2: Mapeo de nombres para fallback cuando no hay configuración
+                const showIconFallbackMap = {
+                    // Shows principales del sistema
+                    "El Último Cantar": "show-01.png",
+                    "El tambor de la Libertad": "show-06.png",
+                    "A Pluma y Espada": "show-02.png",
+                    "Cetrería de Reyes": "show-04.png",
+                    "El Misterio de Sorbaces": "show-05.png",
+                    "Allende la Mar Océana": "show-03.png",
+                    "De Tal Palo": "show-03.png",
+                    "El Espadero de Vivar": "show-04.png",
+                    "El Sueño de Toledo": "night-show.png",
+
+                    // Eventos sistema
+                    "Apertura": "show-01.png",
+                    "Cierre": "show-06.png",
+
+                    // Nuevos shows
+                    "La Alegría de la Navidad": "show-04.png"
+                };
+
+                // Normalizar a NFC para manejar acentos consistentemente
+                const normalize = (str) => str.normalize('NFC');
+
+                const showName = (show.show_name || show.name || '').trim();
+                const normalizedShowName = normalize(showName);
+
+                // PRIORIDAD 3: Usar mapeo fallback por nombre
+                // Intento 1: Coincidencia exacta (normalizada)
+                // Buscamos si alguna key normalizada coincide
+                const exactKey = Object.keys(showIconFallbackMap).find(k => normalize(k) === normalizedShowName);
+                if (exactKey) {
+                    return showIconFallbackMap[exactKey];
+                }
+
+                // Intento 2: Coincidencia insensible a mayúsculas/minúsculas (normalizada)
+                const lowerName = normalizedShowName.toLowerCase();
+                const mapKey = Object.keys(showIconFallbackMap).find(k => normalize(k).toLowerCase() === lowerName);
+                if (mapKey) {
+                    return showIconFallbackMap[mapKey];
+                }
+
+                // Intento 3: Coincidencia parcial (para casos difíciles como Navidad)
+                if (lowerName.includes('navidad')) {
+                    return "show-04.png";
+                }
+
+                // PRIORIDAD 4: Fallback final por índice para shows nuevos/desconocidos
+                const availableIcons = ['show-01.png', 'show-02.png', 'show-03.png', 'show-04.png', 'show-05.png', 'show-06.png'];
+                return availableIcons[index % availableIcons.length];
+            };
+
+            const iconFilename = getShowIcon(show, index);
+
+            return `
             <tr data-show-id="${show.show_id || show.id}" data-status="${status}">
               <td class="col-show-combined" colspan="2">
                 <div class="show-content">
@@ -321,9 +343,9 @@ class ShowsTrackClient {
             </tr>
           `;
         }).join('');
-      
+
         this.updateTableWithAnimation(rows);
-      }
+    }
 
     renderAlert(alert) {
         // Mask show container
@@ -332,9 +354,9 @@ class ShowsTrackClient {
         // Show alert mode
         this.elements.alertMode.style.display = 'flex';
         this.elements.alertMessage.textContent = alert.message;
-        
+
         const alertTime = new Date(alert.activated_at);
-        this.elements.alertTimestamp.textContent = 
+        this.elements.alertTimestamp.textContent =
             `Activada: ${alertTime.toLocaleTimeString('es-ES', CONFIG.TIME_FORMAT)}`;
     }
 
@@ -342,7 +364,7 @@ class ShowsTrackClient {
         // Masquer le mode alerte
         this.elements.alertMode.style.display = 'none';
         this.elements.showsContainer.style.display = 'block';
-        
+
         // Afficher message "pas de shows"
         this.elements.showsTbody.innerHTML = `
             <tr>
@@ -378,7 +400,7 @@ class ShowsTrackClient {
     updateTableWithAnimation(newHTML) {
         // Animation simple de mise à jour
         this.elements.showsTbody.style.opacity = '0.7';
-        
+
         setTimeout(() => {
             this.elements.showsTbody.innerHTML = newHTML;
             this.elements.showsTbody.style.opacity = '1';
@@ -417,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!allowedOrigins.includes(event.origin)) {
             return;
         }
-        
+
         // Manejar diferentes tipos de mensajes
         switch (event.data?.type) {
             case 'OPERATOR_REFRESH':
