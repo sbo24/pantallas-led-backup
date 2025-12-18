@@ -53,26 +53,42 @@
   --footer-height: 11vh;
 
   /* TIPOGRAFÍA ESCALABLE - clamp(min, preferred, max) */
-  --font-size-title: clamp(10px, 2.5vw, 32px);      /* Títulos principales (reducido) */
-  --font-size-time: clamp(11px, 3.2vw, 44px);       /* Horarios (reducido) */
-  --font-size-status: clamp(9px, 2.5vw, 36px);      /* Estados (reducido) */
-  --font-size-show: clamp(12px, 3.2vw, 42px);       /* Nombres de shows (aumentado) */
-  --font-size-next: clamp(11px, 3.2vw, 44px);       /* Próximo show (reducido) */
-  --font-size-footer: clamp(10px, 3vw, 40px);       /* Mensaje personalizado */
-  
+  --font-size-title: clamp(10px, 2.5vw, 32px);
+  /* Títulos principales (reducido) */
+  --font-size-time: clamp(11px, 3.2vw, 44px);
+  /* Horarios (reducido) */
+  --font-size-status: clamp(9px, 2.5vw, 36px);
+  /* Estados (reducido) */
+  --font-size-show: clamp(12px, 3.2vw, 42px);
+  /* Nombres de shows (aumentado) */
+  --font-size-next: clamp(11px, 3.2vw, 44px);
+  /* Próximo show (reducido) */
+  --font-size-footer: clamp(10px, 3vw, 40px);
+  /* Mensaje personalizado */
+
   /* ESPACIADOS ESCALABLES */
-  --padding-container: clamp(2px, 0.5vw, 8px);      /* Padding general */
-  --padding-cell: clamp(2px, 0.8vw, 12px);          /* Padding celdas tabla */
-  --gap-elements: clamp(2px, 0.8vw, 12px);          /* Gaps entre elementos */
-  --row-height: clamp(20px, 4.5vh, 70px);           /* Altura filas tabla */
-  --header-height: clamp(15px, 3vh, 50px);          /* Altura header tabla */
-  --letter-spacing: clamp(0.5px, 0.3vw, 3px);       /* Letter spacing escalable */
-  
+  --padding-container: clamp(2px, 0.5vw, 8px);
+  /* Padding general */
+  --padding-cell: clamp(2px, 0.8vw, 12px);
+  /* Padding celdas tabla */
+  --gap-elements: clamp(2px, 0.8vw, 12px);
+  /* Gaps entre elementos */
+  --row-height: clamp(20px, 4.5vh, 70px);
+  /* Altura filas tabla */
+  --header-height: clamp(15px, 3vh, 50px);
+  /* Altura header tabla */
+  --letter-spacing: clamp(0.5px, 0.3vw, 3px);
+  /* Letter spacing escalable */
+
   /* ELEMENTOS GRÁFICOS ESCALABLES */
-  --icon-size: clamp(20px, 4vw, 60px);              /* Iconos de shows */
-  --table-icon-size: clamp(24px, 5vw, 80px);        /* Icono tabla header */
-  --border-radius: clamp(2px, 0.8vw, 12px);         /* Border radius */
-  --min-column-width: clamp(60px, 15vw, 280px);     /* Ancho mínimo columnas */
+  --icon-size: clamp(20px, 4vw, 60px);
+  /* Iconos de shows */
+  --table-icon-size: clamp(24px, 5vw, 80px);
+  /* Icono tabla header */
+  --border-radius: clamp(2px, 0.8vw, 12px);
+  /* Border radius */
+  --min-column-width: clamp(60px, 15vw, 280px);
+  /* Ancho mínimo columnas */
 }
 
 /* Reset and base styles */
@@ -148,7 +164,8 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: 0;
-  padding-bottom: clamp(15px, 3vw, 120px); /* Espacio inferior escalable */
+  padding-bottom: clamp(15px, 3vw, 120px);
+  /* Espacio inferior escalable */
 }
 
 .public-display-preview .shows-table {
@@ -216,15 +233,15 @@ body {
 }
 
 /* Columns with responsive widths */
-.public-display-preview .col-show-combined { 
-  width: 57%; 
-  text-align: left; 
+.public-display-preview .col-show-combined {
+  width: 57%;
+  text-align: left;
   min-width: 280px;
 }
 
-.col-show-combined { 
-  width: 53%; 
-  text-align: left; 
+.col-show-combined {
+  width: 53%;
+  text-align: left;
   min-width: 280px;
 }
 
@@ -262,30 +279,34 @@ body {
   align-items: center;
 }
 
-.public-display-preview .col-time { 
-  width: 12%; 
-  text-align: center; 
+.public-display-preview .col-time {
+  width: 12%;
+  text-align: center;
   min-width: 8%;
   max-width: 12%;
 }
 
-.col-time { 
-  width: 10%; 
-  text-align: center; 
+#clock-header {
+  visibility: hidden;
+}
+
+.col-time {
+  width: 10%;
+  text-align: center;
   min-width: 8%;
   max-width: 12%;
 }
 
-.public-display-preview .col-status { 
-  width: 18%; 
-  text-align: center; 
+.public-display-preview .col-status {
+  width: 18%;
+  text-align: center;
   min-width: 18%;
   max-width: 24%;
 }
 
-.col-status { 
-  width: 20%; 
-  text-align: center; 
+.col-status {
+  width: 20%;
+  text-align: center;
   min-width: 18%;
   max-width: 24%;
 }
@@ -293,51 +314,121 @@ body {
 /* Ajustar espaciado para que Hora y el reloj se vean como una línea */
 .public-display-preview .shows-table th.col-status {
   text-align: left;
-  padding-left: clamp(0.5px, 0.125vw, 2px); /* Espaciado escalable reducido a la cuarta parte */
+  padding-left: clamp(0.5px, 0.125vw, 2px);
+  /* Espaciado escalable reducido a la cuarta parte */
 }
 
 .shows-table th.col-status {
   text-align: left;
-  padding-left: clamp(0.5px, 0.125vw, 2px); /* Espaciado escalable reducido a la cuarta parte */
+  padding-left: clamp(0.5px, 0.125vw, 2px);
+  /* Espaciado escalable reducido a la cuarta parte */
 }
 
-.public-display-preview .col-next { 
-  width: 17%; 
-  text-align: center; 
+.public-display-preview .col-next {
+  width: 17%;
+  text-align: center;
   min-width: 13%;
   max-width: 20%;
 }
 
-.col-next { 
-  width: 19%; 
-  text-align: center; 
+.col-next {
+  width: 19%;
+  text-align: center;
   min-width: 13%;
   max-width: 19%;
 }
 
 /* Responsive design for different aspect ratios */
 @media (aspect-ratio: 1/1) {
-  .public-display-preview .col-number { width: 10%; }
-  .public-display-preview .col-time { width: 10%; min-width: 8%; max-width: 12%; }
-  .public-display-preview .col-status { width: 20%; min-width: 18%; max-width: 24%; }
-  .public-display-preview .col-next { width: 15%; min-width: 13%; max-width: 17%; }
-  
-  .col-number { width: 10%; }
-  .col-time { width: 10%; min-width: 8%; max-width: 12%; }
-  .col-status { width: 20%; min-width: 18%; max-width: 24%; }
-  .col-next { width: 15%; min-width: 13%; max-width: 17%; }
+  .public-display-preview .col-number {
+    width: 10%;
+  }
+
+  .public-display-preview .col-time {
+    width: 10%;
+    min-width: 8%;
+    max-width: 12%;
+  }
+
+  .public-display-preview .col-status {
+    width: 20%;
+    min-width: 18%;
+    max-width: 24%;
+  }
+
+  .public-display-preview .col-next {
+    width: 15%;
+    min-width: 13%;
+    max-width: 17%;
+  }
+
+  .col-number {
+    width: 10%;
+  }
+
+  .col-time {
+    width: 10%;
+    min-width: 8%;
+    max-width: 12%;
+  }
+
+  .col-status {
+    width: 20%;
+    min-width: 18%;
+    max-width: 24%;
+  }
+
+  .col-next {
+    width: 15%;
+    min-width: 13%;
+    max-width: 17%;
+  }
 }
 
 @media (aspect-ratio: 16/9) {
-  .public-display-preview .col-number { width: 8%; }
-  .public-display-preview .col-time { width: 9%; min-width: 7%; max-width: 11%; }
-  .public-display-preview .col-status { width: 18%; min-width: 16%; max-width: 22%; }
-  .public-display-preview .col-next { width: 13%; min-width: 11%; max-width: 15%; }
-  
-  .col-number { width: 8%; }
-  .col-time { width: 9%; min-width: 7%; max-width: 11%; }
-  .col-status { width: 18%; min-width: 16%; max-width: 22%; }
-  .col-next { width: 13%; min-width: 11%; max-width: 15%; }
+  .public-display-preview .col-number {
+    width: 8%;
+  }
+
+  .public-display-preview .col-time {
+    width: 9%;
+    min-width: 7%;
+    max-width: 11%;
+  }
+
+  .public-display-preview .col-status {
+    width: 18%;
+    min-width: 16%;
+    max-width: 22%;
+  }
+
+  .public-display-preview .col-next {
+    width: 13%;
+    min-width: 11%;
+    max-width: 15%;
+  }
+
+  .col-number {
+    width: 8%;
+  }
+
+  .col-time {
+    width: 9%;
+    min-width: 7%;
+    max-width: 11%;
+  }
+
+  .col-status {
+    width: 18%;
+    min-width: 16%;
+    max-width: 22%;
+  }
+
+  .col-next {
+    width: 13%;
+    min-width: 11%;
+    max-width: 15%;
+  }
 }
 
 
@@ -358,11 +449,11 @@ body {
 }
 
 .public-display-preview .shows-table tbody tr:hover {
-  background-color: rgba(255,255,255,0.05);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .shows-table tbody tr:hover {
-  background-color: rgba(255,255,255,0.05);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .public-display-preview .shows-table td {
@@ -577,27 +668,32 @@ body {
 /* Reducir padding izquierdo y derecho para col-time, col-status, col-next */
 .public-display-preview .col-time .show-time {
   justify-content: center;
-  padding: clamp(0.5px, 0.125vw, 2px); /* Padding total reducido a la cuarta parte */
+  padding: clamp(0.5px, 0.125vw, 2px);
+  /* Padding total reducido a la cuarta parte */
 }
 
 .public-display-preview .col-status .show-status {
-  padding: clamp(0.5px, 0.125vw, 2px); /* Padding total reducido a la cuarta parte */
+  padding: clamp(0.5px, 0.125vw, 2px);
+  /* Padding total reducido a la cuarta parte */
 }
 
 .col-time .show-time {
   justify-content: center;
-  padding: clamp(0.5px, 0.125vw, 2px); /* Padding total reducido a la cuarta parte */
+  padding: clamp(0.5px, 0.125vw, 2px);
+  /* Padding total reducido a la cuarta parte */
 }
 
 .col-status .show-status {
-  padding: clamp(0.5px, 0.125vw, 2px); /* Padding total reducido a la cuarta parte */
+  padding: clamp(0.5px, 0.125vw, 2px);
+  /* Padding total reducido a la cuarta parte */
 }
 
 /* show-next debe mantener justificación centrada con padding reducido */
 .public-display-preview .col-next .show-next,
 .col-next .show-next {
   justify-content: center;
-  padding: clamp(0.5px, 0.125vw, 2px); /* Padding total reducido a la cuarta parte */
+  padding: clamp(0.5px, 0.125vw, 2px);
+  /* Padding total reducido a la cuarta parte */
 }
 
 /* Estados de carga/error/vacío */
@@ -687,14 +783,15 @@ body {
   font-weight: 600;
   color: var(--color-text-custom);
   margin: 0;
-  line-height: 0.8; /* Interlineado reducido 40% solo para texto personalizado */
+  line-height: 0.8;
+  /* Interlineado reducido 40% solo para texto personalizado */
   text-align: left;
   padding: 0 clamp(15px, 3vw, 120px) clamp(3px, 3vw, 17px) clamp(15px, 3vw, 120px);
 }
 
-  .shows-table thead th.col-next {
-      letter-spacing: -0.1px !important;
-  }
+.shows-table thead th.col-next {
+  letter-spacing: -0.1px !important;
+}
 
 
 .show-content .show-name {
