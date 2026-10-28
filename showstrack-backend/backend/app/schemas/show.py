@@ -10,7 +10,7 @@ class ShowBase(BaseModel):
     """Schema base para Show"""
     name: str = Field(..., min_length=1, max_length=100, description="Nombre del show")
     description: Optional[str] = Field(None, max_length=500, description="Descripción del show")
-    duration_estimated: Optional[int] = Field(None, ge=1, le=300, description="Duración estimada en minutos")
+    duration_estimated: Optional[int] = Field(None, ge=0, le=300, description="Duración estimada en minutos")
     is_visible: bool = Field(True, description="Si el show es visible al público")
     display_order: int = Field(1, ge=0, le=100, description="Orden de visualización")
     custom_lead_time_access_minutes: Optional[int] = Field(None, ge=0, le=120, description="Tiempo de apertura personalizado")
@@ -41,7 +41,7 @@ class ShowUpdate(BaseModel):
     """Schema para actualizar un Show"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
-    duration_estimated: Optional[int] = Field(None, ge=1, le=300)
+    duration_estimated: Optional[int] = Field(None, ge=0, le=300)
     is_visible: Optional[bool] = None
     display_order: Optional[int] = Field(None, ge=0, le=100)
     custom_lead_time_access_minutes: Optional[int] = Field(None, ge=0, le=120)

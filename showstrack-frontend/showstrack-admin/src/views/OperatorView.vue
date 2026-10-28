@@ -43,40 +43,64 @@
 
       <!-- Columna derecha: Controles de operador -->
       <div class="controls-section">
-        <h2 class="section-title">Controles Manuales</h2>
-        <ShowsControlGrid 
-          :demo-mode="demoMode"
-          :shows="uniqueShows"
-          :is-loading="isLoadingShows"
-          :error="showsError"
-          @override-applied="onOverrideApplied"
-          class="control-grid"
-        />
-        
-        <!-- Mensaje personalizado -->
-        <div class="message-section">
-          <h3 class="subsection-title">Mensaje Personalizado</h3>
-          <div class="message-editor">
-            <textarea
-              v-model="customMessage"
-              placeholder="Mensaje que aparecerá en las pantallas públicas..."
-              class="message-input"
-              rows="3"
-              maxlength="100"
-            ></textarea>
-            <div class="message-actions">
-              <span class="char-count">{{ customMessage.length }}/100</span>
-              <BaseButton 
-                @click="saveCustomMessage"
-                :disabled="!customMessage.trim()"
-                variant="primary"
-                size="sm"
-              >
-                💾 Guardar Mensaje
-              </BaseButton>
+        <div class="section-tabs">
+          <button 
+            type="button"
+            class="tab-btn" 
+            :class="{ active: activeTab === 'shows' }"
+            @click="activeTab = 'shows'"
+          >
+            🎭 Espectáculos
+          </button>
+          <button 
+            type="button"
+            class="tab-btn" 
+            :class="{ active: activeTab === 'slides' }"
+            @click="activeTab = 'slides'"
+          >
+            🖼️ Rotación e Imágenes
+          </button>
+        </div>
+
+        <template v-if="activeTab === 'shows'">
+          <ShowsControlGrid 
+            :demo-mode="demoMode"
+            :shows="uniqueShows"
+            :is-loading="isLoadingShows"
+            :error="showsError"
+            @override-applied="onOverrideApplied"
+            class="control-grid"
+          />
+          
+          <!-- Mensaje personalizado -->
+          <div class="message-section">
+            <h3 class="subsection-title">Mensaje Personalizado</h3>
+            <div class="message-editor">
+              <textarea
+                v-model="customMessage"
+                placeholder="Mensaje que aparecerá en las pantallas públicas..."
+                class="message-input"
+                rows="3"
+                maxlength="100"
+              ></textarea>
+              <div class="message-actions">
+                <span class="char-count">{{ customMessage.length }}/100</span>
+                <BaseButton 
+                  @click="saveCustomMessage"
+                  :disabled="!customMessage.trim()"
+                  variant="primary"
+                  size="sm"
+                >
+                  💾 Guardar Mensaje
+                </BaseButton>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+
+        <template v-else-if="activeTab === 'slides'">
+          <SlidesScheduleControl />
+        </template>
       </div>
     </div>
   </div>
@@ -90,9 +114,11 @@ import { getApiBaseUrl } from '@/utils/api'
 import ClockDisplay from '@/components/operator/ClockDisplay.vue'
 import PublicDisplayPreview from '@/components/operator/PublicDisplayPreview.vue'
 import ShowsControlGrid from '@/components/operator/ShowsControlGrid.vue'
+import SlidesScheduleControl from '@/components/operator/SlidesScheduleControl.vue'
 import BaseButton from '@/components/BaseButton.vue'
 
 // Estado reactivo
+const activeTab = ref<'shows' | 'slides'>('shows')
 const demoMode = ref(false)
 const customMessage = ref('')
 const publicPreview = ref<InstanceType<typeof PublicDisplayPreview>>()
@@ -247,133 +273,44 @@ const formatTime = (timeString: string) => {
 
 const loadRealData = async () => {
   try {
-    // NUEVA LÓGICA: Cargar eventos individuales directamente (como EventsView)
-    const token = getAccessToken()
-    if (!token) {
-      console.warn('No hay token de autenticación, no se pueden cargar eventos')
-      throw new Error('No authentication token available')
-    }
-    
-    console.log('[OperatorView] Cargando shows visibles primero...')
-    
-    // 1. Cargar shows visibles para filtrar eventos
-    const showsResponse = await fetch(`${getApiBaseUrl()}/api/admin/shows?visible_only=true&page=1&size=100`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    console.log('[OperatorView] Cargando espectáculos públicos desde /api/public/schedules...')
+    const response = await fetch(`${getApiBaseUrl()}/api/public/schedules?include_tomorrow=false`, {
+      cache: 'no-store'
     })
     
-    if (!showsResponse.ok) {
-      const errorText = await showsResponse.text()
-      throw new Error(`Error al cargar shows visibles: ${showsResponse.status} ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Error al cargar datos públicos: ${response.status} ${errorText}`)
     }
     
-    const showsData = await showsResponse.json()
-    const visibleShowIds = new Set(showsData.items?.map((show: any) => show.id) || [])
-    console.log('[OperatorView] Shows visibles cargados:', visibleShowIds.size, 'shows')
+    const data = await response.json()
+    console.log('[OperatorView] Espectáculos públicos cargados:', data.shows?.length || 0, 'shows')
     
-    if (visibleShowIds.size === 0) {
-      console.log('[OperatorView] No hay shows visibles')
-      return []
-    }
+    const rawShows = data.shows || []
     
-    const today = new Date().toISOString().split('T')[0]
-    console.log('[OperatorView] Cargando eventos individuales para operador...')
-    
-    // 2. Cargar eventos del día
-    const eventsResponse = await fetch(`${getApiBaseUrl()}/api/admin/events?date_from=${today}&date_to=${today}&page=1&size=50`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!eventsResponse.ok) {
-      const errorText = await eventsResponse.text()
-      throw new Error(`Error al cargar eventos: ${eventsResponse.status} ${errorText}`)
-    }
-    
-    const eventsData = await eventsResponse.json()
-    console.log('[OperatorView] Eventos cargados:', eventsData.items?.length, 'eventos')
-    
-    if (!eventsData.items || eventsData.items.length === 0) {
-      console.log('[OperatorView] No hay eventos para hoy')
-      return []
-    }
-    
-    // 3. Filtrar eventos por shows visibles, eventos de sistema y ventana temporal
-    const currentTime = new Date()
-    const showEvents = eventsData.items.filter((event: any) => {
-      const showName = event.show?.name || ''
-      const showId = event.show_id
-      
-      // Filtrar eventos de sistema (Apertura/Cierre)
-      if (showName.includes('Apertura') || showName.includes('Cierre')) {
-        return false
-      }
-      
-      // Filtrar por shows visibles
-      if (!visibleShowIds.has(showId)) {
-        console.log(`[OperatorView] Evento filtrado por show no visible: ${showName} (ID: ${showId})`)
-        return false
-      }
-      
-      // Filtrar eventos que han pasado más de 5 minutos desde el inicio
-      const eventDate = new Date(event.event_date)
-      const [hours, minutes] = event.start_time.split(':').map(Number)
-      const eventDateTime = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), hours, minutes)
-      const minutesSinceStart = (currentTime.getTime() - eventDateTime.getTime()) / (1000 * 60)
-      
-      if (minutesSinceStart > 5) {
-        console.log(`[OperatorView] Evento filtrado por ventana temporal: ${showName} (${minutesSinceStart.toFixed(1)} min desde inicio)`)
-        return false
-      }
-      
-      return true
-    })
-
-    return showEvents.map((event: any) => {
-        // Buscar el siguiente evento del mismo show (ordenados ascendente para encontrar el próximo)
-        const sameShowEvents = showEvents
-          .filter((e: any) => e.show_id === event.show_id)
-          .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
-
-        const currentIndex = sameShowEvents.findIndex((e: any) => e.id === event.id)
-        const nextEvent = currentIndex < sameShowEvents.length - 1 ? sameShowEvents[currentIndex + 1] : null
-
-        return {
-          id: event.id,
-          event_id: event.id, // ID directo del evento
-          show_id: event.show_id,
-          name: event.show?.name || event.show_name || 'Show desconocido',
-          show_name: event.show?.name || event.show_name || 'Show desconocido',
-          selected_icon_filename: getIconForShow(event.show?.name || event.show_name),
-          current_pass: {
-            start_time: formatTime(event.start_time),
-            status: event.calculated_status || 'PROGRAMADO',
-            event_date: event.event_date,
-            event_id: event.id
-          },
-          next_pass: nextEvent ? {
-            start_time: formatTime(nextEvent.start_time),
-            event_date: nextEvent.event_date
-          } : null,
-          custom_lead_time_access_minutes: (() => {
-            const leadTime = event.show?.custom_lead_time_access_minutes || 30
-            if (event.show?.name === 'A Pluma y Espada') {
-              console.log('[OperatorView] A Pluma y Espada lead time:', {
-                from_api: event.show?.custom_lead_time_access_minutes,
-                show_object: event.show,
-                final_value: leadTime
-              })
-            }
-            return leadTime
-          })(),
-          hasOverride: event.status_override?.is_active || false,
-          overrideReason: event.status_override?.reason || null
-        }
-      })
+    return rawShows.map((show: any) => ({
+      id: show.show_id || show.id,
+      show_id: show.show_id || show.id,
+      event_id: show.current_pass?.event_id,
+      name: show.show_name || show.name,
+      show_name: show.show_name || show.name,
+      selected_icon_filename: show.selected_icon_filename || getIconForShow(show.show_name || show.name),
+      current_pass: show.current_pass ? {
+        start_time: formatTime(show.current_pass.start_time),
+        status: show.current_pass.status || 'PROGRAMADO',
+        event_date: show.current_pass.event_date,
+        event_id: show.current_pass.event_id
+      } : null,
+      next_pass: show.next_pass ? {
+        start_time: formatTime(show.next_pass.start_time),
+        status: show.next_pass.status || 'PROGRAMADO',
+        event_date: show.next_pass.event_date,
+        event_id: show.next_pass.event_id
+      } : null,
+      custom_lead_time_access_minutes: show.custom_lead_time_access_minutes || 30,
+      hasOverride: show.hasOverride || show.current_pass?.has_override || false,
+      overrideReason: show.overrideReason || show.current_pass?.override_reason || null
+    }))
   } catch (error) {
     console.error('Error loading real data:', error)
     throw error
@@ -593,6 +530,41 @@ onUnmounted(() => {
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.section-tabs {
+  display: flex;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.375rem 0.75rem 0 0.75rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.tab-btn:hover {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: white;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .preview-container {

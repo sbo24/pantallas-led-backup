@@ -4,7 +4,7 @@ Router de API pública para consultas sin autenticación
 from typing import Optional
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
@@ -32,9 +32,12 @@ async def get_public_schedules(
     - **include_tomorrow**: Incluir eventos de mañana
     - **simulated_time**: Solo para testing, simula la hora actual
     """
-    # Usar fecha actual si no se especifica
-    if date_param is None:
+    # Usar fecha actual si no se especifica o si es un objeto Query default
+    if date_param is None or not isinstance(date_param, date):
         date_param = date.today()
+    
+    if not isinstance(include_tomorrow, bool):
+        include_tomorrow = False
     
     # Determinar rango de fechas
     date_from = date_param
@@ -51,6 +54,21 @@ async def get_public_schedules(
         limit=100  # Límite alto para pantallas públicas
     )
     
+    # Lista blanca estricta de los 6 espectáculos oficiales autorizados para pantallas públicas
+    ALLOWED_SHOW_KEYWORDS = [
+        "el sueño de toledo",
+        "el último cantar",
+        "cetrería de reyes",
+        "el misterio de sorbaces",
+        "a pluma y espada",
+        "el tambor de la libertad"
+    ]
+    
+    shows = [
+        s for s in shows 
+        if any(kw in s.name.lower() for kw in ALLOWED_SHOW_KEYWORDS)
+    ]
+    
     # Obtener eventos para los shows visibles
     show_ids = [show.id for show in shows]
     events = await EventService.get_events_by_date_range(
@@ -65,7 +83,11 @@ async def get_public_schedules(
     for show in shows:
         shows_with_events[show.id] = {
             "show_id": show.id,
+            "id": show.id,
             "show_name": show.name,
+            "name": show.name,
+            "selected_icon_filename": getattr(show, 'selected_icon_filename', None),
+            "custom_lead_time_access_minutes": show.custom_lead_time_access_minutes or 30,
             "current_pass": None,
             "next_pass": None,
             "display_order": show.display_order,
@@ -73,7 +95,7 @@ async def get_public_schedules(
         }
     
     # Procesar eventos con nueva lógica de visibilidad
-    if simulated_time:
+    if simulated_time and isinstance(simulated_time, datetime):
         current_time = simulated_time
     else:
         # Utiliser l'heure locale Europe/Madrid comme NAIVE pour les comparaisons
@@ -104,7 +126,10 @@ async def get_public_schedules(
             "start_time": event.start_time.strftime("%H:%M"),
             "status": event_status,
             "status_color": get_status_color(event_status),
-            "event_date": event.event_date.isoformat()
+            "event_date": event.event_date.isoformat(),
+            "event_id": event.id,
+            "has_override": event.status_override.is_active if event.status_override else False,
+            "override_reason": event.status_override.override_reason if (event.status_override and event.status_override.is_active) else None
         }
         
         shows_with_events[event.show_id]["events"].append(event_info)
@@ -164,6 +189,8 @@ async def get_public_schedules(
         
         show_data["current_pass"] = current_pass
         show_data["next_pass"] = next_pass
+        show_data["hasOverride"] = current_pass.get("has_override", False) if current_pass else False
+        show_data["overrideReason"] = current_pass.get("override_reason", None) if current_pass else None
         del show_data["events"]  # Remover eventos detallados
     
     # Filtrar shows que tienen eventos
@@ -331,6 +358,7 @@ async def get_public_alert(
 
 @router.get("/custom-message")
 async def get_public_custom_message(
+    response: Response,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -343,6 +371,11 @@ async def get_public_custom_message(
     - custom_message: string or null
     - has_message: boolean indicating if message exists
     """
+    # Evitar que navegadores y proxies cacheen la respuesta
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     try:
         from app.services.config_service import ConfigService
         
@@ -360,6 +393,38 @@ async def get_public_custom_message(
         return {
             "custom_message": None,
             "has_message": False,
+            "timestamp": datetime.now(ZoneInfo("Europe/Madrid")).isoformat()
+        }
+
+
+@router.get("/slides-config")
+async def get_public_slides_config(
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current slides rotation configuration for public displays.
+    """
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    try:
+        from app.services.config_service import ConfigService
+
+        config_service = ConfigService(db)
+        slides_config = await config_service.get_slides_config()
+        return {
+            "success": True,
+            "data": slides_config,
+            "timestamp": datetime.now(ZoneInfo("Europe/Madrid")).isoformat()
+        }
+    except Exception as e:
+        print(f"Error getting slides config: {e}")
+        from app.services.config_service import ConfigService
+        return {
+            "success": True,
+            "data": ConfigService.DEFAULT_SLIDES_CONFIG,
             "timestamp": datetime.now(ZoneInfo("Europe/Madrid")).isoformat()
         }
 

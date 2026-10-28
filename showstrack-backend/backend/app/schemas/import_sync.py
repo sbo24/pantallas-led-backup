@@ -22,7 +22,7 @@ class PuyDuFouEventData(BaseModel):
     start_time: str = Field(..., pattern=r'^\d{2}:\d{2}$', description="Hora inicio HH:MM")
     end_time: str = Field(..., pattern=r'^\d{2}:\d{2}$', description="Hora fin HH:MM")
     duration_minutes: int = Field(..., ge=0, le=480, description="Duración en minutos")
-    event_type: Literal["show", "system", "opening", "closing"] = Field(..., description="Tipo de evento")
+    event_type: str = Field(..., description="Tipo de evento (show, system, restaurant, etc.)")
 
 
 class ExtractionMetadata(BaseModel):

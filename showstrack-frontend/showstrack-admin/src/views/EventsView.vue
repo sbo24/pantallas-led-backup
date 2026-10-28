@@ -20,7 +20,7 @@ const {
   hasPendingSync, pendingChangesCount, selectedChangesCount,
   hasSelectedChanges, allChangesSelected,
   loadOperationMode, loadPendingChanges, loadImportHistory, loadTodayEvents,
-  executeSyncManual, cleanSkippedChanges, changeOperationMode, createOverride,
+  executeSyncManual, cleanSkippedChanges, changeOperationMode, createOverride, revertOverride,
   toggleChangeSelection, toggleAllChanges, applySelectedChanges, discardSelectedChanges,
   startAutoRefresh
 } = useEventsView()
@@ -75,6 +75,15 @@ const openOverrideModal = (event: any, status: 'CERRADO' | 'CANCELADO') => {
 const confirmOverride = async (reason: string) => {
   const success = await createOverride(selectedEvent.value, overrideStatus.value, reason)
   if (success) showOverrideModal.value = false
+}
+
+const deletePassQuick = async (event: any) => {
+  const showName = event.show?.name || 'este espectáculo'
+  const startTime = event.start_time || ''
+  const confirmed = window.confirm(`¿Estás seguro de eliminar el pase de las ${startTime} de "${showName}"?\n\n- Permanecerá CERRADO incluso al recargar datos de la API.\n- Podrás reabrirlo cuando quieras con el botón "Poner PROGRAMADO".`)
+  if (confirmed) {
+    await createOverride(event, 'CERRADO', 'Pase eliminado manualmente por operador')
+  }
 }
 
 const showChangePreview = (change: any) => {
@@ -552,11 +561,22 @@ onMounted(async () => {
           </template>
           
           <template #cell-actions="{ row }">
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
+              <BaseButton
+                v-if="row.calculated_status === 'CANCELADO' || row.calculated_status === 'CERRADO' || row.override?.is_active"
+                @click="revertOverride(row)"
+                variant="primary"
+                size="sm"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                title="Reabrir pase y restablecer a estado Programado"
+              >
+                📅 Poner PROGRAMADO (Abrir)
+              </BaseButton>
               <BaseButton
                 @click="openOverrideModal(row, 'CERRADO')"
                 variant="outline"
                 size="sm"
+                :disabled="row.calculated_status === 'CERRADO'"
                 class="text-red-600 border-red-300 hover:bg-red-50"
               >
                 Forzar CERRADO
@@ -565,9 +585,19 @@ onMounted(async () => {
                 @click="openOverrideModal(row, 'CANCELADO')"
                 variant="outline"
                 size="sm"
+                :disabled="row.calculated_status === 'CANCELADO'"
                 class="text-yellow-600 border-yellow-300 hover:bg-yellow-50"
               >
                 Forzar CANCELADO
+              </BaseButton>
+              <BaseButton
+                @click="deletePassQuick(row)"
+                variant="outline"
+                size="sm"
+                class="text-purple-700 border-purple-300 hover:bg-purple-50 bg-purple-50 font-medium"
+                title="Eliminar pase: permanece cerrado tras reimportaciones API y se puede reabrir"
+              >
+                🗑️ Eliminar Pase
               </BaseButton>
             </div>
           </template>

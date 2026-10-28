@@ -34,7 +34,7 @@
   /* Colors states */
   --color-programado: transparent;
   --color-abierto: #53630b;
-  --color-cerrado: transparent;
+  --color-cerrado: #8B1E1E;
   --color-cancelado: transparent;
 
   /* Base colors */
@@ -279,6 +279,10 @@ body {
   align-items: center;
 }
 
+.show-content .show-name {
+  padding-top: 3%;
+}
+
 .public-display-preview .col-time {
   width: 12%;
   text-align: center;
@@ -485,12 +489,16 @@ body {
   width: var(--icon-size);
   height: var(--icon-size);
   object-fit: contain;
+  object-position: center center;
+  display: block;
 }
 
 .show-icon {
   width: var(--icon-size);
   height: var(--icon-size);
   object-fit: contain;
+  object-position: center center;
+  display: block;
 }
 
 /* Column-specific styles */
@@ -539,7 +547,6 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
 .show-time {
@@ -557,7 +564,6 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
 .public-display-preview .show-status {
@@ -565,13 +571,12 @@ body {
   font-size: var(--font-size-status);
   font-weight: 600;
   text-transform: uppercase;
-  padding: var(--padding-container);
+  padding: clamp(2px, 0.35vw, 6px) 0;
   border-radius: var(--border-radius);
-  display: inline-flex;
+  display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-width: 0;
 }
 
 .show-status {
@@ -579,13 +584,12 @@ body {
   font-size: var(--font-size-status);
   font-weight: 600;
   text-transform: uppercase;
-  padding: var(--padding-container);
+  padding: clamp(2px, 0.35vw, 6px) 0;
   border-radius: var(--border-radius);
-  display: inline-flex;
+  display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-width: 0;
 }
 
 /* Estados visuales */
@@ -611,12 +615,12 @@ body {
 
 .public-display-preview .show-status[data-status="CERRADO"] {
   background-color: var(--color-cerrado);
-  color: var(--color-text-primary);
+  color: white;
 }
 
 .show-status[data-status="CERRADO"] {
   background-color: var(--color-cerrado);
-  color: var(--color-text-primary);
+  color: white;
 }
 
 .public-display-preview .show-status[data-status="CANCELADO"] {
@@ -644,7 +648,6 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
 .show-next {
@@ -662,7 +665,6 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
 /* Reducir padding izquierdo y derecho para col-time, col-status, col-next */
@@ -673,8 +675,7 @@ body {
 }
 
 .public-display-preview .col-status .show-status {
-  padding: clamp(0.5px, 0.125vw, 2px);
-  /* Padding total reducido a la cuarta parte */
+  padding: clamp(2px, 0.35vw, 6px) 0;
 }
 
 .col-time .show-time {
@@ -684,8 +685,7 @@ body {
 }
 
 .col-status .show-status {
-  padding: clamp(0.5px, 0.125vw, 2px);
-  /* Padding total reducido a la cuarta parte */
+  padding: clamp(2px, 0.35vw, 6px) 0;
 }
 
 /* show-next debe mantener justificación centrada con padding reducido */
@@ -793,7 +793,10 @@ body {
   letter-spacing: -0.1px !important;
 }
 
-
-.show-content .show-name {
-  padding-top: 3%;
-}
+/* Alinear verticalmente columnas derechas con la izquierda (que contiene icono PNG con espacio transparente) */
+.shows-table td.col-time,
+.shows-table td.col-status,
+.shows-table td.col-next {
+  vertical-align: middle;
+  padding-top: clamp(4px, 1.5vw, 22px);
+}/* padding-top eliminado: desalineaba la columna izquierda respecto a hora/estado/siguiente */

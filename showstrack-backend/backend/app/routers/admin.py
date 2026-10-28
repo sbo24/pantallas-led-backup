@@ -834,6 +834,53 @@ async def update_custom_message(
         )
 
 
+# ===== SLIDES ROTATION ENDPOINTS =====
+
+@router.get("/config/slides")
+async def get_slides_configuration(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current slides rotation configuration for public displays.
+    """
+    try:
+        config_service = ConfigService(db)
+        slides_config = await config_service.get_slides_config()
+        return {
+            "success": True,
+            "data": slides_config
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting slides config: {str(e)}"
+        )
+
+
+@router.put("/config/slides", response_model=ConfigurationChangeResponse)
+async def update_slides_configuration(
+    slides_data: dict,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update slides rotation configuration for public displays.
+    """
+    try:
+        config_service = ConfigService(db)
+        change_response = await config_service.update_slides_config(
+            slides_data=slides_data,
+            updated_by=current_user.username
+        )
+        return change_response
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating slides config: {str(e)}"
+        )
+
+
 # ===== IMPORT/SYNC SYSTEM ENDPOINTS =====
 
 @router.post("/import", response_model=ImportResponse, status_code=status.HTTP_201_CREATED)

@@ -73,7 +73,26 @@
         
         <!-- Control buttons -->
         <div class="control-buttons">
-          <template v-if="!show.hasOverride">
+          <!-- Si el show está CANCELADO o CERRADO con override -->
+          <template v-if="show.current_pass?.status === 'CANCELADO' || show.current_pass?.status === 'CERRADO' || show.hasOverride">
+            <button 
+              @click="revertToProgramado(show)"
+              class="control-btn program-btn"
+              title="Reabrir espectáculo y restablecer a estado Programado"
+            >
+              📅 Poner en Programado (Abrir)
+            </button>
+            <button 
+              @click="deletePassQuick(show)"
+              class="control-btn delete-btn"
+              title="Eliminar pase: se mantendrá cerrado tras recargas de API y podrás reabrirlo"
+            >
+              🗑️ Eliminar Pase
+            </button>
+          </template>
+          
+          <!-- Estado normal -->
+          <template v-else>
             <button 
               @click="openOverrideModal(show, 'CERRADO')"
               class="control-btn close-btn"
@@ -89,14 +108,13 @@
             >
               ⚠️ Cancelar
             </button>
-          </template>
-          
-          <template v-else>
+            
             <button 
-              @click="revertOverride(show)"
-              class="control-btn revert-btn"
+              @click="deletePassQuick(show)"
+              class="control-btn delete-btn"
+              title="Eliminar pase: se mantendrá cerrado tras recargas de API y podrás reabrirlo"
             >
-              🔄 Revertir
+              🗑️ Eliminar Pase
             </button>
           </template>
         </div>
@@ -243,8 +261,25 @@ const selectedEventForModal = computed(() => {
 // Composables
 const { showSuccessToast, showErrorToast } = useNotifications()
 
-// Función auxiliar para encontrar el event ID del current pass de un show
-// Métodos - Ya no necesitamos cargar datos, vienen como props
+const deletePassQuick = async (show: Show) => {
+  const eventId = show.event_id || show.current_pass?.event_id
+  if (!eventId) {
+    showErrorToast('No se puede eliminar pase: evento no disponible')
+    return
+  }
+  const startTime = show.current_pass?.start_time || ''
+  const showName = show.name || 'este espectáculo'
+  const confirmed = window.confirm(`¿Estás seguro de eliminar el pase de las ${startTime} de "${showName}"?\n\n- Permanecerá CERRADO incluso al recargar datos de la API.\n- Podrás reabrirlo cuando quieras con el botón "Poner en Programado".`)
+  if (confirmed) {
+    try {
+      await eventsService.createOverride(eventId.toString(), 'CERRADO', 'Pase eliminado manualmente por operador')
+      showSuccessToast(`Pase de las ${startTime} eliminado (cerrado) correctamente`)
+      emit('overrideApplied', { showId: show.id, status: 'CERRADO', reason: 'Pase eliminado por operador' })
+    } catch (error: any) {
+      showErrorToast(`Error al eliminar pase: ${error.message || 'Error desconocido'}`)
+    }
+  }
+}
 
 const openOverrideModal = (show: Show, status: string) => {
   selectedShow.value = show
@@ -309,6 +344,46 @@ const confirmOverride = async (reason: string) => {
       showErrorToast('Error de sincronización de base de datos. Contacte al administrador.')
     } else {
       showErrorToast(`Error al aplicar override: ${error.message || 'Error desconocido'}`)
+    }
+  }
+}
+
+const revertToProgramado = async (show: Show) => {
+  try {
+    console.log('[ShowsControlGrid] Restableciendo show a Programado:', show.id)
+    
+    // Verificar que el show tiene event_id para poder revertir
+    const eventId = show.event_id || show.current_pass?.event_id
+    if (!eventId) {
+      console.error('[ShowsControlGrid] No se puede restablecer: event_id no disponible', show)
+      showErrorToast('No se puede restablecer: evento no disponible')
+      return
+    }
+    
+    console.log('[ShowsControlGrid] Enviando solicitud para restablecer a Programado con event_id:', eventId)
+    
+    // Llamada a la API para desactivar override
+    await eventsService.revertOverride(eventId.toString(), 'Restablecido a Programado por operador')
+    
+    console.log('[ShowsControlGrid] Show restablecido exitosamente:', eventId)
+    
+    // Emitir evento para actualizar la vista principal
+    emit('overrideApplied', {
+      showId: show.id,
+      status: 'PROGRAMADO',
+      reason: 'Restablecido a Programado'
+    })
+    
+    showSuccessToast(`Espectáculo puesto en Programado: ${show.name}`)
+    
+  } catch (error: any) {
+    console.error('Error al restablecer a programado:', error)
+    if (error.response?.status === 404 || error.message?.includes('404')) {
+      showErrorToast('El override ya no está activo')
+    } else if (error.response?.status === 401 || error.message?.includes('401')) {
+      showErrorToast('No autorizado: inicia sesión nuevamente')
+    } else {
+      showErrorToast(`Error al restablecer: ${error.message || 'Error desconocido'}`)
     }
   }
 }
@@ -587,6 +662,28 @@ const getStatusLabel = (status: string) => {
 
 .revert-btn:hover {
   background-color: #bfdbfe;
+}
+
+.program-btn {
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.program-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.delete-btn {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+  font-weight: 600;
+  border: 1px solid #d8b4fe;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background-color: #e9d5ff;
 }
 
 .retry-button {

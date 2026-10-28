@@ -52,6 +52,106 @@ class ConfigService:
         },
         "operation_mode": "automatic"
     }
+
+    DEFAULT_SLIDES_CONFIG = {
+        "enabled": True,
+        "schedule_slide": {
+            "title": "Horarios de Espectáculos",
+            "duration_seconds": 30,
+            "enabled": True
+        },
+        "slides": [
+            {
+                "id": "sueno_2000",
+                "title": "El Sueño de Toledo - 20:00H",
+                "image_url": "/assets/images/slides/sueno-toledo-2000.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": False,
+                "start_time": "10:00",
+                "end_time": "20:00"
+            },
+            {
+                "id": "sueno_2230",
+                "title": "El Sueño de Toledo - 22:30H",
+                "image_url": "/assets/images/slides/sueno-toledo-2230.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": False,
+                "start_time": "18:00",
+                "end_time": "22:30"
+            },
+            {
+                "id": "musica_directo",
+                "title": "Música en Directo",
+                "image_url": "/assets/images/slides/musica-en-directo.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": True,
+                "start_time": "10:00",
+                "end_time": "23:00"
+            }
+        ],
+        "items": [
+            {
+                "id": "schedule_1",
+                "type": "schedule",
+                "title": "Horarios de Espectáculos (Iframe)",
+                "duration_seconds": 30,
+                "enabled": True,
+                "all_day": True
+            },
+            {
+                "id": "sueno_2000",
+                "type": "image",
+                "title": "El Sueño de Toledo - 20:00H",
+                "image_url": "/assets/images/slides/sueno-toledo-2000.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": False,
+                "start_time": "10:00",
+                "end_time": "20:00"
+            },
+            {
+                "id": "schedule_2",
+                "type": "schedule",
+                "title": "Horarios de Espectáculos (Iframe)",
+                "duration_seconds": 30,
+                "enabled": True,
+                "all_day": True
+            },
+            {
+                "id": "sueno_2230",
+                "type": "image",
+                "title": "El Sueño de Toledo - 22:30H",
+                "image_url": "/assets/images/slides/sueno-toledo-2230.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": False,
+                "start_time": "18:00",
+                "end_time": "22:30"
+            },
+            {
+                "id": "schedule_3",
+                "type": "schedule",
+                "title": "Horarios de Espectáculos (Iframe)",
+                "duration_seconds": 30,
+                "enabled": True,
+                "all_day": True
+            },
+            {
+                "id": "musica_directo",
+                "type": "image",
+                "title": "Música en Directo",
+                "image_url": "/assets/images/slides/musica-en-directo.jpg",
+                "duration_seconds": 15,
+                "enabled": True,
+                "all_day": True,
+                "start_time": "10:00",
+                "end_time": "23:00"
+            }
+        ]
+    }
     
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -335,6 +435,39 @@ class ConfigService:
             updated_by=updated_by
         )
     
+    async def get_slides_config(self) -> Dict[str, Any]:
+        """Get slides rotation configuration for public displays."""
+        slides_setting = await self._get_setting("slides_rotation")
+        if not slides_setting:
+            await self._create_default_setting("slides_rotation", self.DEFAULT_SLIDES_CONFIG)
+            return self.DEFAULT_SLIDES_CONFIG
+        return slides_setting.value
+
+    async def update_slides_config(
+        self,
+        slides_data: Dict[str, Any],
+        updated_by: str
+    ) -> ConfigurationChangeResponse:
+        """Update slides rotation configuration."""
+        current_config = await self.get_slides_config()
+        await self._update_setting("slides_rotation", slides_data, updated_by)
+        
+        await self._log_config_action(
+            action="UPDATE_SLIDES_CONFIG",
+            user=updated_by,
+            details="Configuración de rotación de diapositivas actualizada"
+        )
+        
+        return ConfigurationChangeResponse(
+            success=True,
+            message="Configuración de diapositivas guardada correctamente",
+            updated_fields=["slides_rotation"],
+            previous_values={"slides_rotation": current_config},
+            new_values={"slides_rotation": slides_data},
+            updated_at=datetime.now(timezone.utc).isoformat(),
+            updated_by=updated_by
+        )
+
     # === PRIVATE HELPER METHODS ===
     
     async def _get_setting(self, key: str) -> Optional[GlobalSettings]:

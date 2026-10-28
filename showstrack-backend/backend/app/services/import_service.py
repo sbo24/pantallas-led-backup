@@ -259,12 +259,17 @@ class ImportService:
                     show = existing_shows.get(show_name_lower)
                     
                     if not show:
+                        event_type_str = event_data.event_type.lower()
+                        is_restaurant = (
+                            event_type_str in ("restaurant", "restauration", "restaurante", "gastronomia", "gastronomía") or
+                            any(kw in event_data.show_name.lower() for kw in ["bodegón", "bodeguita", "rincón", "helados", "parrilla", "fonda", "taberna", "mesón", "tasca", "dulces", "coctelería", "tahona", "bocatas", "llagar", "corralillo", "hospedería"])
+                        )
                         show = Show(
                             name=event_data.show_name,
                             description=f"Show importado automáticamente desde {import_data.metadata.source}",
                             duration_estimated=event_data.duration_minutes,
-                            show_category=event_data.event_type.upper(),
-                            is_visible=True
+                            show_category="RESTAURANT" if is_restaurant else event_data.event_type.upper(),
+                            is_visible=False if is_restaurant else True
                         )
                         db.add(show)
                         await db.flush()  # Para obtener el ID

@@ -44,6 +44,7 @@ class ShowsTrackClient {
         this.updateTimer = null;
         this.nextUpdateTimer = null;
         this.isOnline = true;
+        this.lastRenderedHTML = null;
 
         // DOM elements
         this.elements = {
@@ -108,7 +109,13 @@ class ShowsTrackClient {
             console.log('🔄 Obteniendo nuevos datos de la API...');
             console.log('📡 URL de conexión:', `${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
 
-            const response = await fetch(`${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`);
+            // Actualizar el mensaje personalizado y los shows en paralelo
+            const [response] = await Promise.all([
+                fetch(`${CONFIG.API_URL}/api/public/schedules?include_tomorrow=false`, {
+                    cache: 'no-store'  // Nunca usar caché del navegador
+                }),
+                this.loadCustomMessage()
+            ]);
             console.log('📡 Respuesta recibida, estado:', response.status);
 
             if (!response.ok) {
@@ -187,7 +194,9 @@ class ShowsTrackClient {
     // Function to load custom message from API (same as Vue)
     async loadCustomMessage() {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/api/public/custom-message`);
+            const response = await fetch(`${CONFIG.API_URL}/api/public/custom-message`, {
+                cache: 'no-store'  // Nunca usar caché del navegador
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (data.has_message && data.custom_message) {
@@ -348,6 +357,7 @@ class ShowsTrackClient {
     }
 
     renderAlert(alert) {
+        this.lastRenderedHTML = null;
         // Mask show container
         this.elements.showsContainer.style.display = 'none';
 
@@ -361,6 +371,7 @@ class ShowsTrackClient {
     }
 
     renderNoShows() {
+        this.lastRenderedHTML = null;
         // Masquer le mode alerte
         this.elements.alertMode.style.display = 'none';
         this.elements.showsContainer.style.display = 'block';
@@ -398,13 +409,15 @@ class ShowsTrackClient {
     }
 
     updateTableWithAnimation(newHTML) {
-        // Animation simple de mise à jour
-        this.elements.showsTbody.style.opacity = '0.7';
+        // Si los datos son idénticos a los actuales en pantalla, omitir renderizado DOM (evita parpadeo)
+        if (this.lastRenderedHTML === newHTML && this.elements.showsTbody.innerHTML !== '') {
+            return;
+        }
 
-        setTimeout(() => {
-            this.elements.showsTbody.innerHTML = newHTML;
-            this.elements.showsTbody.style.opacity = '1';
-        }, CONFIG.ANIMATION_DURATION / 2);
+        // Actualización directa sin bajada de opacidad
+        this.elements.showsTbody.innerHTML = newHTML;
+        this.elements.showsTbody.style.opacity = '1';
+        this.lastRenderedHTML = newHTML;
     }
 
     escapeHtml(text) {

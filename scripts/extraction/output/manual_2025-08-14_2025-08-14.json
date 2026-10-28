@@ -1,0 +1,406 @@
+{
+  "metadata": {
+    "extraction_time": "2026-03-10T13:02:45.997321",
+    "total_events": 39,
+    "date_range": [
+      "2025-08-14"
+    ],
+    "source": "puy_du_fou_api",
+    "version": "1.0",
+    "extraction_summary": {
+      "events_by_type": {
+        "show": 39,
+        "system": 0
+      },
+      "events_by_show": {
+        "Le Relais de Poste": 3,
+        "L’Auberge": 2,
+        "Le Bistrot": 1,
+        "La Taverne": 1,
+        "L’Orangerie": 2,
+        "L’Echansonnerie": 2,
+        "Le Rendez-Vous des VF": 1,
+        "La Rôtissoire": 1,
+        "La Popina": 1,
+        "La Queue de l’Etang": 1,
+        "L’Etape": 1,
+        "La Maison du Préfou": 1,
+        "Le Garde Manger": 1,
+        "La Gargoulette": 1,
+        "L’Estaminet": 1,
+        "La Mijoterie du Roy Henry": 2,
+        "L'Atrium": 2,
+        "Le Banquet de Mérovée": 2,
+        "Les Deux Couronnnes": 2,
+        "L'Ecuyer Tranchant": 2,
+        "Le Café de la Madelon": 1,
+        "Le Chaudron": 1,
+        "La Grange aux Fiefs": 1,
+        "La Table des Ambassadeurs": 1,
+        "Point Info Restauration": 1,
+        "Centrale d'appels Restauration": 1,
+        "Les Jardins de la Mijoterie": 1,
+        "La Halte des Pèlerins": 1,
+        "Chez Josette": 1
+      },
+      "events_by_date": {
+        "2025-08-14": 39
+      },
+      "unique_shows": 29,
+      "date_range_days": 1
+    }
+  },
+  "events": [
+    {
+      "external_event_id": "1609037257090000018__20250814_1230",
+      "show_name": "Le Relais de Poste",
+      "event_date": "2025-08-14",
+      "start_time": "12:30",
+      "end_time": "12:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000018__20250814_1900",
+      "show_name": "Le Relais de Poste",
+      "event_date": "2025-08-14",
+      "start_time": "19:00",
+      "end_time": "19:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000018__20250814_2100",
+      "show_name": "Le Relais de Poste",
+      "event_date": "2025-08-14",
+      "start_time": "21:00",
+      "end_time": "21:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000019__20250814_1200",
+      "show_name": "L’Auberge",
+      "event_date": "2025-08-14",
+      "start_time": "12:00",
+      "end_time": "13:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000019__20250814_1830",
+      "show_name": "L’Auberge",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "19:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000020__20250814_0845",
+      "show_name": "Le Bistrot",
+      "event_date": "2025-08-14",
+      "start_time": "08:45",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000021__20250814_1130",
+      "show_name": "La Taverne",
+      "event_date": "2025-08-14",
+      "start_time": "11:30",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000022__20250814_1200",
+      "show_name": "L’Orangerie",
+      "event_date": "2025-08-14",
+      "start_time": "12:00",
+      "end_time": "13:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000022__20250814_1830",
+      "show_name": "L’Orangerie",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000023__20250814_1200",
+      "show_name": "L’Echansonnerie",
+      "event_date": "2025-08-14",
+      "start_time": "12:00",
+      "end_time": "13:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000023__20250814_1900",
+      "show_name": "L’Echansonnerie",
+      "event_date": "2025-08-14",
+      "start_time": "19:00",
+      "end_time": "20:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000024__20250814_1000",
+      "show_name": "Le Rendez-Vous des VF",
+      "event_date": "2025-08-14",
+      "start_time": "10:00",
+      "end_time": "21:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000025__20250814_1130",
+      "show_name": "La Rôtissoire",
+      "event_date": "2025-08-14",
+      "start_time": "11:30",
+      "end_time": "20:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000026__20250814_1030",
+      "show_name": "La Popina",
+      "event_date": "2025-08-14",
+      "start_time": "10:30",
+      "end_time": "20:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000028__20250814_1130",
+      "show_name": "La Queue de l’Etang",
+      "event_date": "2025-08-14",
+      "start_time": "11:30",
+      "end_time": "21:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000029__20250814_1100",
+      "show_name": "L’Etape",
+      "event_date": "2025-08-14",
+      "start_time": "11:00",
+      "end_time": "19:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000030__20250814_1000",
+      "show_name": "La Maison du Préfou",
+      "event_date": "2025-08-14",
+      "start_time": "10:00",
+      "end_time": "20:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000031__20250814_0930",
+      "show_name": "Le Garde Manger",
+      "event_date": "2025-08-14",
+      "start_time": "09:30",
+      "end_time": "21:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000032__20250814_1100",
+      "show_name": "La Gargoulette",
+      "event_date": "2025-08-14",
+      "start_time": "11:00",
+      "end_time": "20:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1609037257090000033__20250814_1030",
+      "show_name": "L’Estaminet",
+      "event_date": "2025-08-14",
+      "start_time": "10:30",
+      "end_time": "20:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707932435000000178__20250814_1200",
+      "show_name": "La Mijoterie du Roy Henry",
+      "event_date": "2025-08-14",
+      "start_time": "12:00",
+      "end_time": "14:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707932435000000178__20250814_1830",
+      "show_name": "La Mijoterie du Roy Henry",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000179__20250814_1145",
+      "show_name": "L'Atrium",
+      "event_date": "2025-08-14",
+      "start_time": "11:45",
+      "end_time": "14:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000179__20250814_1830",
+      "show_name": "L'Atrium",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000180__20250814_1830",
+      "show_name": "Le Banquet de Mérovée",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "18:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000180__20250814_2015",
+      "show_name": "Le Banquet de Mérovée",
+      "event_date": "2025-08-14",
+      "start_time": "20:15",
+      "end_time": "20:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000181__20250814_1830",
+      "show_name": "Les Deux Couronnnes",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "18:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000181__20250814_2015",
+      "show_name": "Les Deux Couronnnes",
+      "event_date": "2025-08-14",
+      "start_time": "20:15",
+      "end_time": "20:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000182__20250814_1830",
+      "show_name": "L'Ecuyer Tranchant",
+      "event_date": "2025-08-14",
+      "start_time": "18:30",
+      "end_time": "18:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1707933660710000182__20250814_2015",
+      "show_name": "L'Ecuyer Tranchant",
+      "event_date": "2025-08-14",
+      "start_time": "20:15",
+      "end_time": "20:15",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "1808942945700000000__20250814_1900",
+      "show_name": "Le Café de la Madelon",
+      "event_date": "2025-08-14",
+      "start_time": "19:00",
+      "end_time": "19:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2016230449850000030__20250814_1030",
+      "show_name": "Le Chaudron",
+      "event_date": "2025-08-14",
+      "start_time": "10:30",
+      "end_time": "20:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2016230449850000031__20250814_1130",
+      "show_name": "La Grange aux Fiefs",
+      "event_date": "2025-08-14",
+      "start_time": "11:30",
+      "end_time": "21:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2016262742010000109__20250814_1900",
+      "show_name": "La Table des Ambassadeurs",
+      "event_date": "2025-08-14",
+      "start_time": "19:00",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2207742094020000032__20250814_0845",
+      "show_name": "Point Info Restauration",
+      "event_date": "2025-08-14",
+      "start_time": "08:45",
+      "end_time": "19:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2207742101390000033__20250814_0900",
+      "show_name": "Centrale d'appels Restauration",
+      "event_date": "2025-08-14",
+      "start_time": "09:00",
+      "end_time": "18:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2209439644080000035__20250814_1500",
+      "show_name": "Les Jardins de la Mijoterie",
+      "event_date": "2025-08-14",
+      "start_time": "15:00",
+      "end_time": "16:45",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2314251281660000001__20250814_1045",
+      "show_name": "La Halte des Pèlerins",
+      "event_date": "2025-08-14",
+      "start_time": "10:45",
+      "end_time": "20:30",
+      "duration_minutes": 0,
+      "event_type": "show"
+    },
+    {
+      "external_event_id": "2504452150710000000__20250814_0845",
+      "show_name": "Chez Josette",
+      "event_date": "2025-08-14",
+      "start_time": "08:45",
+      "end_time": "18:00",
+      "duration_minutes": 0,
+      "event_type": "show"
+    }
+  ]
+}

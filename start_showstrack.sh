@@ -43,9 +43,9 @@ nohup npm run dev -- --host 0.0.0.0 --port 3000 > /workspace/frontend-admin.log 
 VUE_PID=$!
 echo $VUE_PID > /workspace/frontend-admin.pid
 
-echo "📺 Iniciando Pantallas Públicas (puerto 8080)..."
+echo "📺 Iniciando Pantallas Públicas (puerto 8080 con servidor multi-hilo CORS)..."
 cd /workspace/frontend-public
-nohup python3 -m http.server 8080 > /workspace/frontend-public.log 2>&1 &
+nohup python3 cors_server.py > /workspace/frontend-public.log 2>&1 &
 PUBLIC_PID=$!
 echo $PUBLIC_PID > /workspace/frontend-public.pid
 
@@ -59,85 +59,15 @@ sleep 15
 
 echo "🔄 Verificando automatización ETL..."
 
-# Verificar si cron está instalado
-if command -v crontab >/dev/null 2>&1; then
-    # Cron está instalado, verificar si hay tarea configurada
-    if crontab -l 2>/dev/null | grep -q "etl-cron.sh"; then
-        echo "✅ Cron ETL: Configurado y activo"
-        # Verificar si el servicio cron está corriendo
-        if service cron status >/dev/null 2>&1; then
-            echo "   ✅ Servicio cron: Running"
-        else
-            echo "   ⚠️  Servicio cron no está corriendo, intentando iniciar..."
-            service cron start 2>/dev/null && echo "   ✅ Servicio cron iniciado" || echo "   ❌ No se pudo iniciar cron (requiere permisos root)"
-        fi
-    else
-        echo "⚠️  Cron instalado pero sin tarea ETL configurada"
-        echo "   📝 Para configurar: echo '5 */2 * * * /workspace/scripts/etl-cron.sh' | crontab -"
-    fi
+# Verificar si cron está corriendo y tiene la tarea configurada
+if service cron status >/dev/null 2>&1 && crontab -l 2>/dev/null | grep -q "etl-cron.sh"; then
+    echo "✅ Cron ETL: Servicio corriendo y tarea configurada"
 else
-    echo "⚠️  CRON NO INSTALADO - Iniciando instalación automática..."
-    echo ""
-
-    # Verificar si tenemos permisos de root para instalar
+    echo "⚠️  Cron ETL no está listo — ejecutando install_cron_etl.sh..."
     if [ "$EUID" -eq 0 ]; then
-        echo "🔧 Ejecutando como root - Instalando cron automáticamente..."
-        if apt update && apt install -y cron && service cron start && update-rc.d cron enable; then
-            echo "✅ Cron instalado exitosamente"
-
-            # Configurar tarea ETL
-            echo "📝 Configurando tarea ETL en crontab..."
-            if sudo -u dev bash -c 'echo "5 */2 * * * /workspace/scripts/etl-cron.sh" | crontab -'; then
-                echo "✅ Tarea ETL configurada exitosamente"
-                echo "🔄 ETL automático habilitado (cada 2 horas a los 5 minutos)"
-            else
-                echo "❌ Error configurando tarea ETL"
-            fi
-        else
-            echo "❌ Error en la instalación de cron"
-        fi
+        bash /workspace/install_cron_etl.sh
     else
-        echo "🔐 Se necesitan permisos de root para instalar cron"
-        echo "💡 Intentando instalación con sudo..."
-
-        # Intentar instalación con sudo
-        if sudo bash -c 'apt update && apt install -y cron && service cron start && update-rc.d cron enable'; then
-            echo "✅ Cron instalado exitosamente"
-
-            # Configurar tarea ETL
-            echo "📝 Configurando tarea ETL en crontab..."
-            if sudo -u dev bash -c 'echo "5 */2 * * * /workspace/scripts/etl-cron.sh" | crontab -'; then
-                echo "✅ Tarea ETL configurada exitosamente"
-                echo "🔄 ETL automático habilitado (cada 2 horas a los 5 minutos)"
-            else
-                echo "❌ Error configurando tarea ETL"
-                echo "📝 Configurar manualmente: sudo -u dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
-            fi
-        else
-            echo "❌ Error en la instalación de cron con sudo"
-            echo ""
-            echo "📌 Alternativas para instalar:"
-            echo "   1️⃣  Ejecuta: sudo bash /workspace/install_cron_etl.sh"
-            echo "   2️⃣  O desde el HOST Docker:"
-            echo "      docker exec -u root showstrack-dev bash -c 'apt update && apt install -y cron'"
-            echo "      docker exec -u root showstrack-dev service cron start"
-            echo "      docker exec -u dev showstrack-dev bash -c 'echo \"5 */2 * * * /workspace/scripts/etl-cron.sh\" | crontab -'"
-            echo ""
-            echo "   3️⃣  O ejecuta ETL manualmente cuando necesites:"
-            echo "      /workspace/scripts/etl-cron.sh"
-            echo ""
-            echo "   📖 Más información: /workspace/scripts/CRON_SETUP.md"
-            echo ""
-
-            # Preguntar si quiere ejecutar ETL manualmente ahora
-            read -t 10 -p "   ¿Ejecutar ETL ahora manualmente? (s/N): " RUN_ETL
-            if [[ "$RUN_ETL" =~ ^[Ss]$ ]]; then
-                echo "   🔄 Ejecutando ETL..."
-                /workspace/scripts/etl-cron.sh
-            else
-                echo "   ⏭️  ETL omitido (puedes ejecutarlo después con: /workspace/scripts/etl-cron.sh)"
-            fi
-        fi
+        sudo bash /workspace/install_cron_etl.sh
     fi
 fi
 

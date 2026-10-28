@@ -60,6 +60,8 @@ alembic/__pycache__/
 !.env.template
 
 # Backup files
+backups/
+*.tar.gz
 *.bak
 *.backup
 *.old

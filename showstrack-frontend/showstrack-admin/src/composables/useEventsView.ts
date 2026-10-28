@@ -251,6 +251,18 @@ export function useEventsView() {
     }
   }
 
+  const revertOverride = async (event: any) => {
+    try {
+      await eventsService.revertOverride(event.id.toString(), 'Restablecido a Programado por operador')
+      showSuccessToast(`Evento restablecido a Programado: ${event.show?.name || 'Evento'}`)
+      await loadTodayEvents()
+      return true
+    } catch (error: any) {
+      showErrorToast(`Error al restablecer evento: ${error.message || 'Error desconocido'}`)
+      return false
+    }
+  }
+
   // Selection functions
   const toggleChangeSelection = (changeId: string) => {
     if (selectedChanges.value.has(changeId)) {
@@ -365,7 +377,7 @@ export function useEventsView() {
     
     // Methods
     loadOperationMode, loadPendingChanges, loadImportHistory, loadTodayEvents,
-    executeSyncManual, cleanSkippedChanges, changeOperationMode, createOverride,
+    executeSyncManual, cleanSkippedChanges, changeOperationMode, createOverride, revertOverride,
     toggleChangeSelection, toggleAllChanges, applySelectedChanges, discardSelectedChanges,
     startAutoRefresh, stopAutoRefresh
   }

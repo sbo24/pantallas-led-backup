@@ -27,12 +27,10 @@
               <td class="col-show-combined" colspan="2">
                 <div class="show-content">
                   <img 
-                    v-if="show.selected_icon_filename"
-                    :src="`/assets/images/show-icons/${show.selected_icon_filename}`"
+                    :src="`/assets/images/show-icons/${getShowIcon(show, index)}`"
                     alt=""
                     class="show-icon"
                   />
-                  <span v-else class="show-number">{{ show.show_id || (index + 1) }}</span>
                   <span class="show-name">{{ show.show_name || 'Sin nombre' }}</span>
                 </div>
               </td>
@@ -140,6 +138,50 @@ let messageRefreshInterval: NodeJS.Timeout | null = null
 defineExpose({
   loadCustomMessage
 })
+
+// Función para obtener icono del show (igual que frontend-public)
+const getShowIcon = (show: any, index: number): string => {
+  if (show?.selected_icon_filename) {
+    return show.selected_icon_filename
+  }
+
+  const showIconFallbackMap: Record<string, string> = {
+    'El Último Cantar': 'show-01.png',
+    'El tambor de la Libertad': 'show-06.png',
+    'A Pluma y Espada': 'show-02.png',
+    'Cetrería de Reyes': 'show-04.png',
+    'El Misterio de Sorbaces': 'show-05.png',
+    'Allende la Mar Océana': 'show-03.png',
+    'De Tal Palo': 'show-03.png',
+    'El Espadero de Vivar': 'show-08.png',
+    'El Sueño de Toledo': 'night-show.png',
+    'Apertura': 'show-01.png',
+    'Cierre': 'show-06.png',
+    'La Alegría de la Navidad': 'show-04.png'
+  }
+
+  const normalize = (str: string) => str.normalize('NFC')
+  const showName = (show?.show_name || show?.name || '').trim()
+  const normalizedShowName = normalize(showName)
+
+  const exactKey = Object.keys(showIconFallbackMap).find(k => normalize(k) === normalizedShowName)
+  if (exactKey) {
+    return showIconFallbackMap[exactKey]
+  }
+
+  const lowerName = normalizedShowName.toLowerCase()
+  const mapKey = Object.keys(showIconFallbackMap).find(k => normalize(k).toLowerCase() === lowerName)
+  if (mapKey) {
+    return showIconFallbackMap[mapKey]
+  }
+
+  if (lowerName.includes('navidad')) {
+    return 'show-04.png'
+  }
+
+  const availableIcons = ['show-01.png', 'show-02.png', 'show-03.png', 'show-04.png', 'show-05.png', 'show-06.png']
+  return availableIcons[index % availableIcons.length]
+}
 
 // Computed con EXACTAMENTE la misma lógica de ordenación que frontend-public
 const displayShows = computed(() => {
@@ -251,7 +293,7 @@ onUnmounted(() => {
   /* Colors states */
   --color-programado: transparent;
   --color-abierto: #53630b;
-  --color-cerrado: transparent;
+  --color-cerrado: #8B1E1E;
   --color-cancelado: transparent;
 
   /* Base colors */
@@ -498,13 +540,13 @@ onUnmounted(() => {
   font-size: var(--font-size-status);
   font-weight: 600;
   text-transform: uppercase;
-  padding: var(--padding-cell);
+  padding: clamp(2px, 0.35vw, 6px) clamp(10px, 1.4vw, 24px);
   border-radius: var(--border-radius);
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  min-width: 0;
+  width: auto;
+  min-width: clamp(70px, 9vw, 130px);
 }
 
 /* Estados visuales */
@@ -520,7 +562,7 @@ onUnmounted(() => {
 
 .public-display-preview .show-status[data-status="CERRADO"] {
   background-color: var(--color-cerrado);
-  color: var(--color-text-primary);
+  color: white;
 }
 
 .public-display-preview .show-status[data-status="CANCELADO"] {
