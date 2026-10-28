@@ -55,6 +55,11 @@ class ConfigService:
 
     DEFAULT_SLIDES_CONFIG = {
         "enabled": True,
+        "rotation_days_mode": "always",  # "always", "specific_days", "disabled"
+        "rotation_active_days": [1, 2, 3, 4, 5, 6, 0],  # 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb, 0=Dom
+        "rotation_all_day": True,
+        "rotation_start_time": "18:00",
+        "rotation_end_time": "23:00",
         "schedule_slide": {
             "title": "Horarios de Espectáculos",
             "duration_seconds": 30,

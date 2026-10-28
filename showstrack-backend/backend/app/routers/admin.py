@@ -3,7 +3,7 @@ Router de administración para Shows y Events
 """
 from typing import Annotated, Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
@@ -878,6 +878,67 @@ async def update_slides_configuration(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating slides config: {str(e)}"
+        )
+
+
+@router.post("/config/slides/upload")
+async def upload_slide_image(
+    file: UploadFile = File(...)
+):
+    """
+    Subir una nueva imagen para las diapositivas de las pantallas públicas.
+    Guarda automáticamente tanto en frontend-public como en showstrack-admin/public.
+    """
+    import os
+    import re
+    from pathlib import Path
+    import uuid
+
+    try:
+        # Validar extensión
+        ext = Path(file.filename or "").suffix.lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de imagen no válido. Solo se admiten JPG, PNG y WEBP."
+            )
+
+        # Generar nombre de archivo seguro y único
+        raw_stem = Path(file.filename or "diapositiva").stem
+        safe_stem = re.sub(r"[^a-zA-Z0-9_\-]", "_", raw_stem)
+        unique_id = uuid.uuid4().hex[:6]
+        safe_filename = f"{safe_stem}_{unique_id}{ext}"
+
+        dest_dirs = [
+            Path("/workspace/frontend-public/assets/images/slides"),
+            Path("/workspace/showstrack-frontend/showstrack-admin/public/assets/images/slides")
+        ]
+
+        content = await file.read()
+        if len(content) > 15 * 1024 * 1024:  # 15MB limit
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La imagen no puede superar los 15MB."
+            )
+
+        for d in dest_dirs:
+            d.mkdir(parents=True, exist_ok=True)
+            target_file = d / safe_filename
+            with open(target_file, "wb") as f:
+                f.write(content)
+
+        return {
+            "success": True,
+            "filename": safe_filename,
+            "image_url": f"/assets/images/slides/{safe_filename}",
+            "size_bytes": len(content)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir imagen: {str(e)}"
         )
 
 

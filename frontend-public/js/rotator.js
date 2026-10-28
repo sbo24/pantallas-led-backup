@@ -134,10 +134,47 @@ class DisplayRotator {
         return currentTimeStr >= slide.start_time && currentTimeStr <= slide.end_time;
     }
 
+    isRotationActiveNow() {
+        if (!this.config || this.config.enabled === false) {
+            return false;
+        }
+
+        const mode = this.config.rotation_days_mode || 'always';
+        if (mode === 'disabled') {
+            return false;
+        }
+
+        if (mode === 'specific_days') {
+            const now = new Date();
+
+            // 1. Verificación de días de la semana seleccionados
+            if (Array.isArray(this.config.rotation_active_days)) {
+                const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+                if (!this.config.rotation_active_days.includes(dayOfWeek)) {
+                    // Hoy no toca intercalar -> dejar solo el iframe fijo
+                    return false;
+                }
+            }
+
+            // 2. Verificación de horas de intercalado
+            if (!this.config.rotation_all_day && this.config.rotation_start_time && this.config.rotation_end_time) {
+                const currentHours = String(now.getHours()).padStart(2, '0');
+                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTimeStr = `${currentHours}:${currentMinutes}`;
+                if (currentTimeStr < this.config.rotation_start_time || currentTimeStr > this.config.rotation_end_time) {
+                    // Fuera de horas de intercalado -> dejar solo el iframe fijo
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     buildPlaylist() {
-        if (!this.config || !this.config.enabled) {
-            // Si la rotación está desactivada, solo mostrar horario
-            return [{ type: 'schedule', duration: 30 }];
+        if (!this.isRotationActiveNow()) {
+            // Si la rotación no toca hoy o está desactivada, solo mostrar horario fijo
+            return [{ type: 'schedule', title: 'Horarios', duration: 30 }];
         }
 
         const list = [];
@@ -145,29 +182,42 @@ class DisplayRotator {
         // 1. Si existe lista ordenada unificada 'items'
         if (Array.isArray(this.config.items) && this.config.items.length > 0) {
             for (const item of this.config.items) {
-                if (item.type === 'schedule') {
-                    if (item.enabled !== false) {
-                        list.push({
-                            type: 'schedule',
-                            title: item.title || 'Horarios',
-                            duration: Math.max(5, item.duration_seconds || 30)
-                        });
-                    }
-                } else {
-                    if (this.isSlideActiveNow(item)) {
-                        list.push({
-                            type: 'image',
-                            id: item.id,
-                            title: item.title,
-                            image_url: item.image_url,
-                            duration: Math.max(5, item.duration_seconds || 15)
-                        });
-                    }
+                // Verificar si el item está activo (aplica tanto a horario como a imágenes)
+                if (!this.isSlideActiveNow(item)) {
+                    continue;
                 }
+
+                if (item.type === 'schedule') {
+                    // Evitar que se repita el iframe consecutivamente
+                    const lastAdded = list[list.length - 1];
+                    if (lastAdded && lastAdded.type === 'schedule') {
+                        continue;
+                    }
+
+                    list.push({
+                        type: 'schedule',
+                        id: item.id,
+                        title: item.title || 'Horarios',
+                        duration: Math.max(5, item.duration_seconds || 30)
+                    });
+                } else {
+                    list.push({
+                        type: 'image',
+                        id: item.id,
+                        title: item.title,
+                        image_url: item.image_url,
+                        duration: Math.max(5, item.duration_seconds || 15)
+                    });
+                }
+            }
+
+            // Evitar repetición de iframe al dar la vuelta al bucle (primer y último elemento)
+            if (list.length > 2 && list[0].type === 'schedule' && list[list.length - 1].type === 'schedule') {
+                list.pop();
             }
         } else {
             // Fallback a estructura legacy { schedule_slide, slides }
-            if (this.config.schedule_slide?.enabled !== false) {
+            if (this.config.schedule_slide?.enabled !== false && this.isSlideActiveNow(this.config.schedule_slide)) {
                 list.push({
                     type: 'schedule',
                     title: this.config.schedule_slide?.title || 'Horarios',
